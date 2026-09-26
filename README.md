@@ -1,16 +1,23 @@
-# React + Vite
+# Futbot - San Marino Famaf (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Este repositorio contiene el frontend del juego Futbot, desarrollado con React, Vite y Tailwind CSS siguiendo una arquitectura orientada a características (Feature-Sliced Design).
 
-Currently, two official plugins are available:
+## Requisitos previos
+- Node.js (v18 o superior recomendado)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Inicialización del proyecto
 
-## React Compiler
+Tras clonar el repositorio:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Instalar las dependencias:**
+   ```bash
+   npm install
+   ```
 
-## Expanding the Oxlint configuration
+2. **Iniciar el servidor de desarrollo:**
+   ```bash
+   npm run dev
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+3. **Abrir la aplicación:**
+   El terminal mostrará una URL local (generalmente `http://localhost:5173/`). Abre ese enlace en tu navegador.
