@@ -1,3 +1,5 @@
+import { apiClient } from "../../shared/api/client";
+
 export const sendDataToAPI = async (user) => {
     return (fetch("/sessions", {
         method:"POST",
@@ -5,9 +7,18 @@ export const sendDataToAPI = async (user) => {
     }))
 };
 
-export const checkSession = async () => {
-    return fetch("/users/me", {
-        method: "GET"
-    });
+export const checkSession = async (logout) => {
+
+    try {
+        return await apiClient("/users/me", {
+            method: "GET"
+        });
+    } catch (error) {
+        if (error.message === "Sesión expirada o token inválido") {
+            logout();
+        }
+
+        throw error;
+    }
 };
 

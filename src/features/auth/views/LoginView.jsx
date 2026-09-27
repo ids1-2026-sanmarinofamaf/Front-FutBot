@@ -13,6 +13,7 @@ export default function Login() {
         event.preventDefault();
         console.log("Formulario enviado");
         console.log(user.email, user.password)
+        const sendData = await sendDataToAPI(user);
     }
 
     const handleAnyInput = (e,parameter) => {
