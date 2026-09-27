@@ -8,7 +8,7 @@ import {getToken} from "../auth/auth.js"
     authenticated. In practice, it prevents scattered authentication logic from 
     being rebuilt in each screen. */}
 
-export const AuthContext = createContext(); //se usa para compartir datos
+export const AuthContext = createContext(); //se usa para compartir datos, como un pizarron
 
 //Componente para verificar token existente o no, y valido o no.
 export const AuthProvider = ({ children }) => {
@@ -43,6 +43,8 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
+        //Todo el que esté dentro de esta sala puede consultar este pizarrón. 
+        // En él dejo escrito si el usuario está autenticado y cómo cambiar ese estado.
         <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
             {loading ? <p>Cargando...</p> : children}
         </AuthContext.Provider>

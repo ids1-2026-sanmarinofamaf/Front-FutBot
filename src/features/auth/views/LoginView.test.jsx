@@ -25,6 +25,17 @@ beforeEach(() => {
     );
 });
 
+it("Funcionamiento del mock para POST /sessions", async () => {
+    const response = await fetch("/sessions", {
+        method: "POST"
+    });
+
+    const data = await response.json();
+
+    expect(response.ok).toBe(true);
+    expect(data.token).toBe("mock-token-123");
+})
+
 it("envía el formulario de inicio de sesión al backend", async () => {
     render(<LoginView />);
 

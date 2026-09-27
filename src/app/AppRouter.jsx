@@ -6,6 +6,7 @@ import LoginView from "../features/auth/views/LoginView";
 import MainView from "../app/App.jsx";
 
 const AppRouter = () => {
+    //Voy a mirar el pizarrón de autenticación y quiero saber qué dice isAuthenticated
     const { isAuthenticated } = useContext(AuthContext);
 
     if (isAuthenticated) {
