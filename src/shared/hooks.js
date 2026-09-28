@@ -34,7 +34,9 @@ function useWebSocket(url, options = {}) {
             }
         };
 
-        socket.onerror = () => socket.close();
+        socket.onerror = () => {
+            console.log("Se produjo un error al conectar con ws")
+            socket.close();}
         }, [url, onMessage, onOpen, onClose, reconnect]);
 
     const scheduleReconnect = useCallback(() => {
@@ -53,6 +55,8 @@ function useWebSocket(url, options = {}) {
 
     
     useEffect(() => {
+        if (!url) return;
+
         connect();
 
         return () => {

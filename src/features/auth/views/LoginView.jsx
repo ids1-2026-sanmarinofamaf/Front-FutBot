@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { sendDataToAPI, checkSession } from "../api.js";
-import { saveTokenLocalStorage, getToken } from "../auth";
+import { getToken, saveTokenLocalStorage } from "../auth";
+import { useContext } from "react";
+import { AuthContext } from "../AuthProvider.jsx";
+
 
 export default function Login() {
+
+    const { connectWebSocket } = useContext(AuthContext);
 
     const [user, setUser] = useState({
         email: "",
@@ -11,10 +16,17 @@ export default function Login() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        console.log("Formulario enviado");
-        console.log(user.email, user.password)
-        const sendData = await sendDataToAPI(user);
-    }
+
+        const response = await sendDataToAPI(user); //envia endpoint
+        saveTokenLocalStorage(response); //guarda token
+
+        await checkSession();
+        const token = getToken();
+
+        if (token) {
+            connectWebSocket(token);
+        }
+    };
 
     const handleAnyInput = (e,parameter) => {
         setUser({...user, [parameter]: e.target.value})

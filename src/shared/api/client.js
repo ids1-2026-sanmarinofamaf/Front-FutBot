@@ -4,46 +4,46 @@ const BASE_URL = import.meta.env.VITE_API_URL; // Ajustar mediante variables de 
 
 export const apiClient = async (endpoint, options = {}) => {
   
-  //Se debe verificar que el token exista al menos
-  const token = getToken();
+    //Se debe verificar que el token exista al menos
+    const token = getToken();
 
-  if (!token){
-    throw new Error("No hay token de autenticación"); 
-  } 
-  else {
+    if (!token){
+        throw new Error("No hay token de autenticación"); 
+    } 
+    else {
 
-    const defaultHeaders = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-    };
+        const defaultHeaders = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        };
 
-    const config = {
-        ...options,
-        headers: {
-            ...defaultHeaders,
-            ...options.headers,
-        },
-    };
+        const config = {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers,
+            },
+        };
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+        const response = await fetch(`${BASE_URL}${endpoint}`, config);
 
-    if (!response.ok) {
+        if (!response.ok) {
 
-        if (response.status === 401) {
-            console.error('Sesión expirada o token inválido');
-            //limpieza del store de sesión 
-            localStorage.removeItem("token");
+            if (response.status === 401) {
+                console.error('Sesión expirada o token inválido');
+                //limpieza del store de sesión 
+                localStorage.removeItem("token");
+            }
+        
+            // Intenta parsear el mensaje de error del backend, si existe
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.response || `Error HTTP: ${response.status}`);
         }
-    
-        // Intenta parsear el mensaje de error del backend, si existe
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.response || `Error HTTP: ${response.status}`);
+
+        // Manejo de respuestas 204 No Content
+        if (response.status === 204) return null;
+
+        return await response.json();
     }
-
-    // Manejo de respuestas 204 No Content
-    if (response.status === 204) return null;
-
-    return await response.json();
-  }
 
 };

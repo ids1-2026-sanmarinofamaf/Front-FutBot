@@ -8,22 +8,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const AppRouter = () => {
     //Voy a mirar el pizarrón de autenticación y quiero saber qué dice isAuthenticated
-    const { isAuthenticated } = useContext(AuthContext);
-
-   {/*} if (isAuthenticated) {
-        return <MainView />;
-    }
-    return <LoginView />;*/}
+    const { isAuthenticated, isSessionConnected } = useContext(AuthContext);
 
     return(
         <BrowserRouter>
             <Routes>
-                {!isAuthenticated ? (
+                {isAuthenticated && isSessionConnected ? (
                     <>
-                        <Route path="/" element={<LoginView />} />
+                        <Route path="/" element={<MainView />} />
                     </>
                 ) : (
-                    <Route path="/" element={<MainView />} />
+                    <Route path="/" element={<LoginView />} />
                 )}
             </Routes>
         </BrowserRouter>
