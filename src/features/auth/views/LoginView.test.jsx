@@ -1,10 +1,62 @@
-import { it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook,render, screen,  waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import LoginView from "./LoginView";
+import useWebSocket from "../../../shared/hooks";
 
-{/*Mock del backend*/}
+import LoginView from "./LoginView";
+import { AuthProvider } from "../AuthProvider.jsx";
+
+vi.mock("../api.js", async (importOriginal) => {
+    const actual = await importOriginal();
+
+    return {
+        ...actual,
+        checkSession: vi.fn().mockResolvedValue({
+            ok: true
+        })
+    };
+});
+
+class MockWebSocket {
+    static instances = [];
+
+    static OPEN = 1;
+    static CLOSED = 3;
+
+    constructor(url) {
+        this.url = url;
+        this.readyState = MockWebSocket.OPEN;
+
+        this.onopen = null;
+        this.onmessage = null;
+        this.onclose = null;
+        this.onerror = null;
+
+        MockWebSocket.instances.push(this);
+    }
+
+    send(data) {
+        this.sentData = data;
+    }
+
+    close() {
+        this.readyState = MockWebSocket.CLOSED;
+
+        if (this.onclose) {
+            this.onclose({
+                code: 1000
+            });
+        }
+    }
+}
+
 beforeEach(() => {
+    vi.clearAllMocks();
+
+    MockWebSocket.instances = [];
+    
+    vi.stubGlobal("WebSocket", MockWebSocket)
+
     vi.stubGlobal(
         "fetch",
         vi.fn((url, options) => {
@@ -25,34 +77,61 @@ beforeEach(() => {
     );
 });
 
-it("Funcionamiento del mock para POST /sessions", async () => {
-    const response = await fetch("/sessions", {
-        method: "POST"
-    });
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
-    const data = await response.json();
-
-    expect(response.ok).toBe(true);
-    expect(data.token).toBe("mock-token-123");
+describe("Formulario y endpoint", () => {
+    
+        it("Funcionamiento del mock para POST /sessions", async () => {
+            const response = await fetch("/sessions", {
+                method: "POST"
+            });
+        
+            const data = await response.json();
+        
+            expect(response.ok).toBe(true);
+            expect(data.token).toBe("mock-token-123");
+        });
+        
+        it("envía el formulario de inicio de sesión al backend", async () => {
+            render(
+                <AuthProvider>
+                    <LoginView />
+                </AuthProvider>
+            );
+        
+            const email = screen.getByLabelText("Email:");
+            const password = screen.getByLabelText("Contraseña:");
+            const button = screen.getByRole("button", {
+                name: "Iniciar sesión"
+            });
+        
+            await userEvent.type(email, "test@test.com");
+            await userEvent.type(password, "123456");
+        
+            await userEvent.click(button);
+        
+            expect(fetch).toHaveBeenCalledWith("/sessions", {
+                method: "POST",
+                body: JSON.stringify({
+                    email: "test@test.com",
+                    password: "123456"
+                })
+            });
+        });
 })
 
-it("envía el formulario de inicio de sesión al backend", async () => {
-    render(<LoginView />);
+describe("useWebSocket para ws de sesiones", () => {
 
-    const email = screen.getByLabelText("Email:");
-    const password = screen.getByLabelText("Contraseña:");
-    const button = screen.getByRole("button", { name: "Iniciar sesión" });
+    it("genera una conexión WebSocket con la URL indicada", () => {
+        const url = "ws://localhost:8000/ws/lobby?token=mock-token";
 
-    await userEvent.type(email, "test@test.com");
-    await userEvent.type(password, "123456");
+        renderHook(() => useWebSocket(url));
 
-    await userEvent.click(button);
+        expect(MockWebSocket.instances).toHaveLength(1);
 
-    expect(fetch).toHaveBeenCalledWith("/sessions", {
-        method: "POST",
-        body: JSON.stringify({
-            email: "test@test.com",
-            password: "123456"
-        })
+        expect(MockWebSocket.instances[0].url).toBe(url);
     });
+
 });
