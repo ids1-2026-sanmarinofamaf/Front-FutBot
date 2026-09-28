@@ -1,28 +1,27 @@
-{/*Antes de agregar rutas acá use: npm install react-router-dom */}
-
 import { useContext } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "../features/auth/AuthProvider.jsx";
 import LoginView from "../features/auth/views/LoginView";
 import MainView from "../app/App.jsx";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const AppRouter = () => {
-    //Voy a mirar el pizarrón de autenticación y quiero saber qué dice isAuthenticated
-    const { isAuthenticated, isSessionConnected } = useContext(AuthContext);
+  const { isAuthenticated } = useContext(AuthContext);
 
-    return(
-        <BrowserRouter>
-            <Routes>
-                {isAuthenticated && isSessionConnected ? (
-                    <>
-                        <Route path="/" element={<MainView />} />
-                    </>
-                ) : (
-                    <Route path="/" element={<LoginView />} />
-                )}
-            </Routes>
-        </BrowserRouter>
-    )
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <LoginView />}
+        />
+        <Route
+          path="/"
+          element={isAuthenticated ? <MainView /> : <Navigate to="/login" replace />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
 export default AppRouter;

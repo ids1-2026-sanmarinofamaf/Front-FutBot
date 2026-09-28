@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { sendDataToAPI, checkSession } from "../api.js";
-import { getToken, saveTokenLocalStorage } from "../auth";
+import { removeToken, saveTokenLocalStorage } from "../auth";
 import { useContext } from "react";
 import { AuthContext } from "../AuthProvider.jsx";
 
-
 export default function Login() {
 
-    const { connectWebSocket } = useContext(AuthContext);
+    const { setIsAuthenticated } = useContext(AuthContext);
 
     const [user, setUser] = useState({
         email: "",
@@ -17,14 +16,17 @@ export default function Login() {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        const response = await sendDataToAPI(user); //envia endpoint
-        saveTokenLocalStorage(response); //guarda token
+        try{
+            const response = await sendDataToAPI(user); //envia endpoint
+            saveTokenLocalStorage(response); //guarda token
 
-        await checkSession();
-        const token = getToken();
+            const check =  await checkSession(removeToken);
+            if(check){
+                setIsAuthenticated(true);
+            } 
 
-        if (token) {
-            connectWebSocket(token);
+        } catch (error) {
+            console.log("Error al iniciar sesión:", error);
         }
     };
 
