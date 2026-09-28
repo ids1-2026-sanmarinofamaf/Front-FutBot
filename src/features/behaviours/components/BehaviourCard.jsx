@@ -1,16 +1,17 @@
-export function BehaviourCard({ behaviour }) {
+// src/features/behaviours/components/BehaviourCard.jsx
+export function BehaviourCard({ behaviour, onView }) {
   const handleView = () => {
-    // Aquí se conectará la navegación hacia el detalle del comportamiento
-    console.info(`Navegando a detalle de comportamiento ID: ${behaviour.behaivior_id}`);
+    // Ejecuta la función del padre pasando el ID correcto
+    if (onView) {
+      onView(behaviour.behaviour_id);
+    }
   };
 
   const handleEdit = () => {
-    // Fuera del alcance del Sprint 2
     console.info('Endpoint de edición no implementado.');
   };
 
   const handleDelete = () => {
-    // Fuera del alcance del Sprint 2
     console.info('Endpoint de borrado no implementado.');
   };
 

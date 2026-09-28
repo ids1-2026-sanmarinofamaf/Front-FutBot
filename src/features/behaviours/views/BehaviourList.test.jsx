@@ -3,8 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BehaviourList } from './BehaviourList';
 import * as api from '../api';
 
-// Se intercepta el módulo de la capa de dominio
+// Interceptamos la capa de red
 vi.mock('../api');
+
+// Aislamos BehaviourDetail para que no ejecute lógica en este ticket
+vi.mock('./BehaviourDetail', () => ({
+  BehaviourDetail: () => null,
+}));
 
 describe('BehaviourList UI', () => {
   beforeEach(() => {
@@ -20,17 +25,16 @@ describe('BehaviourList UI', () => {
     render(<BehaviourList />);
 
     // 3. Assert
-    // Se utiliza waitFor porque el renderizado inicial es "loading" y luego pasa a "error" asíncronamente
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
   });
 
   it('renderiza la lista de comportamientos correctamente', async () => {
-    // 1. Arrange
+    // 1. Arrange: payload sin 'code', respetando el contrato optimizado
     const mockData = [
-      { behaviour_id: 1, name: 'Ofensivo', code: 'kick()', is_valid: true },
-      { behaviour_id: 2, name: 'Pasivo', code: 'wait()', is_valid: false }
+      { behaviour_id: 1, name: 'Ofensivo', is_valid: true },
+      { behaviour_id: 2, name: 'Pasivo', is_valid: false }
     ];
     vi.spyOn(api, 'getBehaviours').mockResolvedValue(mockData);
 

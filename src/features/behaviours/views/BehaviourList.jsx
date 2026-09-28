@@ -1,11 +1,16 @@
+// src/features/behaviours/views/BehaviourList.jsx
 import { useState, useEffect } from 'react';
 import { getBehaviours } from '../api';
 import { BehaviourCard } from '../components/BehaviourCard';
+import { BehaviourDetail } from './BehaviourDetail'; // <-- Importamos la nueva vista
 
 export function BehaviourList() {
   const [behaviours, setBehaviours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Estado para controlar la navegación interna
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
     const fetchBehaviours = async () => {
@@ -25,10 +30,23 @@ export function BehaviourList() {
   }, []);
 
   const handleCreateNew = () => {
-    // Fuera del alcance del Sprint 2
     console.info('Endpoint de creación de comportamiento no implementado en el sprint actual.');
   };
 
+  // --- RENDERIZADO CONDICIONAL DE NAVEGACIÓN ---
+  // Si hay un ID seleccionado, ocultamos la lista y mostramos el detalle
+  if (selectedId !== null) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <BehaviourDetail 
+          id={selectedId} 
+          onBack={() => setSelectedId(null)} // Al volver, limpiamos el estado
+        />
+      </div>
+    );
+  }
+
+  // --- RENDERIZADO ORIGINAL DE LA LISTA ---
   if (loading) {
     return (
       <div className="flex justify-center p-12">
@@ -63,7 +81,11 @@ export function BehaviourList() {
       ) : (
         <div className="flex flex-col gap-4">
           {behaviours.map((behaviour) => (
-            <BehaviourCard key={behaviour.behaivior_id} behaviour={behaviour} />
+            <BehaviourCard 
+              key={behaviour.behaviour_id} // Corregido el typo aquí
+              behaviour={behaviour} 
+              onView={setSelectedId} // Pasamos la función de seteo de estado
+            />
           ))}
         </div>
       )}
