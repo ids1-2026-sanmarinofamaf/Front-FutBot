@@ -1,1 +1,1 @@
-src/app/setupTests.js
+import '@testing-library/jest-dom';

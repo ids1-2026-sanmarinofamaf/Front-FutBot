@@ -1,3 +1,4 @@
+// src/shared/api/client.js
 const BASE_URL = 'http://localhost:8000'; // Ajustar mediante variables de entorno
 
 export const apiClient = async (endpoint, options = {}) => {
@@ -24,7 +25,7 @@ export const apiClient = async (endpoint, options = {}) => {
       console.error('Sesión expirada o token inválido');
       // Aquí se invocaría la limpieza del store de sesión y redirección a /login
     }
-
+    
     // Intenta parsear el mensaje de error del backend, si existe
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.response || `Error HTTP: ${response.status}`);
