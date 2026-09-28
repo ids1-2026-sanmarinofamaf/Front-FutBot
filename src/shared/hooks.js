@@ -1,77 +1,101 @@
 import { useRef, useCallback, useEffect } from 'react';
 
-// https://websocket.org/guides/frameworks/react/#custom-hook-usewebsocket
-
 function useWebSocket(url, options = {}) {
     const { onMessage, onOpen, onClose, reconnect = true } = options;
 
-    //conservar mismo objeto entre renders sin provocar un nuevo render cuando cambia.
     const wsRef = useRef(null);
-
     const reconnectTimer = useRef(null);
-    const attemptRef = useRef(0); //intentos de reconexión
+    const attemptRef = useRef(0);
+    const shouldReconnectRef = useRef(true);
 
-    //React crea funciones nuevas en cada render. useCallback permite mantener 
-    //una referencia estable a la función mientras sus dependencias no cambien.
-    const connect = useCallback(() => {
+    // Callbacks siempre actualizados, sin recrear la conexión
+    const onMessageRef = useRef(onMessage);
+    const onOpenRef = useRef(onOpen);
+    const onCloseRef = useRef(onClose);
 
-        const socket = new WebSocket(url);
-        wsRef.current = socket;
 
-        socket.onopen = () => {
-            attemptRef.current = 0; 
-            onOpen?.(); 
-        };
+    //se usan referencias para que cada renderizado no cierre/abra el socket
+    useEffect(() => {
+        onMessageRef.current = onMessage;
+        onOpenRef.current = onOpen;
+        onCloseRef.current = onClose;
+    });
 
-        socket.onmessage = (event) => {
-            onMessage?.(JSON.parse(event.data)); //ver
-        };
-
-        socket.onclose = (event) => {
-            onClose?.(event);
-            if (reconnect && event.code !== 1000) { //1000 significa que la conexión se cerró normalmente
-                scheduleReconnect();
-            }
-        };
-
-        socket.onerror = () => {
-            console.log("Se produjo un error al conectar con ws")
-            socket.close();}
-        }, [url, onMessage, onOpen, onClose, reconnect]);
-
-    const scheduleReconnect = useCallback(() => {
-        const attempt = attemptRef.current;
-        if (attempt >= 10) return; // stop after 10 attempts
-
-        const baseDelay = Math.min(1000 * 2 ** attempt, 30000); //exponential backoff
-        const jitter = Math.random() * 1000;
-        const delay = baseDelay + jitter;
-
-        reconnectTimer.current = setTimeout(() => {
-            attemptRef.current += 1;
-            connect();
-        }, delay);
-    }, [connect]);
-
-    
     useEffect(() => {
         if (!url) return;
 
+        //Solo se reconecta si cambia la URL o la opción reconnect
+        shouldReconnectRef.current = true;
+        attemptRef.current = 0;
+
+        const connect = () => {
+            const socket = new WebSocket(url);
+            wsRef.current = socket;
+
+            socket.onopen = () => {
+                if (wsRef.current !== socket) return;
+                attemptRef.current = 0;
+                onOpenRef.current?.();
+            };
+
+            socket.onmessage = (event) => {
+                if (wsRef.current !== socket) return;
+
+                try {
+                    onMessageRef.current?.(JSON.parse(event.data));
+                } catch (err) {
+                    console.error("Mensaje WS inválido:", err);
+                }
+            };
+
+            socket.onerror = () => {
+                console.log("Se produjo un error al conectar con ws");
+                // el navegador dispara onclose después de onerror
+            };
+
+            socket.onclose = (event) => {
+                if (wsRef.current !== socket) return; // socket descartado
+                onCloseRef.current?.(event);
+
+                if (
+                reconnect &&
+                shouldReconnectRef.current &&
+                event.code !== 1000 &&
+                attemptRef.current < 10
+                ) {
+                    const baseDelay = Math.min(1000 * 2 ** attemptRef.current, 30000);
+                    const delay = baseDelay + Math.random() * 1000;
+
+                    reconnectTimer.current = setTimeout(() => {
+                        attemptRef.current += 1;
+                        connect();
+                    }, delay);
+                }
+            };
+        };
+
         connect();
 
+        //clean up al desmontar o cambiar url
         return () => {
+            shouldReconnectRef.current = false;
             clearTimeout(reconnectTimer.current);
-            wsRef.current?.close(1000, "hook cleanup");
+            const socket = wsRef.current;
+            wsRef.current = null; // los handlers viejos se ignoran
+            socket?.close(1000, "hook cleanup");
         };
-    }, [connect]);
 
-    //permite que el componente mande información al backend
+    }, [url, reconnect]);
+
     const send = useCallback((data) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify(data));
+            return true;
         }
+        return false;
     }, []);
 
     return { send, wsRef };
+}
 
-} export default useWebSocket;
+export default useWebSocket;
