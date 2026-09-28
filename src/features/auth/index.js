@@ -1,0 +1,1 @@
+export { BehaviourList } from './views/BehaviourList';
