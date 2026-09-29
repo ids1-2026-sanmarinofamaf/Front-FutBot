@@ -2,3 +2,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+  font-family: "BitPotion";
+  src: url("public/fonts/BitPotionExt.ttf") format("truetype");
+}
+.mi-fuente {
+  font-family: "BitPotion", sans-serif;
+}

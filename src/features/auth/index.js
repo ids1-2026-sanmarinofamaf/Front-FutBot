@@ -1,1 +1,1 @@
-export { default as LoginView } from "./views/LoginView.jsx";
+export { default } from "./views/LoginView.jsx";
