@@ -1,5 +1,6 @@
 import { apiClient } from "../../shared/api/client";
 
+//fetch hardcodeado intencionalmente (apiClient requiere token)
 export const sendDataToAPI = async (user) => {
     return (fetch("/sessions", {
         method:"POST",

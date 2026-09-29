@@ -12,7 +12,6 @@ import { checkSession } from "./api.js";
 export const AuthContext = createContext(); //se usa para compartir datos, como un pizarron
 
 //Componente para verificar token existente o no, y valido o no.
-//Inicia conexión a ws de sesion
 export const AuthProvider = ({ children }) => {
     
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -51,9 +50,12 @@ export const AuthProvider = ({ children }) => {
         verifySession();
     }, []);
 
+    {/**Analogar este codigo con consultas a un pizarron en una sala es útil:
+            Todo el que esté dentro de esta sala puede consultar este pizarrón. 
+            En el dejo escrito si el usuario está autenticado y cómo cambiar ese estado."
+        */} 
     return (
-        //Todo el que esté dentro de esta sala puede consultar este pizarrón. 
-        // En él dejo escrito si el usuario está autenticado y cómo cambiar ese estado.
+        
         <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, logout, }}>
             {loading ? (
                 <p data-testid="loading">Cargando...</p>

@@ -49,7 +49,7 @@ function useWebSocket(url, options = {}) {
             };
 
             socket.onerror = () => {
-                console.log("Se produjo un error al conectar con ws");
+                console.error("Se produjo un error al conectar con ws");
                 // el navegador dispara onclose después de onerror
             };
 
@@ -76,10 +76,10 @@ function useWebSocket(url, options = {}) {
 
         connect();
 
-        //clean up al desmontar o cambiar url
+        //clean up al desmontar o cambiar url (se reejecuta el efecto)
         return () => {
-            shouldReconnectRef.current = false;
-            clearTimeout(reconnectTimer.current);
+            shouldReconnectRef.current = false; //no debe reconectarse (cierre intencional).
+            clearTimeout(reconnectTimer.current); //cancela reconexión programada.
             const socket = wsRef.current;
             wsRef.current = null; // los handlers viejos se ignoran
             socket?.close(1000, "hook cleanup");
@@ -87,6 +87,8 @@ function useWebSocket(url, options = {}) {
 
     }, [url, reconnect]);
 
+    //función para mandar mensajes por el WebSocket
+    //No util ahora, quizás en el futuro
     const send = useCallback((data) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify(data));
