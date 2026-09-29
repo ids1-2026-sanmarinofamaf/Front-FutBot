@@ -18,10 +18,14 @@ describe("sendDataToAPI", () => {
 
         await sendDataToAPI(user);
 
-        expect(global.fetch).toHaveBeenCalledWith("/sessions", {
-            method: "POST",
-            body: JSON.stringify(user),
-        });
+        expect(global.fetch).toHaveBeenCalledWith(
+            `${import.meta.env.VITE_API_URL}/sessions`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(user),
+            }
+        );
     });
 
     it("devuelve la respuesta de fetch", async () => {

@@ -38,7 +38,7 @@ describe("apiClient", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/users/me",
+      `${import.meta.env.VITE_API_URL}/users/me`,
       {
         method: "GET",
         headers: {

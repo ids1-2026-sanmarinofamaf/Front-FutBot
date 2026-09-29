@@ -60,7 +60,7 @@ beforeEach(() => {
     vi.stubGlobal(
         "fetch",
         vi.fn((url, options) => {
-            if (url === "/sessions" && options?.method === "POST") {
+            if (String(url).endsWith("/sessions") && options?.method === "POST") {
                 return Promise.resolve({
                     ok: true,
                     status: 200,
@@ -112,8 +112,10 @@ describe("Formulario y endpoint", () => {
         
             await userEvent.click(button);
         
-            expect(fetch).toHaveBeenCalledWith("/sessions", {
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${import.meta.env.VITE_API_URL}/sessions`, {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: "test@test.com",
                     password: "123456"
