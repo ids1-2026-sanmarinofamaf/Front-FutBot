@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
             //Es válido? Borra si no lo es
             try{
                 const response = await checkSession(logout);
-                if (response.ok) {
+                if (response) {
                     setIsAuthenticated(true);
                 }
             } catch (error) {
@@ -48,6 +48,13 @@ export const AuthProvider = ({ children }) => {
         };
 
         verifySession();
+    }, []);
+
+    //Escucha el aviso del websocket para cerrar sesión
+    useEffect(() => {
+        const onExpired = () => logout();
+        window.addEventListener("auth:expired", onExpired);
+        return () => window.removeEventListener("auth:expired", onExpired);
     }, []);
 
     {/**Analogar este codigo con consultas a un pizarron en una sala es útil:

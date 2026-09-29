@@ -33,6 +33,8 @@ export const apiClient = async (endpoint, options = {}) => {
                 console.error('Sesión expirada o token inválido');
                 //limpieza del store de sesión 
                 localStorage.removeItem("token");
+                //crea evento para notificar que se debe cerrar la sesión
+                window.dispatchEvent(new Event("auth:expired"));
             }
         
             // Intenta parsear el mensaje de error del backend, si existe

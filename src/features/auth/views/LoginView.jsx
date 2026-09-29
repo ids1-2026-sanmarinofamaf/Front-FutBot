@@ -18,7 +18,8 @@ export default function Login() {
 
         try{
             const response = await sendDataToAPI(user); //envia endpoint
-            saveTokenLocalStorage(response); //guarda token
+            const data = await response.json();
+            saveTokenLocalStorage(data); //guarda token
 
             const check =  await checkSession(removeToken);
             if(check){
