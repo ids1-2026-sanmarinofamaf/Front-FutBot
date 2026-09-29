@@ -1,0 +1,1 @@
+export { BehaviourDetail } from './views/BehaviourDetail';
