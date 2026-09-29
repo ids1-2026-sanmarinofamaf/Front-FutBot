@@ -10,5 +10,8 @@ export default defineConfig({
   ],
   test: {
     environment: "jsdom",
+    env: {
+      VITE_WS_SESSION_URL: "wss://test-server:8000",
+    },
   },
 })

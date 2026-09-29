@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "../features/auth/AuthProvider.jsx";
-import LoginView from "../features/auth/views/LoginView";
+import LoginView from "../features/auth";
 import MainView from "../app/App.jsx";
 
 const AppRouter = () => {
