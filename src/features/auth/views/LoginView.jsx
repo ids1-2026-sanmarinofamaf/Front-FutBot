@@ -13,32 +13,62 @@ export default function Login() {
         password: ""
     })
 
+    const [error, setError] = useState("");
+    const [toast, setToast] = useState(null); // { id } mientras se muestra
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+        setError("");
+        setToast(null);
 
         try{
             const response = await sendDataToAPI(user); //envia endpoint
+            if (response.status === 400) {
+                setError("Email o contraseña incorrectos.");
+                setToast({ id: Date.now() });
+                return;
+            }
+            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+
             const data = await response.json();
             saveTokenLocalStorage(data); //guarda token
 
             const check =  await checkSession(removeToken);
             if(check){
+                setError("")
                 setIsAuthenticated(true);
             } 
 
-        } catch (error) {
-            console.log("Error al iniciar sesión:", error);
+        } catch (err) {
+            console.log("Error al iniciar sesión:", err);
         }
     };
 
     const handleAnyInput = (e,parameter) => {
         setUser({...user, [parameter]: e.target.value})
+        setError("");
+        setToast(null);
     }
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
         <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-3">
             FUTBOT
         </h1>
+
+        {error === "Email o contraseña incorrectos." && (
+            <div className="toast-enter fixed bottom-4 right-4 z-50 max-w-sm
+                            bg-orange-100 border-l-4 border-orange-500 text-orange-700 
+                            p-4 rounded shadow-lg
+                            text-3xl" 
+                 role="alert"
+                 key={toast.id}
+            >
+                    <div className='flex-1'>
+                        <p className="font-bold">Revise sus datos nuevamente</p>
+                        <p>{error}</p>
+                    </div>              
+            </div>
+        )}
 
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md ">
         {/* Formulario de inicio de sesión */}
