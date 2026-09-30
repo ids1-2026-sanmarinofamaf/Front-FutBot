@@ -1,19 +1,24 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { BehaviourList } from './BehaviourList';
 import * as api from '../api';
+import { useNavigate } from 'react-router-dom';
 
 // Interceptamos la capa de red
 vi.mock('../api');
 
-// Aislamos BehaviourDetail para que no ejecute lógica en este ticket
-vi.mock('./BehaviourDetail', () => ({
-  BehaviourDetail: () => null,
+// Interceptamos el enrutador
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(),
 }));
 
 describe('BehaviourList UI', () => {
+  const mockNavigate = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    useNavigate.mockReturnValue(mockNavigate);
   });
 
   it('muestra el mensaje de error cuando la API falla', async () => {
@@ -31,7 +36,7 @@ describe('BehaviourList UI', () => {
   });
 
   it('renderiza la lista de comportamientos correctamente', async () => {
-    // 1. Arrange: payload sin 'code', respetando el contrato optimizado
+    // 1. Arrange
     const mockData = [
       { behaviour_id: 1, name: 'Ofensivo', is_valid: true },
       { behaviour_id: 2, name: 'Pasivo', is_valid: false }
@@ -49,5 +54,24 @@ describe('BehaviourList UI', () => {
       expect(screen.getByText('Pasivo')).toBeInTheDocument();
       expect(screen.getByText('Inválido')).toBeInTheDocument();
     });
+  });
+
+  it('navega al detalle del comportamiento al hacer clic en "Ver"', async () => {
+    // 1. Arrange
+    const user = userEvent.setup();
+    const mockData = [{ behaviour_id: 5, name: 'Táctica Test', is_valid: true }];
+    vi.spyOn(api, 'getBehaviours').mockResolvedValue(mockData);
+    
+    render(<BehaviourList />);
+
+    // Esperamos a que la tarjeta se renderice
+    const viewButton = await screen.findByRole('button', { name: /ver/i });
+    
+    // 2. Act
+    await user.click(viewButton);
+
+    // 3. Assert
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviours/5');
   });
 });
