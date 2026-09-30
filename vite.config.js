@@ -12,5 +12,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/setupTests.js',
-    }
+    env: {
+      VITE_WS_SESSION_URL: "wss://test-server:8000",
+    },
+  }
 })

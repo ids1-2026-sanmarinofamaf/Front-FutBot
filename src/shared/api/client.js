@@ -1,38 +1,51 @@
-// src/shared/api/client.js
-const BASE_URL = 'http://localhost:8000'; // Ajustar mediante variables de entorno
+import { getToken } from "../../features/auth/auth";
+
+const BASE_URL = import.meta.env.VITE_API_URL; // Ajustar mediante variables de entorno
 
 export const apiClient = async (endpoint, options = {}) => {
-  // En la implementación real, el token se extrae del store de Zustand o localStorage
-  const token = localStorage.getItem('token'); 
+  
+    //Se debe verificar que el token exista al menos
+    const token = getToken();
 
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+    if (!token){
+        throw new Error("No hay token de autenticación"); 
+    } 
+    else {
 
-  const config = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  };
+        const defaultHeaders = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
+        const config = {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers,
+            },
+        };
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      console.error('Sesión expirada o token inválido');
-      // Aquí se invocaría la limpieza del store de sesión y redirección a /login
+        const response = await fetch(`${BASE_URL}${endpoint}`, config);
+
+        if (!response.ok) {
+
+            if (response.status === 401) {
+                console.error('Sesión expirada o token inválido');
+                //limpieza del store de sesión 
+                localStorage.removeItem("token");
+                //crea evento para notificar que se debe cerrar la sesión
+                window.dispatchEvent(new Event("auth:expired"));
+            }
+        
+            // Intenta parsear el mensaje de error del backend, si existe
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.response || `Error HTTP: ${response.status}`);
+        }
+
+        // Manejo de respuestas 204 No Content
+        if (response.status === 204) return null;
+
+        return await response.json();
     }
-    
-    // Intenta parsear el mensaje de error del backend, si existe
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.response || `Error HTTP: ${response.status}`);
-  }
 
-  // Manejo de respuestas 204 No Content (comunes en DELETE o PUT)
-  if (response.status === 204) return null;
-
-  return await response.json();
 };
