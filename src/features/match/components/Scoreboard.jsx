@@ -9,7 +9,7 @@ export function Scoreboard({
   function toPixels(x, y) {
     return {
       x: 300 + (x / 40) * 1320,
-      y: 150 + (y / 20) * 820,
+      y: 150 + (y / 20) * 800,
     }
   }
 

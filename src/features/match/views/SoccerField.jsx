@@ -4,7 +4,7 @@ export function SoccerField() {
   function toPixels(x, y) {
     return {
       x: 300 + (x / 40) * 1320, // 300: offset x | 40: metros de ancho (FIELD_WIDTH) | 1320: ancho en píxeles
-      y: 150 + (y / 20) * 820,   // 150: offset y | 20: metros de alto (FIELD_HEIGHT)  | 820: alto en píxeles
+      y: 150 + (y / 20) * 800,   // 150: offset y | 20: metros de alto (FIELD_HEIGHT)  | 820: alto en píxeles
     }
   }
 
@@ -38,7 +38,7 @@ export function SoccerField() {
       </defs>
 
       {/* césped, extendido para cubrir también el fondo de ambos arcos */}
-      <rect x={300 - netDepth} y={150} width={1320 + netDepth * 2} height={820} fill="#2e8b3d" />
+      <rect x={300 - netDepth} y={150} width={1320 + netDepth * 2} height={800} fill="#2e8b3d" />
 
       {/* grilla */}
       {verticalLines}
@@ -92,7 +92,7 @@ export function SoccerField() {
       })()}
 
       {/* borde de la cancha */}
-      <rect x={300} y={150} width={1320} height={820} fill="none" stroke="white" strokeWidth="3" />
+      <rect x={300} y={150} width={1320} height={800} fill="none" stroke="white" strokeWidth="3" />
 
       {/* red del arco izquierdo */}
       {(() => {
