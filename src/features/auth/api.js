@@ -8,6 +8,15 @@ export const sendDataToAPI = async (user) => {
     body: JSON.stringify(user),
   });
 };
+
+export const sendRegisterToAPI = async (user) => {
+  return fetch(`${import.meta.env.VITE_API_URL}/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+};
+
 export const checkSession = async (logout) => {
 
     try {
