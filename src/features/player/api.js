@@ -17,3 +17,4 @@ export const createPlayer = async (playerData) => {
     });
     return data;
 };
+
