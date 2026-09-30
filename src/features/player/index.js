@@ -1,2 +1,2 @@
 export { PlayerCreate } from './views/PlayerCreate';
-export { PlayerList } from './views/PlayerList';
+export { PlayersList } from './views/PlayersList';
