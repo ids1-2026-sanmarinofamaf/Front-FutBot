@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getPlayers } from '../api';
 import { PlayerCard } from '../components/PlayerCard';
 
@@ -9,6 +9,9 @@ export function PlayersList() {
   const [error, setError] = useState(null);
   
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const successMessage = location.state?.successMessage;
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -50,6 +53,12 @@ export function PlayersList() {
           Crear Nuevo
         </button>
       </div>
+
+        {successMessage && (
+        <div className="mb-6 p-4 bg-emerald-900/30 border border-emerald-500 rounded text-emerald-400 font-medium">
+            {successMessage}
+        </div>
+        )} 
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/30 border border-red-500 rounded text-red-400">

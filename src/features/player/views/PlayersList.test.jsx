@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { PlayersList } from './PlayersList';
 import * as api from '../api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // 1. Interceptamos la capa de red
 vi.mock('../api');
@@ -11,6 +11,7 @@ vi.mock('../api');
 // 2. Interceptamos el enrutador
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
+  useLocation: vi.fn(),
 }));
 
 // 3. Aislamos el componente hijo para verificar el paso de props
@@ -34,6 +35,7 @@ describe('PlayersList UI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useNavigate.mockReturnValue(mockNavigate);
+    useLocation.mockReturnValue({ state: null})
   });
 
   it('muestra el mensaje de error cuando la API falla', async () => {
@@ -110,5 +112,20 @@ describe('PlayersList UI', () => {
     // Assert
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/club/players/15');
+  });
+
+  it('renderiza el mensaje de éxito si proviene del estado de navegación', async () => {
+    // Arrange
+    const successMsg = 'El jugador Lionel Messi fue creado exitosamente.';
+    useLocation.mockReturnValue({ state: { successMessage: successMsg } });
+    vi.spyOn(api, 'getPlayers').mockResolvedValue([]);
+
+    // Act
+    render(<PlayersList />);
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByText(successMsg)).toBeInTheDocument();
+    });
   });
 });
