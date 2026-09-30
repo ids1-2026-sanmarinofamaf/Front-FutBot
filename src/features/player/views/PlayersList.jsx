@@ -3,6 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { getPlayers } from '../api';
 import { PlayerCard } from '../components/PlayerCard';
 
+/**
+ * View component managing the data fetching and rendering of the club's player roster.
+ * Evaluates react-router location state to conditionally render ephemeral success banners (e.g., post-creation).
+ * Handles asynchronous resolution, loading UI state, and network error fallbacks.
+ */
+
 export function PlayersList() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);

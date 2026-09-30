@@ -1,39 +1,14 @@
 import { useState } from 'react';
 
-// 1. Extraemos el subcomponente fuera de PlayerForm
-const StatStepper = ({ label, name, value, onChange, isLoading }) => {
-  const isMin = value <= 20;
-  const isMax = value >= 100;
-
-  return (
-    <div className="flex flex-col items-center">
-      <label className="text-xs font-bold text-slate-400 uppercase mb-2">
-        {label}
-      </label>
-      <div className="flex items-center justify-between w-full bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-        <button
-          type="button"
-          onClick={() => onChange(name, -1)}
-          disabled={isMin || isLoading}
-          className="w-8 h-10 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-300 font-bold transition-colors border-r border-slate-700 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-        >
-          -
-        </button>
-        <span className="font-mono text-slate-200 font-semibold w-full text-center">
-          {value}
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange(name, 1)}
-          disabled={isMax || isLoading}
-          className="w-8 h-10 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-300 font-bold transition-colors border-l border-slate-700 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-};
+/**
+ * Controlled form component for player creation.
+ * Manages local state for PACCS attributes via a bounded stepper UI [20, 100].
+ * Enforces the strict domain rule of exactly 300 total attribute points to enable submission.
+ *
+ * @param {Function} props.onSubmit - Triggered with the validated payload { name, power, agility, control, speed, strength }.
+ * @param {Function} props.onCancel - Callback to abort the creation flow.
+ * @param {boolean} [props.isLoading=false] - Disables inputs and mutative actions during network transactions.
+ */
 
 export function PlayerForm({ onSubmit, onCancel, isLoading = false }) {
   const [formData, setFormData] = useState({
@@ -70,7 +45,6 @@ export function PlayerForm({ onSubmit, onCancel, isLoading = false }) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl">
-      {/* Sección Nombre idéntica */}
       <div className="mb-6">
         <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">Nombre del Jugador</label>
         <input
@@ -90,7 +64,7 @@ export function PlayerForm({ onSubmit, onCancel, isLoading = false }) {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {/* 2. Inyectamos los valores y manejadores al subcomponente */}
+          {/* 2. Inyectamos los valores y manejadores al subcomponente (StatStepper) */}
           <StatStepper label="Power" name="power" value={formData.power} onChange={handleStatChange} isLoading={isLoading} />
           <StatStepper label="Agility" name="agility" value={formData.agility} onChange={handleStatChange} isLoading={isLoading} />
           <StatStepper label="Control" name="control" value={formData.control} onChange={handleStatChange} isLoading={isLoading} />
@@ -118,3 +92,38 @@ export function PlayerForm({ onSubmit, onCancel, isLoading = false }) {
     </form>
   );
 }
+
+// subcomponente para restringir y actualizar en tiempo real los params de PACSS
+const StatStepper = ({ label, name, value, onChange, isLoading }) => {
+  const isMin = value <= 20;
+  const isMax = value >= 100;
+
+  return (
+    <div className="flex flex-col items-center">
+      <label className="text-xs font-bold text-slate-400 uppercase mb-2">
+        {label}
+      </label>
+      <div className="flex items-center justify-between w-full bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => onChange(name, -1)}
+          disabled={isMin || isLoading}
+          className="w-8 h-10 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-300 font-bold transition-colors border-r border-slate-700 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+        >
+          -
+        </button>
+        <span className="font-mono text-slate-200 font-semibold w-full text-center">
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(name, 1)}
+          disabled={isMax || isLoading}
+          className="w-8 h-10 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-300 font-bold transition-colors border-l border-slate-700 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+};

@@ -1,3 +1,11 @@
+/**
+ * Presentational component displaying a player's summary.
+ * Renders PACCS attributes with dynamic color coding based on threshold evaluation (>=75, 45-74, <=44).
+ * 
+ * @param {Object} props.player - Player entity payload { player_id, name, power, agility, control, speed, strength }.
+ * @param {Function} props.onView - Callback returning the player_id to the parent router for detail navigation.
+ */
+
 export function PlayerCard({ player, onView }) {
   const handleView = () => {
     if (onView) {

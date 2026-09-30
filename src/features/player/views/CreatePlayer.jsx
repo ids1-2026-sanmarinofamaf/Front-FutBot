@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { PlayerForm } from '../components/PlayerForm';
 import { createPlayer } from '../api';
 
+/**
+ * Smart view orchestrating the player creation workflow.
+ * Wraps PlayerForm to handle API communication, network loading states, and error boundaries.
+ * On 2xx response, triggers navigation to the roster view, injecting a success payload into the router state.
+ */
+
 export function CreatePlayer() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,8 +23,6 @@ export function CreatePlayer() {
       await createPlayer(formData);
       
       // Si la petición es exitosa (código 2xx), redirigimos al listado.
-      // Al volver al listado, el useEffect de PlayersList volverá a obtener 
-      // los datos actualizados, mostrando el nuevo jugador sin recargar la página.
       navigate('/club/players', { 
         state: { successMessage: `El jugador ${formData.name} fue creado exitosamente.` } 
       });
