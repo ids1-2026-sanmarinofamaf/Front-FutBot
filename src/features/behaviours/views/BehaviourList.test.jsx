@@ -45,7 +45,7 @@ describe('BehaviourList UI', () => {
     await waitFor(() => {
       expect(screen.getByText('Ofensivo')).toBeInTheDocument();
       expect(screen.getByText('Válido')).toBeInTheDocument();
-      
+
       expect(screen.getByText('Pasivo')).toBeInTheDocument();
       expect(screen.getByText('Inválido')).toBeInTheDocument();
     });

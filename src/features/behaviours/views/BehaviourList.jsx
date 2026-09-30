@@ -1,4 +1,3 @@
-// src/features/behaviours/views/BehaviourList.jsx
 import { useState, useEffect } from 'react';
 import { getBehaviours } from '../api';
 import { BehaviourCard } from '../components/BehaviourCard';
@@ -8,7 +7,7 @@ export function BehaviourList() {
   const [behaviours, setBehaviours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Estado para controlar la navegación interna
   const [selectedId, setSelectedId] = useState(null);
 

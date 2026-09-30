@@ -1,4 +1,3 @@
-// src/features/behaviours/components/BehaviourCard.jsx
 export function BehaviourCard({ behaviour, onView }) {
   const handleView = () => {
     // Ejecuta la función del padre pasando el ID correcto
