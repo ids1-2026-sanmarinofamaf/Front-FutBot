@@ -64,8 +64,8 @@ describe('BehaviourList UI', () => {
     
     render(<BehaviourList />);
 
-    // Esperamos a que la tarjeta se renderice
-    const viewButton = await screen.findByRole('button', { name: /ver/i });
+    // Esperamos a que la tarjeta se renderice.
+    const viewButton = await screen.findByRole('button', { name: 'Ver' });
     
     // 2. Act
     await user.click(viewButton);
@@ -73,5 +73,23 @@ describe('BehaviourList UI', () => {
     // 3. Assert
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/club/behaviours/5');
+  });
+
+  it('navega a "/club" al hacer clic en "Volver a Mi Club"', async () => {
+    // 1. Arrange
+    const user = userEvent.setup();
+    vi.spyOn(api, 'getBehaviours').mockResolvedValue([]); // Una respuesta vacía es suficiente
+    
+    render(<BehaviourList />);
+
+    // Esperamos a que se resuelva la promesa y se renderice el botón de retroceso
+    const backButton = await screen.findByRole('button', { name: /volver a mi club/i });
+    
+    // 2. Act
+    await user.click(backButton);
+
+    // 3. Assert
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/club');
   });
 });
