@@ -1,11 +1,10 @@
-export function Scoreboard({
-  team1,
-  team2,
-  user1_goals,
-  user2_goals,
-  actual_tic,
-  total_tic
-}) {
+export function Scoreboard({ estado_partido }) {
+  const team1 = estado_partido.team1 ?? "Team 1"
+  const team2 = estado_partido.team2 ?? "Team 2"
+  const user1_goals = estado_partido.user1_goals
+  const user2_goals = estado_partido.user2_goals
+  const actual_tic = estado_partido.actual_tic
+  const total_tic = estado_partido.total_tic
 
   function toPixels(x, y) {
     return {
@@ -32,15 +31,7 @@ export function Scoreboard({
   }
 
   function createSquare(x, y, size, color) {
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={size}
-        height={size}
-        fill={color}
-      />
-    )
+    return <rect x={x} y={y} width={size} height={size} fill={color} />
   }
 
   function createRectangle(x, y, width, height, color) {
@@ -62,19 +53,8 @@ export function Scoreboard({
     <>
       {createRectangle(14, -4, 12, 4, "LightBlue")}
 
-      {createSquare(
-        toPixels(15, 0).x,
-        toPixels(-1, -1.3).y,
-        50,
-        "Black"
-      )}
-
-      {createSquare(
-        toPixels(23.5, 0).x,
-        toPixels(-1, -1.3).y,
-        50,
-        "Black"
-      )}
+      {createSquare(toPixels(15, 0).x, toPixels(-1, -1.3).y, 50, "Black")}
+      {createSquare(toPixels(23.5, 0).x, toPixels(-1, -1.3).y, 50, "Black")}
 
       {createText(20, -2.5, "Score", "Black", 60)}
 

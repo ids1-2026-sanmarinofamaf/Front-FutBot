@@ -7,14 +7,11 @@ describe('Scoreboard', () => {
   it('muestra correctamente los nombres de los equipos', () => {
     render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={2}
-          user2_goals={1}
-          actual_tic="450"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 2, user2_goals: 1,
+          actual_tic: "450", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -22,17 +19,28 @@ describe('Scoreboard', () => {
     expect(screen.getByText('Team B')).toBeInTheDocument();
   });
 
+  it('usa nombres por defecto si no vienen team1/team2', () => {
+    render(
+      <svg>
+        <Scoreboard estado_partido={{
+          user1_goals: 2, user2_goals: 1,
+          actual_tic: "450", total_tic: "900"
+        }} />
+      </svg>
+    );
+
+    expect(screen.getByText('Team 1')).toBeInTheDocument();
+    expect(screen.getByText('Team 2')).toBeInTheDocument();
+  });
+
   it('muestra correctamente los goles de ambos equipos', () => {
     render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={5}
-          user2_goals={3}
-          actual_tic="450"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 5, user2_goals: 3,
+          actual_tic: "450", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -43,14 +51,11 @@ describe('Scoreboard', () => {
   it('muestra el progreso actual del partido sobre el total de ticks', () => {
     render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={2}
-          user2_goals={1}
-          actual_tic="450"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 2, user2_goals: 1,
+          actual_tic: "450", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -61,14 +66,11 @@ describe('Scoreboard', () => {
   it('muestra correctamente valores cero en el marcador', () => {
     render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={0}
-          user2_goals={0}
-          actual_tic="0"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 0, user2_goals: 0,
+          actual_tic: "0", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -79,14 +81,11 @@ describe('Scoreboard', () => {
   it('actualiza el marcador cuando cambian los props', () => {
     const { rerender } = render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={1}
-          user2_goals={0}
-          actual_tic="100"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 1, user2_goals: 0,
+          actual_tic: "100", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -95,35 +94,28 @@ describe('Scoreboard', () => {
 
     rerender(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={4}
-          user2_goals={2}
-          actual_tic="500"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 4, user2_goals: 2,
+          actual_tic: "500", total_tic: "900"
+        }} />
       </svg>
     );
 
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('500/900')).toBeInTheDocument();
-
     expect(screen.queryByText('100/900')).not.toBeInTheDocument();
   });
 
   it('mantiene separados los nombres de los equipos y sus respectivos goles', () => {
     render(
       <svg>
-        <Scoreboard
-          team1="Barcelona"
-          team2="Real Madrid"
-          user1_goals={7}
-          user2_goals={4}
-          actual_tic="800"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Barcelona", team2: "Real Madrid",
+          user1_goals: 7, user2_goals: 4,
+          actual_tic: "800", total_tic: "900"
+        }} />
       </svg>
     );
 
@@ -139,19 +131,15 @@ describe('Scoreboard', () => {
   it('dibuja el fondo del marcador y los cuadros negros', () => {
     const { container } = render(
       <svg>
-        <Scoreboard
-          team1="Team A"
-          team2="Team B"
-          user1_goals={0}
-          user2_goals={0}
-          actual_tic="0"
-          total_tic="900"
-        />
+        <Scoreboard estado_partido={{
+          team1: "Team A", team2: "Team B",
+          user1_goals: 0, user2_goals: 0,
+          actual_tic: "0", total_tic: "900"
+        }} />
       </svg>
     );
 
-    const rects = container.querySelectorAll('rect');
-    expect(rects).toHaveLength(3); // 1 fondo celeste + 2 cuadrados negros
+    expect(container.querySelectorAll('rect')).toHaveLength(3);
   });
 
 });
