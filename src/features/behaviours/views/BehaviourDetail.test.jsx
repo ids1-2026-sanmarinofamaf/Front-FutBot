@@ -1,15 +1,26 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { BehaviourDetail } from './BehaviourDetail';
 import * as api from '../api';
+import { useParams, useNavigate } from 'react-router-dom';
 
+// Interceptamos dependencias externas
 vi.mock('../api');
+vi.mock('react-router-dom', () => ({
+  useParams: vi.fn(),
+  useNavigate: vi.fn(),
+}));
 
 describe('BehaviourDetail UI', () => {
-  const mockId = 1;
+  const mockId = '1';
+  const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Configuramos los mocks de las rutas antes de cada test
+    useParams.mockReturnValue({ id: mockId });
+    useNavigate.mockReturnValue(mockNavigate);
   });
 
   it('renderiza el código y nombre del comportamiento correctamente', async () => {
@@ -23,11 +34,11 @@ describe('BehaviourDetail UI', () => {
     vi.spyOn(api, 'getBehaviourById').mockResolvedValue(mockResponse);
 
     // Act
-    render(<BehaviourDetail id={mockId} />);
+    // Ya no se pasan props, el componente las obtiene del hook useParams
+    render(<BehaviourDetail />);
 
     // Assert
     await waitFor(() => {
-      // Testing Library normaliza los saltos de línea al buscar texto
       expect(screen.getByText('def start_press(): return True')).toBeInTheDocument();
       expect(screen.getByText('PresionAlta')).toBeInTheDocument();
     });
@@ -39,7 +50,7 @@ describe('BehaviourDetail UI', () => {
     vi.spyOn(api, 'getBehaviourById').mockRejectedValue(new Error(errorMessage));
 
     // Act
-    render(<BehaviourDetail id={mockId} />);
+    render(<BehaviourDetail />);
 
     // Assert
     await waitFor(() => {
@@ -47,19 +58,19 @@ describe('BehaviourDetail UI', () => {
     });
   });
 
-  it('ejecuta la función onBack al hacer clic en volver en estado de error', async () => {
+  it('ejecuta la navegación al listado al hacer clic en volver en estado de error', async () => {
     // Arrange
+    const user = userEvent.setup();
     vi.spyOn(api, 'getBehaviourById').mockRejectedValue(new Error('Error de red'));
-    const onBackMock = vi.fn();
+
+    render(<BehaviourDetail />);
 
     // Act
-    render(<BehaviourDetail id={mockId} onBack={onBackMock} />);
+    const backButton = await screen.findByRole('button', { name: /volver al listado/i });
+    await user.click(backButton);
 
     // Assert
-    await waitFor(() => {
-      const backButton = screen.getByRole('button', { name: /volver/i });
-      backButton.click();
-      expect(onBackMock).toHaveBeenCalledTimes(1);
-    });
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviours');
   });
 });
