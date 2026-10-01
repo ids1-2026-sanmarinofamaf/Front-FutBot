@@ -1,9 +1,10 @@
 export function Scoreboard({
   team1,
   team2,
-  score1,
-  score2,
-  time
+  user1_goals,
+  user2_goals,
+  actual_tic,
+  total_tic
 }) {
 
   function toPixels(x, y) {
@@ -80,10 +81,11 @@ export function Scoreboard({
       {createText(15.8, -1.5, team1, "black", 25)}
       {createText(24.3, -1.5, team2, "black", 25)}
 
-      {createText(15.8, -0.3, score1, "White", 40)}
-      {createText(24.3, -0.3, score2, "White", 40)}
+      {createText(15.8, -0.3, user1_goals, "White", 40)}
+      {createText(24.3, -0.3, user2_goals, "White", 40)}
 
-      {createText(20, -0.3, time, "Black", 30)}
+      {createText(20, -0.3, actual_tic + "/" + total_tic, "Black", 30)}
+      {createText(20, -1, "Time:", "Black", 30)}
     </>
   )
 }

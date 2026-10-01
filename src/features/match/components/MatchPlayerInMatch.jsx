@@ -1,28 +1,28 @@
-// components/PlayerInMatch.jsx
-
-export function MatchPlayerInMatch({ x, y, team, Formation }) {
-  const color = team === 1 ? "blue" : "red"
-
+export function MatchPlayerInMatch({ players }) {
   return (
     <>
-      <circle
-        cx={x}
-        cy={y}
-        r={8.25}
-        fill={color}
-      />
+      {players.filter(function (p) { return p.OnField }).map(function (p) {
+        const snapped = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
+        const pos = { x: 300 + (snapped.x / 40) * 1320, y: 150 + (snapped.y / 20) * 800 }
+        const color = p.team === 1 ? "blue" : "red"
 
-      <text
-        x={x}
-        y={y}
-        fill="black"
-        fontSize={12}
-        fontWeight="bold"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {Formation}
-      </text>
+        return (
+          <g key={p.player_id}>
+            <circle cx={pos.x} cy={pos.y} r={8.25} fill={color} />
+            <text
+              x={pos.x}
+              y={pos.y}
+              fill="black"
+              fontSize={12}
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {p.Formation}
+            </text>
+          </g>
+        )
+      })}
     </>
   )
 }
