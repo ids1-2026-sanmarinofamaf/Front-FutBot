@@ -12,7 +12,7 @@ describe('MatchPlayerInMatch', () => {
         y: 10,
         team: 1,
         Formation: '1',
-        OnField: true
+        onPitch: true
       },
       {
         player_id: 2,
@@ -20,7 +20,7 @@ describe('MatchPlayerInMatch', () => {
         y: 15,
         team: 1,
         Formation: '2',
-        OnField: false
+        onPitch: false
       }
     ];
 
@@ -42,7 +42,7 @@ describe('MatchPlayerInMatch', () => {
         y: 10,
         team: 1,
         Formation: '3',
-        OnField: true
+        onPitch: true
       },
       {
         player_id: 2,
@@ -50,7 +50,7 @@ describe('MatchPlayerInMatch', () => {
         y: 5,
         team: 2,
         Formation: '7',
-        OnField: true
+        onPitch: true
       }
     ];
 
@@ -72,7 +72,7 @@ describe('MatchPlayerInMatch', () => {
         y: 10,
         team: 1,
         Formation: '1',
-        OnField: true
+        onPitch: true
       },
       {
         player_id: 2,
@@ -80,7 +80,7 @@ describe('MatchPlayerInMatch', () => {
         y: 5,
         team: 2,
         Formation: '2',
-        OnField: true
+        onPitch: true
       }
     ];
 
@@ -105,7 +105,7 @@ describe('MatchPlayerInMatch', () => {
         y: 10.3,
         team: 1,
         Formation: '1',
-        OnField: true
+        onPitch: true
       }
     ];
 

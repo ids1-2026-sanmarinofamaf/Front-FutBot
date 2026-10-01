@@ -8,11 +8,11 @@ function toPixels(x, y) {
 export function MatchPlayerOut({ players }) {
   return (
     <>
-      <StarterColumn players={players.filter(function (p) { return p.team === 1 && p.OnField })} x={40} />
-      <StarterColumn players={players.filter(function (p) { return p.team === 2 && p.OnField })} x={1790} />
+      <StarterColumn players={players.filter(function (p) { return p.team === 1 && p.onPitch })} x={40} />
+      <StarterColumn players={players.filter(function (p) { return p.team === 2 && p.onPitch })} x={1790} />
 
-      <BenchRow players={players.filter(function (p) { return p.team === 1 && !p.OnField })} startX={320} direction={1} />
-      <BenchRow players={players.filter(function (p) { return p.team === 2 && !p.OnField })} startX={1550} direction={-1} />
+      <BenchRow players={players.filter(function (p) { return p.team === 1 && !p.onPitch })} startX={320} direction={1} />
+      <BenchRow players={players.filter(function (p) { return p.team === 2 && !p.onPitch })} startX={1550} direction={-1} />
     </>
   )
 }
@@ -46,7 +46,7 @@ function PlayerSquare({ player, x, y, size }) {
         width={size}
         height={size}
         fill={player.team === 1 ? "blue" : "red"}
-        opacity={player.OnField ? 1 : 0.5}
+        opacity={player.onPitch ? 1 : 0.5}
         stroke="white"
         strokeWidth="2"
       />

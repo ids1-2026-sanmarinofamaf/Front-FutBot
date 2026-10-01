@@ -1,7 +1,7 @@
 export function MatchPlayerInMatch({ players }) {
   return (
     <>
-      {players.filter(function (p) { return p.OnField }).map(function (p) {
+      {players.filter(function (p) { return p.onPitch }).map(function (p) {
         const snapped = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
         const pos = { x: 300 + (snapped.x / 40) * 1320, y: 150 + (snapped.y / 20) * 800 }
         const color = p.team === 1 ? "blue" : "red"

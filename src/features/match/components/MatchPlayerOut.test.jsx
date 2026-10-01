@@ -7,25 +7,25 @@ describe('MatchPlayerOut', () => {
     {
       player_id: 1,
       team: 1,
-      OnField: true,
+      onPitch: true,
       Name: 'Player 1'
     },
     {
       player_id: 2,
       team: 1,
-      OnField: false,
+      onPitch: false,
       Name: 'Player 2'
     },
     {
       player_id: 3,
       team: 2,
-      OnField: true,
+      onPitch: true,
       Name: 'Player 3'
     },
     {
       player_id: 4,
       team: 2,
-      OnField: false,
+      onPitch: false,
       Name: 'Player 4'
     }
   ]
