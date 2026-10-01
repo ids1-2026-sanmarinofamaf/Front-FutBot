@@ -35,7 +35,7 @@ describe('PlayersList UI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useNavigate.mockReturnValue(mockNavigate);
-    useLocation.mockReturnValue({ state: null})
+    useLocation.mockReturnValue({ state: null });
   });
 
   it('muestra el mensaje de error cuando la API falla', async () => {
@@ -127,5 +127,20 @@ describe('PlayersList UI', () => {
     await waitFor(() => {
       expect(screen.getByText(successMsg)).toBeInTheDocument();
     });
+  });
+
+  it('navega a "/club" al hacer clic en "Volver a Mi Club"', async () => {
+    // Arrange
+    const user = userEvent.setup();
+    vi.spyOn(api, 'getPlayers').mockResolvedValue([]);
+    render(<PlayersList />);
+
+    // Act
+    const backButton = await screen.findByRole('button', { name: /volver a mi club/i });
+    await user.click(backButton);
+
+    // Assert
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/club');
   });
 });
