@@ -41,6 +41,13 @@ export function BehaviourList() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      <button 
+        onClick={() => navigate('/club')}
+        className="mb-6 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg border border-slate-700 transition-colors shadow-sm"
+      >
+        ← Volver a Mi Club
+      </button>
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-100">Mis Comportamientos</h2>
         <button 
