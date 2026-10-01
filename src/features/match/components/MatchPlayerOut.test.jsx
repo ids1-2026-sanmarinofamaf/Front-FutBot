@@ -1,99 +1,137 @@
 import { render } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
 import { MatchPlayerOut } from './MatchPlayerOut'
 
 describe('MatchPlayerOut', () => {
 
   const players = [
-    {
-      player_id: 1,
-      team: 1,
-      onPitch: true,
-      Name: 'Player 1'
-    },
-    {
-      player_id: 2,
-      team: 1,
-      onPitch: false,
-      Name: 'Player 2'
-    },
-    {
-      player_id: 3,
-      team: 2,
-      onPitch: true,
-      Name: 'Player 3'
-    },
-    {
-      player_id: 4,
-      team: 2,
-      onPitch: false,
-      Name: 'Player 4'
-    }
+    { player_id: 1, team: 1, onPitch: true, Name: 'Player 1' },
+    { player_id: 2, team: 1, onPitch: true, Name: 'Player 2' },
+    { player_id: 3, team: 1, onPitch: true, Name: 'Player 3' },
+    { player_id: 4, team: 1, onPitch: false, Name: 'Player 4' },
+    { player_id: 5, team: 1, onPitch: false, Name: 'Player 5' },
+    { player_id: 6, team: 1, onPitch: false, Name: 'Player 6' },
+    { player_id: 7, team: 2, onPitch: true, Name: 'Player 7' },
+    { player_id: 8, team: 2, onPitch: true, Name: 'Player 8' },
+    { player_id: 9, team: 2, onPitch: true, Name: 'Player 9' },
+    { player_id: 10, team: 2, onPitch: false, Name: 'Player 10' },
+    { player_id: 11, team: 2, onPitch: false, Name: 'Player 11' },
+    { player_id: 12, team: 2, onPitch: false, Name: 'Player 12' }
   ]
 
-  it('separa correctamente titulares y suplentes por equipo', () => {
+  function findRectAtXY(rects, x, y) {
+    return Array.from(rects).find(function (r) {
+      return r.getAttribute('x') === String(x) && r.getAttribute('y') === String(y)
+    })
+  }
+
+  it('tiene exactamente 3 titulares y 3 suplentes por equipo', () => {
     const { container } = render(
-        <svg>
+      <svg>
         <MatchPlayerOut players={players} />
-        </svg>
+      </svg>
+    )
+
+    const rects = container.querySelectorAll('rect')
+    expect(rects).toHaveLength(12)
+
+    const starterTeam1 = Array.from(rects).filter(function (r) {
+      return r.getAttribute('x') === '40'
+    })
+    const starterTeam2 = Array.from(rects).filter(function (r) {
+      return r.getAttribute('x') === '1790'
+    })
+    const benchTeam1 = Array.from(rects).filter(function (r) {
+      return r.getAttribute('y') === '40' && Number(r.getAttribute('x')) < 1000
+    })
+    const benchTeam2 = Array.from(rects).filter(function (r) {
+      return r.getAttribute('y') === '40' && Number(r.getAttribute('x')) >= 1000
+    })
+
+    expect(starterTeam1).toHaveLength(3)
+    expect(starterTeam2).toHaveLength(3)
+    expect(benchTeam1).toHaveLength(3)
+    expect(benchTeam2).toHaveLength(3)
+  })
+
+  it('apila correctamente a los 3 titulares de un equipo, uno debajo del otro', () => {
+    const { container } = render(
+      <svg>
+        <MatchPlayerOut players={players} />
+      </svg>
     )
 
     const rects = container.querySelectorAll('rect')
 
-    expect(rects).toHaveLength(4)
+    expect(findRectAtXY(rects, 40, 150)).toBeTruthy()
+    expect(findRectAtXY(rects, 40, 250)).toBeTruthy()
+    expect(findRectAtXY(rects, 40, 350)).toBeTruthy()
+  })
 
-    // Titular equipo 1
-    expect(rects[0]).toHaveAttribute('fill', 'blue')
-    expect(rects[0]).toHaveAttribute('opacity', '1')
-
-    // Titular equipo 2
-    expect(rects[1]).toHaveAttribute('fill', 'red')
-    expect(rects[1]).toHaveAttribute('opacity', '1')
-
-    // Suplente equipo 1
-    expect(rects[2]).toHaveAttribute('fill', 'blue')
-    expect(rects[2]).toHaveAttribute('opacity', '0.5')
-
-    // Suplente equipo 2
-    expect(rects[3]).toHaveAttribute('fill', 'red')
-    expect(rects[3]).toHaveAttribute('opacity', '0.5')
-    })
-
-  it('posiciona correctamente titulares y suplentes', () => {
+  it('ubica en fila a los 3 suplentes de un equipo', () => {
     const { container } = render(
-        <svg>
+      <svg>
         <MatchPlayerOut players={players} />
-        </svg>
+      </svg>
     )
 
     const rects = container.querySelectorAll('rect')
 
-    // Titular equipo 1
-    expect(rects[0]).toHaveAttribute('x', '40')
-    expect(rects[0]).toHaveAttribute('y', '150')
+    expect(findRectAtXY(rects, 320, 40)).toBeTruthy()
+    expect(findRectAtXY(rects, 400, 40)).toBeTruthy()
+    expect(findRectAtXY(rects, 480, 40)).toBeTruthy()
+  })
 
-    // Titular equipo 2
-    expect(rects[1]).toHaveAttribute('x', '1790')
-    expect(rects[1]).toHaveAttribute('y', '150')
+  it('usa azul para el equipo 1 y rojo para el equipo 2, titulares y suplentes', () => {
+    const { container } = render(
+      <svg>
+        <MatchPlayerOut players={players} />
+      </svg>
+    )
 
-    // Suplente equipo 1
-    expect(rects[2]).toHaveAttribute('x', '320')
-    expect(rects[2]).toHaveAttribute('y', '40')
+    const rects = container.querySelectorAll('rect')
 
-    // Suplente equipo 2
-    expect(rects[3]).toHaveAttribute('x', '1550')
-    expect(rects[3]).toHaveAttribute('y', '40')
+    const team1Rects = Array.from(rects).filter(function (r) {
+      return r.getAttribute('fill') === 'blue'
+    })
+    const team2Rects = Array.from(rects).filter(function (r) {
+      return r.getAttribute('fill') === 'red'
     })
 
-  it('muestra correctamente los nombres de los jugadores', () => {
+    expect(team1Rects).toHaveLength(6)
+    expect(team2Rects).toHaveLength(6)
+  })
+
+  it('marca a los titulares con opacidad completa y a los suplentes con opacidad reducida', () => {
+    const { container } = render(
+      <svg>
+        <MatchPlayerOut players={players} />
+      </svg>
+    )
+
+    const rects = container.querySelectorAll('rect')
+
+    const fullOpacity = Array.from(rects).filter(function (r) {
+      return r.getAttribute('opacity') === '1'
+    })
+    const halfOpacity = Array.from(rects).filter(function (r) {
+      return r.getAttribute('opacity') === '0.5'
+    })
+
+    expect(fullOpacity).toHaveLength(6)
+    expect(halfOpacity).toHaveLength(6)
+  })
+
+  it('muestra los nombres de los 12 jugadores', () => {
     const { getByText } = render(
       <svg>
         <MatchPlayerOut players={players} />
       </svg>
     )
 
-    expect(getByText('Player 1')).toBeInTheDocument()
-    expect(getByText('Player 2')).toBeInTheDocument()
-    expect(getByText('Player 3')).toBeInTheDocument()
-    expect(getByText('Player 4')).toBeInTheDocument()
+    players.forEach(function (p) {
+      expect(getByText(p.Name)).toBeInTheDocument()
+    })
   })
+
 })
