@@ -3,18 +3,13 @@ import { SoccerField } from "./SoccerField"
 import { MatchPlayerInMatch } from "../components/MatchPlayerInMatch"
 import { Scoreboard } from "../components/Scoreboard"
 import { MatchPlayerOut } from "../components/MatchPlayerOut"
+import { Ball } from "../components/Ball"
 
 function toPixels(x, y) {
   return {
     x: 300 + (x / 40) * 1320,
     y: 150 + (y / 20) * 800,
   }
-}
-
-
-
-function snapToGridCenter(x, y) {
-  return { x: Math.floor(x) + 0.5, y: Math.floor(y) + 0.5 }
 }
 
 export function Match() {
@@ -41,6 +36,8 @@ export function Match() {
   const actual_tic = "9"
   const total_tic = "900"
 
+  const ball = { x: 20, y: 10 }
+
   //mock end
 
   return (
@@ -51,6 +48,8 @@ export function Match() {
 
     <Scoreboard team1={team1} team2={team2} user1_goals={user1_goals} user2_goals={user2_goals} actual_tic={actual_tic} total_tic={total_tic} />
     <MatchPlayerOut players={players} />
+
+    <Ball ball={ball} />
   </svg>
 )
 }
