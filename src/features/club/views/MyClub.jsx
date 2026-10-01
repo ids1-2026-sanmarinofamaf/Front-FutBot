@@ -22,7 +22,7 @@ export function MyClub() {
           Gestión de Comportamientos
         </button>
 
-        <button 
+        {/* <button 
           onClick={() => navigate('/club/roster')}
           className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
         >
@@ -34,7 +34,7 @@ export function MyClub() {
           className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
         >
           Estadísticas
-        </button>
+        </button> */}
 
         <button 
           onClick={() => navigate('/')}

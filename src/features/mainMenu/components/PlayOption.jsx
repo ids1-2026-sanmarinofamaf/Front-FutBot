@@ -24,12 +24,12 @@ export function PlayOption({ onClose }) {
           >
             Partidos Amistosos
           </button>
-          <button 
+          {/* <button 
             onClick={() => navigate('/league')}
             className="w-full text-center py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors"
           >
             Ligas
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
