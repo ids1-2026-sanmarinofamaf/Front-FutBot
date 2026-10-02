@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import useWebSocket from './hooks';
+import { useToast } from "./hooks.js";
 
 class MockWebSocket {
     static OPEN = 1;
@@ -201,5 +202,120 @@ describe('useWebSocket', () => {
         expect(MockWebSocket.instance).not.toBe(firstSocket);
 
         vi.useRealTimers();
+    });
+});
+
+describe("useToast", () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
+    });
+
+    it("comienza sin una notificación", () => {
+        const { result } = renderHook(() => useToast());
+
+        expect(result.current.toast).toBeNull();
+    });
+
+    it("muestra una notificación al ejecutar showToast", () => {
+        const { result } = renderHook(() => useToast());
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        expect(result.current.toast).toEqual({
+        id: expect.any(Number),
+        });
+    });
+
+    it("oculta la notificación al ejecutar hideToast", () => {
+        const { result } = renderHook(() => useToast());
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        expect(result.current.toast).not.toBeNull();
+
+        act(() => {
+        result.current.hideToast();
+        });
+
+        expect(result.current.toast).toBeNull();
+    });
+
+    it("oculta automáticamente la notificación después del tiempo indicado", () => {
+        const { result } = renderHook(() => useToast(4000));
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        expect(result.current.toast).not.toBeNull();
+
+        act(() => {
+        vi.advanceTimersByTime(3999);
+        });
+
+        expect(result.current.toast).not.toBeNull();
+
+        act(() => {
+        vi.advanceTimersByTime(1);
+        });
+
+        expect(result.current.toast).toBeNull();
+    });
+
+    it("permite configurar una duración diferente", () => {
+        const { result } = renderHook(() => useToast(1000));
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        act(() => {
+        vi.advanceTimersByTime(999);
+        });
+
+        expect(result.current.toast).not.toBeNull();
+
+        act(() => {
+        vi.advanceTimersByTime(1);
+        });
+
+        expect(result.current.toast).toBeNull();
+    });
+
+    it("reinicia el temporizador cuando se muestra otra notificación", () => {
+        const { result } = renderHook(() => useToast(4000));
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        act(() => {
+        vi.advanceTimersByTime(3000);
+        });
+
+        act(() => {
+        result.current.showToast();
+        });
+
+        act(() => {
+        vi.advanceTimersByTime(3000);
+        });
+
+        expect(result.current.toast).not.toBeNull();
+
+        act(() => {
+        vi.advanceTimersByTime(1000);
+        });
+
+        expect(result.current.toast).toBeNull();
     });
 });

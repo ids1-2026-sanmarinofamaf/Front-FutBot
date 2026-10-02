@@ -1,6 +1,6 @@
 // api.test.js
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendDataToAPI, checkSession } from "./api.js";
+import { sendDataToAPI, checkSession, sendRegisterToAPI } from "./api.js";
 import { apiClient } from "../../shared/api/client";
 
 vi.mock("../../shared/api/client", () => ({
@@ -78,4 +78,90 @@ describe("checkSession", () => {
         await expect(checkSession(logout)).rejects.toThrow(error);
         expect(logout).not.toHaveBeenCalled();
     });
+});
+
+describe("sendRegisterToAPI", () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+  });
+
+  it("llama a POST /users con los datos correctos", async () => {
+    const user = {
+      email: "jugador@dominio.com",
+      password: "abc123",
+      clubname: "San Marino",
+      avatar: "base64-avatar",
+    };
+
+    global.fetch.mockResolvedValue({
+      status: 201,
+      ok: true,
+    });
+
+    await sendRegisterToAPI(user);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${import.meta.env.VITE_API_URL}/users`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(user),
+      }
+    );
+  });
+
+  it("devuelve la respuesta del servidor", async () => {
+    const serverResponse = {
+      status: 201,
+      ok: true,
+    };
+
+    global.fetch.mockResolvedValue(serverResponse);
+
+    const result = await sendRegisterToAPI({
+      email: "jugador@dominio.com",
+      password: "abc123",
+      clubname: "San Marino",
+      avatar: "base64-avatar",
+    });
+
+    expect(result).toBe(serverResponse);
+  });
+
+  it("devuelve correctamente una respuesta 400", async () => {
+    const serverResponse = {
+      status: 400,
+      ok: false,
+      json: async () => ({
+        response: "Email already used.",
+      }),
+    };
+
+    global.fetch.mockResolvedValue(serverResponse);
+
+    const result = await sendRegisterToAPI({
+      email: "repetido@dominio.com",
+      password: "abc123",
+      clubname: "San Marino",
+      avatar: "base64-avatar",
+    });
+
+    expect(result).toBe(serverResponse);
+
+    const data = await result.json();
+
+    expect(data).toEqual({
+      response: "Email already used.",
+    });
+  });
+
+  it("propaga el error si falla la conexión", async () => {
+    global.fetch.mockRejectedValue(new Error("Network error"));
+
+    await expect(
+      sendRegisterToAPI({})
+    ).rejects.toThrow("Network error");
+  });
 });

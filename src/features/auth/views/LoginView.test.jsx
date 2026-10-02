@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook,render, screen,  waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import useWebSocket from "../../../shared/hooks";
-
-import LoginView from "./LoginView";
 import { AuthProvider } from "../AuthProvider.jsx";
+import { SessionSocketProvider } from "../SessionSocketProvider.jsx";
+import AppRouter from "../../../app/AppRouter.jsx";
 
 vi.mock("../api.js", async (importOriginal) => {
     const actual = await importOriginal();
@@ -94,34 +94,49 @@ describe("Formulario y endpoint", () => {
             expect(data.token).toBe("mock-token-123");
         });
         
-        it("envía el formulario de inicio de sesión al backend", async () => {
+        it("envía el formulario de inicio de sesión al backend al clickear botón", async () => {
+            const user = userEvent.setup();
+
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                status: 401,
+                json: async () => ({}),
+            });
+
             render(
                 <AuthProvider>
-                    <LoginView />
+                    <SessionSocketProvider>
+                        <AppRouter />
+                    </SessionSocketProvider>
                 </AuthProvider>
             );
-        
+
             const email = screen.getByLabelText("Email:");
             const password = screen.getByLabelText("Contraseña:");
             const button = screen.getByRole("button", {
-                name: "Iniciar sesión"
+                name: "Iniciar sesión",
             });
-        
-            await userEvent.type(email, "test@test.com");
-            await userEvent.type(password, "123456");
-        
-            await userEvent.click(button);
-        
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${import.meta.env.VITE_API_URL}/sessions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+
+            await user.type(email, "test@test.com");
+            await user.type(password, "123456");
+            await user.click(button);
+
+            await waitFor(() => {
+                expect(global.fetch).toHaveBeenCalledWith(
+                `${import.meta.env.VITE_API_URL}/sessions`,
+                {
+                    method: "POST",
+                    headers: {
+                    "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
                     email: "test@test.com",
-                    password: "123456"
-                })
+                    password: "123456",
+                    }),
+                }
+                );
             });
-        });
+            });
 })
 
 describe("useWebSocket para ws de sesiones", () => {
