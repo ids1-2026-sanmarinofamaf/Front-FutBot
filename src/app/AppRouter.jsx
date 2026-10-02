@@ -6,6 +6,7 @@ import { AuthContext } from "../features/auth/AuthProvider.jsx";
 import { MainMenu } from "../features/mainMenu";
 import { MyClub } from "../features/club";
 import LoginView from "../features/auth";
+import { Match } from "../features/match";
 
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
@@ -37,9 +38,8 @@ const PlaceholderView = ({ title }) => {
 
 // Validador de Rutas Privadas
 const PrivateRoutes = () => {
-  const { isAuthenticated } = useContext(AuthContext);
   // Si está autenticado, renderiza las rutas hijas (Outlet). Si no, redirige.
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return <Outlet />;
 };
 
 const AppRouter = () => {
@@ -73,6 +73,7 @@ const AppRouter = () => {
           <Route path="/club/stats" element={<PlaceholderView title="Estadísticas" />} />
           <Route path="/friendly" element={<PlaceholderView title="Amistosos" />} />
           <Route path="/league" element={<PlaceholderView title="Ligas" />} />
+          <Route path="/match" element={<PlaceholderView title="Partido" />}/>
         </Route>
 
         {/* Fallback general */}
