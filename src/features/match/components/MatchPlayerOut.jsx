@@ -1,54 +1,82 @@
-function toPixels(x, y) {
-  return {
-    x: 300 + (x / 40) * 1320,
-    y: 150 + (y / 20) * 800,
-  }
-}
+import { useEffect, useState } from "react"
+import { getPlayerById } from "../../player/api.js"
 
 export function MatchPlayerOut({ players, playerNumbers }) {
+  const [playersInfo, setPlayersInfo] = useState({})
+
+  useEffect(function () {
+    players.forEach(function (player) {
+      const id = player.player_id
+
+      if (playersInfo[id]) {
+        return
+      }
+
+      getPlayerById(id).then(function (data) {
+        setPlayersInfo(function (previous) {
+          return {
+            ...previous,
+            [id]: data,
+          }
+        })
+      })
+    })
+  }, [players])
+
   return (
     <>
       <StarterColumn
-        players={players.filter(function (p) { return p.team === 1 && p.is_on_field })}
+        players={players.filter(function (p) {
+          return p.team === "A" && p.is_on_field
+        })}
         x={40}
         playerNumbers={playerNumbers}
+        playersInfo={playersInfo}
       />
 
       <StarterColumn
-        players={players.filter(function (p) { return p.team === 2 && p.is_on_field })}
+        players={players.filter(function (p) {
+          return p.team === "B" && p.is_on_field
+        })}
         x={1790}
         playerNumbers={playerNumbers}
+        playersInfo={playersInfo}
       />
 
       <BenchRow
-        players={players.filter(function (p) { return p.team === 1 && !p.is_on_field })}
+        players={players.filter(function (p) {
+          return p.team === "A" && !p.is_on_field
+        })}
         startX={320}
         direction={1}
-        playerNumbers={playerNumbers}
+        playersInfo={playersInfo}
       />
 
       <BenchRow
-        players={players.filter(function (p) { return p.team === 2 && !p.is_on_field })}
+        players={players.filter(function (p) {
+          return p.team === "B" && !p.is_on_field
+        })}
         startX={1550}
         direction={-1}
-        playerNumbers={playerNumbers}
+        playersInfo={playersInfo}
       />
     </>
   )
 }
 
-function StarterColumn({ players, x, playerNumbers }) {
+function StarterColumn({ players, x, playerNumbers, playersInfo }) {
   return (
     <>
-      {players.map(function (p, i) {
+      {players.map(function (player, index) {
         return (
           <PlayerSquare
-            key={p.player_id}
-            player={p}
+            key={player.player_id}
+            player={player}
+            playerInfo={playersInfo[player.player_id]}
             x={x}
-            y={150 + i * 100}
+            y={150 + index * 100}
             size={90}
-            number={playerNumbers[p.player_id]}
+            number={playerNumbers[player.player_id]}
           />
         )
       })}
@@ -56,18 +84,18 @@ function StarterColumn({ players, x, playerNumbers }) {
   )
 }
 
-function BenchRow({ players, startX, direction, playerNumbers }) {
+function BenchRow({ players, startX, direction, playersInfo }) {
   return (
     <>
-      {players.map(function (p, i) {
+      {players.map(function (player, index) {
         return (
           <PlayerSquareOut
-            key={p.player_id}
-            player={p}
-            x={startX + direction * i * 80}
+            key={player.player_id}
+            player={player}
+            playerInfo={playersInfo[player.player_id]}
+            x={startX + direction * index * 80}
             y={40}
             size={70}
-            number={playerNumbers[p.player_id]}
           />
         )
       })}
@@ -75,7 +103,7 @@ function BenchRow({ players, startX, direction, playerNumbers }) {
   )
 }
 
-function PlayerSquare({ player, x, y, size, number }) {
+function PlayerSquare({ player, playerInfo, x, y, size, number }) {
   return (
     <g>
       <rect
@@ -83,8 +111,7 @@ function PlayerSquare({ player, x, y, size, number }) {
         y={y}
         width={size}
         height={size}
-        fill={player.team === 1 ? "blue" : "red"}
-        opacity={player.is_on_field ? 1 : 0.5}
+        fill={player.team === "A" ? "blue" : "red"}
         stroke="white"
         strokeWidth="2"
       />
@@ -98,7 +125,7 @@ function PlayerSquare({ player, x, y, size, number }) {
         fontSize="14"
         fontWeight="bold"
       >
-        {player.Name}
+        {playerInfo?.Name}
       </text>
 
       <text
@@ -115,9 +142,7 @@ function PlayerSquare({ player, x, y, size, number }) {
   )
 }
 
-
-
-function PlayerSquareOut({ player, x, y, size, number }) {
+function PlayerSquareOut({ player, playerInfo, x, y, size }) {
   return (
     <g>
       <rect
@@ -125,8 +150,8 @@ function PlayerSquareOut({ player, x, y, size, number }) {
         y={y}
         width={size}
         height={size}
-        fill={player.team === 1 ? "blue" : "red"}
-        opacity={player.is_on_field ? 1 : 0.5}
+        fill={player.team === "A" ? "blue" : "red"}
+        opacity={0.5}
         stroke="white"
         strokeWidth="2"
       />
@@ -137,12 +162,11 @@ function PlayerSquareOut({ player, x, y, size, number }) {
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize="15"
+        fontSize="13"
         fontWeight="bold"
       >
-        {player.Name}
+        {playerInfo?.Name}
       </text>
-
     </g>
   )
 }
