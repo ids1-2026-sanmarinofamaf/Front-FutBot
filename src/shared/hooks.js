@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 
 function useWebSocket(url, options = {}) {
     const { onMessage, onOpen, onClose, reconnect = true } = options;
@@ -104,6 +104,34 @@ function useWebSocket(url, options = {}) {
     }, []);
 
     return { send, wsRef };
+}
+
+export function useToast(duration = 4000) {
+    const [toast, setToast] = useState(null);
+
+    const showToast = useCallback(() => {
+        setToast({ id: Date.now() });
+    }, []);
+
+    const hideToast = useCallback(() => {
+        setToast(null);
+    }, []);
+
+    useEffect(() => {
+        if (!toast) return;
+
+        const timer = setTimeout(() => {
+            setToast(null);
+        }, duration);
+
+        return () => clearTimeout(timer);
+    }, [toast, duration]);
+
+    return {
+        toast,
+        showToast,
+        hideToast,
+    };
 }
 
 export default useWebSocket;

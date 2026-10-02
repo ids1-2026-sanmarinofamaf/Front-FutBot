@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sendRegisterToAPI } from "../api.js";
 import { removeToken, saveTokenLocalStorage } from "../auth";
 import { useContext } from "react";
@@ -7,31 +7,35 @@ import { AuthContext } from "../AuthProvider.jsx";
 import JpgInput from '../components/jpgToB64.jsx';
 
 import { Link } from "react-router-dom";
+import ErrorAlert from '../components/errorAlert.jsx';
+import { useToast } from '../../../shared/hooks.js';
+import FieldsetRegister from '../components/fieldsetRegister.jsx';
 
 export default function Login() {
 
     const [newUser, setNewUser] = useState({
-        username: "",
         email: "",
         password: "",
         clubname: "",
         avatar: ""
     })
 
+    {/** Logica para crear notificaciones de error */}
     const [error, setError] = useState("");
-    const [toast, setToast] = useState(null); // { id } mientras se muestra
+    {/** Logica para actualizar notificaciones de error */}
+    const {toast, showToast, hideToast} = useToast();
     
-
+    {/** Logica para enviar formulario */}
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError("");
-        setToast(null);
+        hideToast();
 
         try{
             const response = await sendRegisterToAPI(newUser); //envia endpoint
             if (response.status === 400) {
                 setError("Email ya utilizado.");
-                setToast({ id: Date.now() });
+                showToast();
                 return;
             }
             if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
@@ -40,8 +44,8 @@ export default function Login() {
 
         } catch (err) {
             console.log("Error al registrarse:", err);
-            setError("Error al enviar request.");
-            setToast({ id: Date.now() });
+            setError("Error al conectarse con el servidor.");
+            showToast();
         }
     };
 
@@ -52,148 +56,84 @@ export default function Login() {
     const handleAnyInput = (e,parameter) => {
         setNewUser({...newUser, [parameter]: e.target.value})
         setError("");
-        setToast(null);
+        hideToast();
     }
 
-    //console.log(newUser);
-
-    
+    console.log(newUser);
 
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-3">
+
+        <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-3">
             FUTBOT
         </h1>
         
-        {/** CREAR COMPONENTE */}
-        {/** Alerta de error */}
-        {error === "Email ya utilizado." && (
-            <div className="toast-enter fixed bottom-4 right-4 z-50 max-w-sm
-                            bg-orange-100 border-l-4 border-orange-500 text-orange-700 
-                            p-4 rounded shadow-lg
-                            text-3xl" 
-                 role="alert"
-                 key={toast.id}
-            >
-                    <div className='flex-1'>
-                        <p className="font-bold">Revise sus datos nuevamente</p>
-                        <p>{error}</p>
-                    </div>              
-            </div>
+        {/** Alerta: email ya utilozado */}
+        {error === "Email ya utilizado." && toast && (
+            <ErrorAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="No se pudo completar el registro"
+                errorDescription={error}
+                color="orange"
+            />
         )}
 
-        {/** Alerta de error */}
-        {error === "Error al enviar request." && (
-            <div className="toast-enter fixed bottom-4 right-4 z-50 max-w-sm
-                            bg-red-300 border-l-4 border-red-500 text-red-700 
-                            p-4 rounded shadow-lg
-                            text-3xl" 
-                 role="alert"
-                 key={toast.id}
-            >
-                    <div className='flex-1'>
-                        <p className="font-bold">No se pudo completar el registro</p>
-                        <p>{error}</p>
-                    </div>              
-            </div>
+        {/** Alerta: error al enviar request */}
+        {error === "Error al conectarse con el servidor." && toast && (
+            <ErrorAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="No se pudo completar el registro"
+                errorDescription={error}
+                color="red"
+            />
         )}
+
+        {/** Alerta: error al enviar request */}
+        {(error === "Solo se permiten archivos JPG" ||
+          error === "La imagen supera 1 MB"         ||
+          error === "No se pudo leer el archivo") 
+            && toast 
+            && (<ErrorAlert
+                    key={toast.id}
+                    errorTitle="Error al cargar avatar"
+                    errorDescription={error}
+                    color="orange"
+                />)
+        }
 
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-2xl ">
         {/** Formulario de registro */}
             <form onSubmit={handleSubmit} 
-                  className="grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-4">
-                
-                {/** CREAR COMPONENTE */}
-                {/** usuario */}
-                <fieldset className="contents">
-                    <label
-                        htmlFor="username"
-                        className="text-4xl font-extrabold text-transparent text-right
-                                    bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
-                    >
-                        Nombre de usuario:
-                    </label>
-                    <input
-                        id="username"
-                        className="flex-1 min-w-0 border-2 py-2 px-3 rounded-md text-3xl"
-                        onChange={(e) => handleAnyInput(e, "username")}
-                        value={newUser.username}
-                    />
-                </fieldset>
+                className="grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-4"
+            >
 
                 {/** email */}
-                <fieldset className="contents">
-                    <label
-                        htmlFor="email"
-                        className="text-4xl font-extrabold text-transparent text-right
-                                    bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
-                    >
-                        Email:
-                    </label>
-                    <input
-                        id="email"
-                        className="flex-1 min-w-0 border-2 py-2 px-3 rounded-md text-3xl"
-                        type="text"
-                        onChange={(e) => handleAnyInput(e, "email")}
-                        value={newUser.email}
-                    />
-                </fieldset>
+                <FieldsetRegister 
+                    title="Email" idFieldset="email" typeFieldset="text"
+                    onChangeFieldset={(e) => handleAnyInput(e, "email")} value_fieldset={newUser.email}
+                />
 
                 {/** contraseña // "flex flex-row items-center gap-3 mb-4" */}
-                <fieldset className= "contents"> 
-                    <label
-                        htmlFor="passw"
-                        className="text-4xl font-extrabold text-transparent text-right
-                                    bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
-                    >
-                        Contraseña:
-                    </label>
-                    <input
-                        id="passw"
-                        className="flex-1 min-w-0 border-2 py-2 px-3 rounded-md text-3xl"
-                        type="password"
-                        onChange={(e) => handleAnyInput(e, "password")}
-                        value={newUser.password}
-                    />
-                </fieldset>
+                <FieldsetRegister 
+                    title="Contraseña" idFieldset="passw" typeFieldset="password"
+                    onChangeFieldset={(e) => handleAnyInput(e, "password")} valueFieldset={newUser.password}
+                />
                 
                 {/** contraseña verificacion */}
-                <fieldset className="contents">
-                    <label
-                        htmlFor="password_verif"
-                        className="text-4xl font-extrabold text-transparent text-right
-                                    bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
-                    >
-                        Repita contraseña:
-                    </label>
-                    <input
-                        id="password_verif"
-                        className="flex-1 min-w-0 border-2 py-2 px-3 rounded-md text-3xl"
-                        type="password"
-                        value = {passwordConfirm}
-                        onChange={(e) => setPasswordConfirm(e.target.value)}
-                    />
-                </fieldset>
+                <FieldsetRegister
+                    title="Repita contraseña" idFieldset="password_verif" typeFieldset="password"
+                    onChangeFieldset={(e) => setPasswordConfirm(e.target.value)}
+                />
 
                 {/** club */}
-                <fieldset className="contents">
-                    <label
-                        htmlFor="clubname"
-                        className="text-4xl font-extrabold text-transparent text-right
-                                    bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
-                    >
-                        Nombre de club:
-                    </label>
-                    <input
-                        id="clubname"
-                        className="flex-1 min-w-0 border-2 py-2 px-3 rounded-md text-3xl"
-                        type="text"
-                        onChange={(e) => handleAnyInput(e, "clubname")}
-                        value={newUser.clubname}
-                    />
-                </fieldset>
+                <FieldsetRegister 
+                    title="Nombre de club" idFieldset="clubname" typeFieldset="text"
+                    onChangeFieldset={(e) => handleAnyInput(e, "clubname")} parameter="clubname" valueFieldset={newUser.clubname}
+                />
 
-                {/** club */}
+                {/** avatar */}
                 <fieldset className="contents">
                     <label
                         htmlFor="avatar"
@@ -203,29 +143,38 @@ export default function Login() {
                         Avatar:
                     </label>
 
-                    <JpgInput id="avatar" 
-                            onChange={(b64) => {
+                    <JpgInput id="avatar"
+                              toast={toast} 
+                              onChange={(b64) => {
                                 setNewUser((prev) => ({ ...prev, avatar: b64 }));
-                                setError("");
-                                setToast(null);
-                            }} 
+                                if(b64){
+                                    setError("");
+                                    hideToast();
+                                }
+                              }} 
+                              onError={(message) => {
+                                setError(message);
+                                showToast();
+                              }}
                     />
                 </fieldset>
 
                 {/** boton registro */}
                 <button
                 type="submit"
-                disabled={!newUser.username || 
+                disabled={
                         !newUser.email    || 
                         !newUser.password || 
                         !newUser.clubname || 
                         !newUser.avatar   || 
                         !passwordVerified}
-                className="col-span-2 px-6 py-2 min-w-[120px] text-3xl text-center text-white
-                    bg-violet-600 border border-violet-600 rounded
-                    active:text-violet-500
-                    hover:bg-transparent hover:text-violet-600
-                    focus:outline-1 focus:ring
+                className="col-span-2 px-6 py-2 min-w-[120px] text-3xl text-center text-emerald-300
+                    bg-blue-500 border border-blue-500 rounded
+                    active:text-blue-800
+                    hover:bg-emerald-300
+                    hover:text-blue-500
+                    focus:outline-1 
+                    focus:ring
                     disabled:bg-gray-500
                     disabled:border-gray-500
                     disabled:text-gray-300
@@ -242,18 +191,23 @@ export default function Login() {
 
         <div className="flex flex-col mt-4">
             <h1 className="text-center text-2xl font-semibold text-gray-600">
-                ¿Ya tienes una cuenta?
+                ¿Tienes una cuenta?
             </h1>
             <Link
             to="/login"
-            className="px-6 py-2 min-w-[120px] text-base text-center text-white bg-violet-600 border border-violet-600 rounded active:text-violet-500 hover:bg-transparent hover:text-violet-600 focus:outline-none focus:ring"
-            >
+            className="px-6 py-2 min-w-[120px] 
+                       text-base text-center text-white 
+                       bg-blue-500 border border-blue-500 rounded
+                       active:text-blue-800
+                       hover:bg-emerald-300
+                       hover:text-blue-500
+                       focus:outline-none focus:ring">
                 Iniciar sesión
             </Link>
         </div>
 
         <h2 className="text-xl font-semibold text-slate-300 mt-4">
-        San Marino Famaf
+            San Marino FAMAF
         </h2>
     </div>
     );
