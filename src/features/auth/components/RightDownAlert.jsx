@@ -1,4 +1,4 @@
-export default function ErrorAlert({
+export default function RightDownAlert({
     errorDescription,
     errorTitle,
     color = "orange"}) {
@@ -6,6 +6,7 @@ export default function ErrorAlert({
         const colors = {
             red: "bg-red-300 border-red-500 text-red-700",
             orange: "bg-orange-100 border-orange-500 text-orange-700",
+            green: "bg-green-100 border-green-500 text-green-700",
         };
 
         return (<div className={`toast-enter fixed bottom-4 right-4 z-50 max-w-sm

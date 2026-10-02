@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react';
+import {  useState } from 'react';
 import { sendRegisterToAPI } from "../api.js";
-import { removeToken, saveTokenLocalStorage } from "../auth";
-import { useContext } from "react";
-import { AuthContext } from "../AuthProvider.jsx";
-
-import JpgInput from '../components/jpgToB64.jsx';
-
+import JpgInput from '../components/JpgToB64.jsx';
 import { Link } from "react-router-dom";
-import ErrorAlert from '../components/errorAlert.jsx';
+import RightDownAlert from '../components/RightDownAlert.jsx';
 import { useToast } from '../../../shared/hooks.js';
-import FieldsetRegister from '../components/fieldsetRegister.jsx';
+import FieldsetRegister from '../components/FieldsetRegister.jsx';
 
 export default function Login() {
 
@@ -21,20 +16,33 @@ export default function Login() {
     })
 
     {/** Logica para crear notificaciones de error */}
-    const [error, setError] = useState("");
+    const [alert, setAlert] = useState("");
     {/** Logica para actualizar notificaciones de error */}
     const {toast, showToast, hideToast} = useToast();
     
     {/** Logica para enviar formulario */}
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setError("");
+        setAlert("");
         hideToast();
 
         try{
             const response = await sendRegisterToAPI(newUser); //envia endpoint
+
+            {/** Registro creado correctamente */}
+            if(response.status === 201){
+                setAlert("Usuario registrado correctamente");
+                showToast();             
+                return;
+            }
+
             if (response.status === 400) {
-                setError("Email ya utilizado.");
+                {/** Registro creado correctamente */}
+                if (data.response === "Email already used."){
+                    setAlert("Email ya utilizado.");
+                } else if (data.response === "Required parameters are missing or incorrect."){
+                    setAlert("Parametros requeridos inválidos o incorrectos");
+                }
                 showToast();
                 return;
             }
@@ -44,7 +52,7 @@ export default function Login() {
 
         } catch (err) {
             console.log("Error al registrarse:", err);
-            setError("Error al conectarse con el servidor.");
+            setAlert("Error al conectarse con el servidor.");
             showToast();
         }
     };
@@ -55,7 +63,7 @@ export default function Login() {
 
     const handleAnyInput = (e,parameter) => {
         setNewUser({...newUser, [parameter]: e.target.value})
-        setError("");
+        setAlert("");
         hideToast();
     }
 
@@ -67,38 +75,49 @@ export default function Login() {
         <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-3">
             FUTBOT
         </h1>
+
+        {/** Alerta: Cuenta creada exitosamente */}
+        {alert === "Usuario registrado correctamente" && toast && (
+            <RightDownAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="Registro exitoso"
+                errorDescription={alert}
+                color="green"
+            />
+        )}
         
-        {/** Alerta: email ya utilozado */}
-        {error === "Email ya utilizado." && toast && (
-            <ErrorAlert
+        {/** Alerta: email ya utilizado */}
+        {alert === "Email ya utilizado." && toast && (
+            <RightDownAlert
                 key={toast.id}
                 toast={toast}
                 errorTitle="No se pudo completar el registro"
-                errorDescription={error}
+                errorDescription={alert}
                 color="orange"
             />
         )}
 
         {/** Alerta: error al enviar request */}
-        {error === "Error al conectarse con el servidor." && toast && (
-            <ErrorAlert
+        {alert === "Error al conectarse con el servidor." && toast && (
+            <RightDownAlert
                 key={toast.id}
                 toast={toast}
                 errorTitle="No se pudo completar el registro"
-                errorDescription={error}
+                errorDescription={alert}
                 color="red"
             />
         )}
 
         {/** Alerta: error al enviar request */}
-        {(error === "Solo se permiten archivos JPG" ||
-          error === "La imagen supera 1 MB"         ||
-          error === "No se pudo leer el archivo") 
+        {(alert === "Solo se permiten archivos JPG" ||
+          alert === "La imagen supera 1 MB"         ||
+          alert === "No se pudo leer el archivo") 
             && toast 
-            && (<ErrorAlert
+            && (<RightDownAlert
                     key={toast.id}
                     errorTitle="Error al cargar avatar"
-                    errorDescription={error}
+                    errorDescription={alert}
                     color="orange"
                 />)
         }
@@ -148,12 +167,12 @@ export default function Login() {
                               onChange={(b64) => {
                                 setNewUser((prev) => ({ ...prev, avatar: b64 }));
                                 if(b64){
-                                    setError("");
+                                    setAlert("");
                                     hideToast();
                                 }
                               }} 
                               onError={(message) => {
-                                setError(message);
+                                setAlert(message);
                                 showToast();
                               }}
                     />
