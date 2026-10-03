@@ -7,17 +7,37 @@ const WS_BASE_URL = import.meta.env.VITE_WS_SESSION_URL;
     con cualquier componente hijo. */}
 const FriendlyGamesSocketContext = createContext(null);
 
-{/**  Un componente por partido: su vida = la vida de la conexión */}
-function FGSocket({ friendly_game_id, onMessage }) {
+const STORAGE_IDS = "fgIds";
+
+const loadIds = () => {
+    try {
+        {/** Se usa sessionStorage para que cada pestaña maneje sus sockets separadamente */}
+        return JSON.parse(sessionStorage.getItem(STORAGE_IDS) || "[]");
+    } catch {
+        return [];
+    }
+};
+
+{/**  Un componente por partido: su vida = la vida de la conexión 
+        el websocket se cierra solo si el servidor devuelve 
+        4404 (not found) o 1000 (cierre exitoso)
+    */}
+function FGSocket({ friendly_game_id, onMessage, onFGGone }) {
     useWebSocket(`${WS_BASE_URL}/ws/friendly_game/${friendly_game_id}`, {
         onMessage: (msg) => onMessage(friendly_game_id, msg),
+        onClose: (e) => { if (e.code === 4404 || e.code === 1000) onFGGone(friendly_game_id)}
     });
     return null;
 }
 
 export function FriendlyGamesSocketProvider({ children }) {
-    const [FGIds, setFGIds] = useState([]); /** Guarda IDs para que luego se creen conexiones ws */
+    const [FGIds, setFGIds] = useState(loadIds); /** Guarda IDs para que luego se creen conexiones ws */
     const [messages, setMessages] = useState({}); /** <- IMPORTANTE */
+
+    // Cada vez que cambia la lista, se guarda (incluye leaveFG y leaveAll)
+    useEffect(() => {
+        sessionStorage.setItem(STORAGE_IDS, JSON.stringify(FGIds));
+    }, [FGIds]);
 
     {/** Agrega id sin duplicar para que sean montados por FGSocket */}
     const joinFG = useCallback(
@@ -55,7 +75,7 @@ export function FriendlyGamesSocketProvider({ children }) {
     return (
         <FriendlyGamesSocketContext.Provider value={{ messages, joinFG, leaveFG, leaveAll }}>
         {FGIds.map((id) => (
-            <FGSocket key={id} friendly_game_id={id} onMessage={handleMessage} />
+            <FGSocket key={id} friendly_game_id={id} onMessage={handleMessage} onFGGone={leaveFG} />
             ))}
         {children}
         </FriendlyGamesSocketContext.Provider>
