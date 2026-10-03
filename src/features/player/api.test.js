@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getPlayers, createPlayer } from './api';
+import { getPlayers, createPlayer, getPlayerById } from './api';
 import { apiClient } from '../../shared/api/client';
 
 // Intercepción de la dependencia externa
@@ -86,5 +86,32 @@ describe('Players API', () => {
 
       await expect(createPlayer(validPayload)).rejects.toThrow('Error 400 Bad Request');
     });
+    
   });
+
+
+    describe('getPlayerById', () => {
+      it('llama al endpoint correcto con el ID del jugador', async () => {
+          // Arrange
+          const mockPlayer = { player_id: 15, name: 'Jugador Test' };
+          apiClient.mockResolvedValueOnce(mockPlayer);
+          const playerId = 15;
+
+          // Act
+          const result = await getPlayerById(playerId);
+
+          // Assert
+          expect(apiClient).toHaveBeenCalledTimes(1);
+          expect(apiClient).toHaveBeenCalledWith(`/clubes/me/players/${playerId}`, {
+              method: 'GET',
+          });
+          expect(result).toEqual(mockPlayer);
+      });
+
+      it('lanza un error si no se proporciona un ID', async () => {
+          // Act & Assert
+          await expect(getPlayerById()).rejects.toThrow('ID de jugador requerido');
+          expect(apiClient).not.toHaveBeenCalled();
+      });
+    });
 });
