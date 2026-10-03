@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import useWebSocket from "../../shared/hooks";
 
 const WS_BASE_URL = import.meta.env.VITE_WS_SESSION_URL;
