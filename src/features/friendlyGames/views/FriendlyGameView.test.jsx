@@ -1,7 +1,10 @@
 import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import FriendlyGames from "./FriendlyGameView";
+
+const navigate = vi.fn();
+vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
 
 // Se mockean los hijos: acá solo se prueba la lógica de FriendlyGames
 // (mostrar/ocultar el modal), no el formulario de creación.
@@ -16,6 +19,7 @@ vi.mock("../../roster/components/RosterBuilder", () => ({
   RosterBuilder: () => null,
 }));
 
+beforeEach(() => navigate.mockClear());
 afterEach(cleanup);
 
 describe("FriendlyGames", () => {
@@ -30,6 +34,11 @@ describe("FriendlyGames", () => {
     it("muestra el botón NUEVO", () => {
       render(<FriendlyGames />);
       expect(screen.getByRole("button", { name: "NUEVO" })).toBeInTheDocument();
+    });
+
+    it("muestra el botón para volver al menú", () => {
+      render(<FriendlyGames />);
+      expect(screen.getByRole("button", { name: "Volver al menú" })).toBeInTheDocument();
     });
 
     it("no muestra el modal de creación al iniciar", () => {
@@ -68,6 +77,27 @@ describe("FriendlyGames", () => {
 
       expect(screen.getByRole("heading", { name: "PARTIDOS AMISTOSOS" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "NUEVO" })).toBeInTheDocument();
+    });
+  });
+
+  describe("volver al menú", () => {
+    it("navega a la raíz al hacer click en Volver al menú", async () => {
+      const user = userEvent.setup();
+      render(<FriendlyGames />);
+
+      await user.click(screen.getByRole("button", { name: "Volver al menú" }));
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith("/");
+    });
+
+    it("no abre el modal de creación al volver al menú", async () => {
+      const user = userEvent.setup();
+      render(<FriendlyGames />);
+
+      await user.click(screen.getByRole("button", { name: "Volver al menú" }));
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 
