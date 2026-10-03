@@ -12,14 +12,24 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         return
       }
 
-      getPlayerById(id).then(function (data) {
-        setPlayersInfo(function (previous) {
-          return {
-            ...previous,
-            [id]: data,
-          }
+      getPlayerById(id)
+        .then(function (data) {
+          setPlayersInfo(function (previous) {
+            return {
+              ...previous,
+              [id]: data,
+            }
+          })
         })
-      })
+        //para no propagar el error. Si no se encuentra el jugador, se muestra "Jugador desconocido" en lugar de su nombre
+        .catch(function (error) {
+          setPlayersInfo(function (previous) {
+            return {
+              ...previous,
+              [id]: { Name: "Jugador desconocido" },
+            }
+          })
+        })
     })
   }, [players])
 
@@ -64,6 +74,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
   )
 }
 
+// Muestra los jugadores titulares de un equipo en una columna
 function StarterColumn({ players, x, playerNumbers, playersInfo }) {
   return (
     <>
@@ -84,6 +95,7 @@ function StarterColumn({ players, x, playerNumbers, playersInfo }) {
   )
 }
 
+// Muestra los jugadores suplentes de un equipo en una fila
 function BenchRow({ players, startX, direction, playersInfo }) {
   return (
     <>
@@ -103,6 +115,7 @@ function BenchRow({ players, startX, direction, playersInfo }) {
   )
 }
 
+// Muestra un jugador en un cuadrado con su nombre y número si es titular
 function PlayerSquare({ player, playerInfo, x, y, size, number }) {
   return (
     <g>
@@ -142,6 +155,7 @@ function PlayerSquare({ player, playerInfo, x, y, size, number }) {
   )
 }
 
+// Muestra un jugador suplente en un cuadrado con su nombre
 function PlayerSquareOut({ player, playerInfo, x, y, size }) {
   return (
     <g>

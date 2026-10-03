@@ -25,7 +25,7 @@ export const createPlayer = async (playerData) => {
 export const getPlayerById = async (id) => {
     if (!id) throw new Error("ID de jugador requerido");
     
-    // Se asume la convención REST estándar para el parámetro de ruta
+    
     const data = await apiClient(`/clubes/me/players/${encodeURIComponent(id)}`, {
         method: 'GET',
     });

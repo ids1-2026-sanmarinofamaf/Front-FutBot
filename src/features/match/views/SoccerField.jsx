@@ -4,7 +4,7 @@ export function SoccerField() {
   function toPixels(x, y) {
     return {
       x: 300 + (x / 40) * 1320, // 300: offset x | 40: metros de ancho (FIELD_WIDTH) | 1320: ancho en píxeles
-      y: 150 + (y / 20) * 800,   // 150: offset y | 20: metros de alto (FIELD_HEIGHT)  | 820: alto en píxeles
+      y: 150 + (y / 20) * 800,   // 150: offset y | 20: metros de alto (FIELD_HEIGHT)  | 800: alto en píxeles
     }
   }
 
