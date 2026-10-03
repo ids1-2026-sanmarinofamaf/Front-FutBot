@@ -2,6 +2,7 @@ export function MatchPlayerInMatch({ players, playerNumbers }) {
   return (
     <>
       {players
+      //filtra los jugadores titulares
         .filter(function (p) {
           return p.is_on_field
         })
@@ -15,7 +16,7 @@ export function MatchPlayerInMatch({ players, playerNumbers }) {
             x: 300 + (snapped.x / 40) * 1320,
             y: 150 + (snapped.y / 20) * 800
           }
-
+          //pinta cada jugador con un color según su equipo y dibuja su número en el centro del círculo
           const color = p.team === "A" ? "blue" : "red"
           const number = playerNumbers[p.player_id]
 
