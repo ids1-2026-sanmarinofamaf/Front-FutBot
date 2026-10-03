@@ -25,55 +25,55 @@ beforeEach(() => {
 });
 
 describe("sendNewFM", () => {
-  it("hace POST a /friendly_games", async () => {
-    apiClient.mockResolvedValue({});
+    it("hace POST a /friendly_games", async () => {
+        apiClient.mockResolvedValue({});
 
-    await sendNewFM(newFG);
+        await sendNewFM(newFG);
 
-    expect(apiClient).toHaveBeenCalledTimes(1);
-    const [endpoint, options] = apiClient.mock.calls[0];
-    expect(endpoint).toBe("/friendly_games");
-    expect(options.method).toBe("POST");
-  });
+        expect(apiClient).toHaveBeenCalledTimes(1);
+        const [endpoint, options] = apiClient.mock.calls[0];
+        expect(endpoint).toBe("/friendly_games");
+        expect(options.method).toBe("POST");
+    });
 
-  it("envía los datos serializados como JSON en el body", async () => {
-    apiClient.mockResolvedValue({});
+    it("envía los datos serializados como JSON en el body", async () => {
+        apiClient.mockResolvedValue({});
 
-    await sendNewFM(newFG);
+        await sendNewFM(newFG);
 
-    const [, options] = apiClient.mock.calls[0];
-    expect(typeof options.body).toBe("string");
-    expect(JSON.parse(options.body)).toEqual(newFG);
-  });
+        const [, options] = apiClient.mock.calls[0];
+        expect(typeof options.body).toBe("string");
+        expect(JSON.parse(options.body)).toEqual(newFG);
+    });
 
-  it("devuelve la respuesta del backend", async () => {
-    const backendResponse = { id_friendlyMatch: 4, roster_id: 9 };
-    apiClient.mockResolvedValue(backendResponse);
+    it("devuelve la respuesta del backend", async () => {
+        const backendResponse = { id_friendlyMatch: 4, roster_id: 9 };
+        apiClient.mockResolvedValue(backendResponse);
 
-    const result = await sendNewFM(newFG);
+        const result = await sendNewFM(newFG);
 
-    expect(result).toEqual(backendResponse);
-  });
+        expect(result).toEqual(backendResponse);
+    });
 
-  it("propaga el error si apiClient falla (ej. 400 'Datos inválidos')", async () => {
-    apiClient.mockRejectedValue(new Error("Datos inválidos"));
+    it("propaga el error si apiClient falla (ej. 400 'Datos inválidos')", async () => {
+        apiClient.mockRejectedValue(new Error("Datos inválidos"));
 
-    await expect(sendNewFM(newFG)).rejects.toThrow("Datos inválidos");
-  });
+        await expect(sendNewFM(newFG)).rejects.toThrow("Datos inválidos");
+    });
 
-  it("propaga el error si no hay token de sesión", async () => {
-    apiClient.mockRejectedValue(new Error("No hay token de autenticación"));
+    it("propaga el error si no hay token de sesión", async () => {
+        apiClient.mockRejectedValue(new Error("No hay token de autenticación"));
 
-    await expect(sendNewFM(newFG)).rejects.toThrow("No hay token de autenticación");
-  });
+        await expect(sendNewFM(newFG)).rejects.toThrow("No hay token de autenticación");
+    });
 
-  it("envía los datos tal cual, sin validarlos (responsabilidad del backend)", async () => {
-    apiClient.mockResolvedValue({});
-    const incomplete = { duration: 300, roster: {} };
+    it("envía los datos tal cual, sin validarlos (responsabilidad del backend)", async () => {
+        apiClient.mockResolvedValue({});
+        const incomplete = { duration: 300, roster: {} };
 
-    await sendNewFM(incomplete);
+        await sendNewFM(incomplete);
 
-    const [, options] = apiClient.mock.calls[0];
-    expect(JSON.parse(options.body)).toEqual(incomplete);
-  });
+        const [, options] = apiClient.mock.calls[0];
+        expect(JSON.parse(options.body)).toEqual(incomplete);
+    });
 });
