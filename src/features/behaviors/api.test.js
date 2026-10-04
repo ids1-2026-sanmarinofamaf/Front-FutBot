@@ -1,44 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBehaviours, getBehaviourById } from './api';
+import { getBehaviors, getBehaviorById } from './api';
 import { apiClient } from '../../shared/api/client';
 
 vi.mock('../../shared/api/client', () => ({
   apiClient: vi.fn(),
 }));
 
-describe('getBehaviours API', () => {
+describe('getBehaviors API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('debe invocar apiClient con la ruta y el método correctos', async () => {
-    apiClient.mockResolvedValue({ behaviours_list: [] });
+    apiClient.mockResolvedValue({ behaviors_list: [] });
 
-    await getBehaviours();
+    await getBehaviors();
 
     expect(apiClient).toHaveBeenCalledTimes(1);
-    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviours', {
+    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors', {
       method: 'GET',
     });
   });
 
-  it('debe retornar el arreglo behaviours_list cuando la respuesta es exitosa', async () => {
+  it('debe retornar el arreglo behaviors_list cuando la respuesta es exitosa', async () => {
     const mockData = {
-      behaviours_list: [
-        { behaviour_id: 1, name: 'Ofensivo', code: 'kick()', is_valid: true }
+      behaviors_list: [
+        { behavior_id: 1, name: 'Ofensivo', code: 'kick()', is_valid: true }
       ]
     };
     apiClient.mockResolvedValue(mockData);
 
-    const result = await getBehaviours();
+    const result = await getBehaviors();
 
-    expect(result).toEqual(mockData.behaviours_list);
+    expect(result).toEqual(mockData.behaviors_list);
   });
 
-  it('debe retornar un arreglo vacío si behaviours_list no existe en el payload', async () => {
+  it('debe retornar un arreglo vacío si behaviors_list no existe en el payload', async () => {
     apiClient.mockResolvedValue({});
 
-    const result = await getBehaviours();
+    const result = await getBehaviors();
 
     expect(result).toEqual([]);
   });
@@ -47,45 +47,45 @@ describe('getBehaviours API', () => {
     const networkError = new Error('Unauthorized');
     apiClient.mockRejectedValue(networkError);
 
-    await expect(getBehaviours()).rejects.toThrow('Unauthorized');
+    await expect(getBehaviors()).rejects.toThrow('Unauthorized');
   });
 });
 
 
-describe('getBehaviourById API', () => {
+describe('getBehaviorById API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('debe invocar apiClient con el parámetro de ruta correcto', async () => {
     apiClient.mockResolvedValue({ code: 'defend()' });
-    const behaviourId = 1;
+    const behaviorId = 1;
 
-    await getBehaviourById(behaviourId);
+    await getBehaviorById(behaviorId);
 
     expect(apiClient).toHaveBeenCalledTimes(1);
-    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviours/1', {
+    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/1', {
       method: 'GET',
     });
   });
 
   it('debe retornar el objeto del comportamiento', async () => {
-    const mockResponse = { behaviour_id: 2, name: 'Pasivo', code: 'wait()', is_valid: true };
+    const mockResponse = { behavior_id: 2, name: 'Pasivo', code: 'wait()', is_valid: true };
     apiClient.mockResolvedValue(mockResponse);
 
-    const result = await getBehaviourById(2);
+    const result = await getBehaviorById(2);
 
     expect(result).toEqual(mockResponse);
   });
 
   it('debe lanzar un error si no se provee el ID', async () => {
-    await expect(getBehaviourById()).rejects.toThrow('El ID del comportamiento es requerido');
+    await expect(getBehaviorById()).rejects.toThrow('El ID del comportamiento es requerido');
     expect(apiClient).not.toHaveBeenCalled();
   });
 
   it('debe propagar errores de red', async () => {
     apiClient.mockRejectedValue(new Error('Not Found'));
 
-    await expect(getBehaviourById(99)).rejects.toThrow('Not Found');
+    await expect(getBehaviorById(99)).rejects.toThrow('Not Found');
   });
 });

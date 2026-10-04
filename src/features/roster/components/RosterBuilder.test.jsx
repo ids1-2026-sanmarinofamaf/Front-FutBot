@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { RosterBuilder } from './RosterBuilder';
 import * as playerApi from '../../player/api';
-import * as behaviourApi from '../../behaviours/api';
+import * as behaviorApi from '../../behaviors/api';
 
 // Interceptamos la capa de red de ambos módulos
 vi.mock('../../player/api');
-vi.mock('../../behaviours/api');
+vi.mock('../../behaviors/api');
 
 describe('RosterBuilder', () => {
   const mockSubmit = vi.fn();
@@ -24,16 +24,16 @@ describe('RosterBuilder', () => {
     { player_id: 7, name: 'Jugador 7' },
   ];
 
-  const mockBehaviours = [
-    { behaviour_id: 10, name: 'Ofensivo', is_valid: true },
-    { behaviour_id: 20, name: 'Defensivo', is_valid: true },
+  const mockBehaviors = [
+    { behavior_id: 10, name: 'Ofensivo', is_valid: true },
+    { behavior_id: 20, name: 'Defensivo', is_valid: true },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Uso correcto de vi.spyOn para interceptar funciones de módulos
     vi.spyOn(playerApi, 'getPlayers').mockResolvedValue(mockPlayers);
-    vi.spyOn(behaviourApi, 'getBehaviours').mockResolvedValue(mockBehaviours);
+    vi.spyOn(behaviorApi, 'getBehaviors').mockResolvedValue(mockBehaviors);
   });
 
   it('muestra el estado de carga y luego renderiza el formulario', async () => {
