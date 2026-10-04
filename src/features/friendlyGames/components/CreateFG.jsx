@@ -36,7 +36,7 @@ export default function CreateFG({ onClose }) {
         try{
             const response = await sendNewFM(newFG);
 
-            const fgID = response?.id_friendlyGame;
+            const fgID = response?.friendly_game_id;
 
             if(fgID == null){
                 setAlert("Fallo en comunicación con servidor");
