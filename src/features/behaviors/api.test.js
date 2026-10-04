@@ -22,7 +22,7 @@ describe('getBehaviors API', () => {
     });
   });
 
-  it('debe retornar el arreglo behaviors_list cuando la respuesta es exitosa', async () => {
+  it('debe retornar la respuesta cuando es exitosa', async () => {
     const mockData = {
       behaviors_list: [
         { behavior_id: 1, name: 'Ofensivo', code: 'kick()', is_valid: true }
@@ -32,15 +32,15 @@ describe('getBehaviors API', () => {
 
     const result = await getBehaviors();
 
-    expect(result).toEqual(mockData.behaviors_list);
+    expect(result).toEqual(mockData);
   });
 
-  it('debe retornar un arreglo vacío si behaviors_list no existe en el payload', async () => {
+  it('debe retornar un objeto vacío si el payload no contiene behaviors_list', async () => {
     apiClient.mockResolvedValue({});
 
     const result = await getBehaviors();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({});
   });
 
   it('debe propagar la excepción si apiClient falla', async () => {

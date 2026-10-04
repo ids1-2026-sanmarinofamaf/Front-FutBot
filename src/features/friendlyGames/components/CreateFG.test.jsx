@@ -15,11 +15,11 @@ vi.mock("../FriendlyGamesProvider", () => ({
 }));
 
 const ROSTER = {
-    formation: "ofensiva",
+    formation: "offensive",
     players: Array.from({ length: 6 }, (_, i) => ({
         player_id: i + 1,
         is_starter: i < 3,
-        slot: i < 3 ? `A${i + 1}` : null,
+        slot: i < 3 ? ["left", "center", "right"][i] : null,
         initial_behavior_id: i < 3 ? 1 : null,
     })),
 };
@@ -50,13 +50,13 @@ const loadRoster = async (user) => {
     await user.click(screen.getByRole("button", { name: "confirmar plantilla" }));
 };
 
-// El componente lee `response.id_friendlyGame`
+// El componente lee `response.friendly_game_id`
 const FG_ID = 4;
 
 beforeEach(() => {
     vi.clearAllMocks();
     nextRoster = ROSTER;
-    sendNewFM.mockResolvedValue({ id_friendlyGame: FG_ID });
+    sendNewFM.mockResolvedValue({ friendly_game_id: FG_ID });
     vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(cleanup);
@@ -258,7 +258,7 @@ describe("CreateFG", () => {
         });
 
         it("acepta el nombre de ID definido por la respuesta real del backend", async () => {
-            sendNewFM.mockResolvedValue({ id_friendlyGame: FG_ID });
+            sendNewFM.mockResolvedValue({ friendly_game_id: FG_ID });
             const user = setup();
             await loadRoster(user);
 
