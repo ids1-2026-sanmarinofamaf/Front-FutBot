@@ -1,1 +1,1 @@
-export { Match } from './views/Match';
+export { MatchPage } from "./MatchPage";

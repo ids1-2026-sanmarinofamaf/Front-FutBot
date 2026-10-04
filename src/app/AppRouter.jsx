@@ -7,6 +7,8 @@ import { MainMenu } from "../features/mainMenu";
 import { MyClub } from "../features/club";
 import LoginView from "../features/auth";
 import FriendlyGames from "../features/friendlyGames/index.js";
+import { MatchPage } from "../features/match";
+
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
 import { BehaviourList, BehaviourDetail } from "../features/behaviours";
@@ -68,13 +70,15 @@ const AppRouter = () => {
           <Route path="/club/behaviours" element={<BehaviourList />} />
           <Route path="/club/behaviours/:id" element={<BehaviourDetail />} />
 
+          {/* Módulo: Partidos */}
+          <Route path="/matches/:matchId" element={<MatchPage />} />
+
           {/* Placeholders con el diseño del proyecto */}
           <Route path="/club/roster" element={<PlaceholderView title="Plantilla" />} />
           <Route path="/club/stats" element={<PlaceholderView title="Estadísticas" />} />
           <Route path="/friendly" element={<FriendlyGames />} />
           <Route path="/friendly/:id" element={<PlaceholderView title="FriendlyGameView" />} />
           <Route path="/league" element={<PlaceholderView title="Ligas" />} />
-          <Route path="/match" element={<PlaceholderView title="Partido" />} />
         </Route>
 
         {/* Fallback general */}
