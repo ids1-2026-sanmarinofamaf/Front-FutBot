@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { RosterBuilder } from './RosterBuilder';
 import * as playerApi from '../../player/api';
-import * as behaviourApi from '../../behaviours/api';
+import * as behaviorApi from '../../behaviors/api';
 
 // Interceptamos la capa de red de ambos módulos
 vi.mock('../../player/api');
-vi.mock('../../behaviours/api');
+vi.mock('../../behaviors/api');
 
 describe('RosterBuilder', () => {
   const mockSubmit = vi.fn();
@@ -15,25 +15,25 @@ describe('RosterBuilder', () => {
 
   // Datos mockeados mínimos para armar una plantilla completa
   const mockPlayers = [
-    { player_id: 1, name: 'Jugador 1' },
-    { player_id: 2, name: 'Jugador 2' },
-    { player_id: 3, name: 'Jugador 3' },
-    { player_id: 4, name: 'Jugador 4' },
-    { player_id: 5, name: 'Jugador 5' },
-    { player_id: 6, name: 'Jugador 6' },
-    { player_id: 7, name: 'Jugador 7' },
+    { id: 1, name: 'Jugador 1' },
+    { id: 2, name: 'Jugador 2' },
+    { id: 3, name: 'Jugador 3' },
+    { id: 4, name: 'Jugador 4' },
+    { id: 5, name: 'Jugador 5' },
+    { id: 6, name: 'Jugador 6' },
+    { id: 7, name: 'Jugador 7' },
   ];
 
-  const mockBehaviours = [
-    { behaviour_id: 10, name: 'Ofensivo', is_valid: true },
-    { behaviour_id: 20, name: 'Defensivo', is_valid: true },
+  const mockBehaviors = [
+    { behavior_id: 10, name: 'Ofensivo', is_valid: true },
+    { behavior_id: 20, name: 'Defensivo', is_valid: true },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Uso correcto de vi.spyOn para interceptar funciones de módulos
     vi.spyOn(playerApi, 'getPlayers').mockResolvedValue(mockPlayers);
-    vi.spyOn(behaviourApi, 'getBehaviours').mockResolvedValue(mockBehaviours);
+    vi.spyOn(behaviorApi, 'getBehaviors').mockResolvedValue(mockBehaviors);
   });
 
   it('muestra el estado de carga y luego renderiza el formulario', async () => {
@@ -97,7 +97,7 @@ describe('RosterBuilder', () => {
     const selects = screen.getAllByRole('combobox');
 
     // Llenar Formación
-    await user.selectOptions(selects[0], 'ofensiva');
+    await user.selectOptions(selects[0], 'offensive');
 
     // Llenar Titulares
     await user.selectOptions(selects[1], '1'); 
@@ -122,11 +122,11 @@ describe('RosterBuilder', () => {
 
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(mockSubmit).toHaveBeenCalledWith({
-      formation: 'ofensiva',
+      formation: 'offensive',
       players: [
-        { player_id: 1, is_starter: true, slot: 'starter_1', initial_behavior_id: 10 },
-        { player_id: 2, is_starter: true, slot: 'starter_2', initial_behavior_id: 20 },
-        { player_id: 3, is_starter: true, slot: 'starter_3', initial_behavior_id: 10 },
+        { player_id: 1, is_starter: true, slot: 'left', initial_behavior_id: 10 },
+        { player_id: 2, is_starter: true, slot: 'center', initial_behavior_id: 20 },
+        { player_id: 3, is_starter: true, slot: 'right', initial_behavior_id: 10 },
         { player_id: 4, is_starter: false, slot: null, initial_behavior_id: null },
         { player_id: 5, is_starter: false, slot: null, initial_behavior_id: null },
         { player_id: 6, is_starter: false, slot: null, initial_behavior_id: null },

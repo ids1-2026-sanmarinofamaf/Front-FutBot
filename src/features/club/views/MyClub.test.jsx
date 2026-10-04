@@ -46,18 +46,18 @@ describe('MyClub UI', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/club/players');
   });
 
-  it('navega a "/club/behaviours" al hacer clic en "Gestión de Comportamientos"', async () => {
+  it('navega a "/club/behaviors" al hacer clic en "Gestión de Comportamientos"', async () => {
     // 1. Arrange
     const user = userEvent.setup();
     render(<MyClub />);
 
     // 2. Act
-    const behavioursButton = screen.getByRole('button', { name: /Gestión de Comportamientos/i });
-    await user.click(behavioursButton);
+    const behaviorsButton = screen.getByRole('button', { name: /Gestión de Comportamientos/i });
+    await user.click(behaviorsButton);
 
     // 3. Assert
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviours');
+    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviors');
   });
 
   it('navega a "/" al hacer clic en "Volver al Menú Principal"', async () => {

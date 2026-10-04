@@ -15,11 +15,11 @@ vi.mock("../FriendlyGamesProvider", () => ({
 }));
 
 const ROSTER = {
-    formation: "ofensiva",
+    formation: "offensive",
     players: Array.from({ length: 6 }, (_, i) => ({
         player_id: i + 1,
         is_starter: i < 3,
-        slot: i < 3 ? `A${i + 1}` : null,
+        slot: i < 3 ? ["left", "center", "right"][i] : null,
         initial_behavior_id: i < 3 ? 1 : null,
     })),
 };
@@ -50,13 +50,13 @@ const loadRoster = async (user) => {
     await user.click(screen.getByRole("button", { name: "confirmar plantilla" }));
 };
 
-// El componente lee `response.id_friendlyGame`
+// El componente lee `response.friendly_game_id`
 const FG_ID = 4;
 
 beforeEach(() => {
     vi.clearAllMocks();
     nextRoster = ROSTER;
-    sendNewFM.mockResolvedValue({ id_friendlyGame: FG_ID });
+    sendNewFM.mockResolvedValue({ friendly_game_id: FG_ID });
     vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(cleanup);
@@ -67,7 +67,7 @@ describe("CreateFG", () => {
             setup();
             
             expect(screen.getByRole("heading", { name: "Crear partido amistoso" })).toBeInTheDocument();
-            expect(screen.getByLabelText("Duración del partido (minutos):")).toHaveValue(300);
+            expect(screen.getByLabelText("Duración del partido (segundos):")).toHaveValue(300);
             expect(screen.getByRole("button", { name: "Editar plantilla" })).toBeInTheDocument();
             expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
             expect(screen.getByRole("button", { name: "CREAR" })).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe("CreateFG", () => {
     describe("duración", () => {
         it("permite cambiar la duración", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             
             await user.clear(input);
             await user.type(input, "90");
@@ -103,7 +103,7 @@ describe("CreateFG", () => {
             await loadRoster(user);
             expect(screen.getByRole("button", { name: "CREAR" })).toBeEnabled();
             
-            await user.clear(screen.getByLabelText("Duración del partido (minutos):"));
+            await user.clear(screen.getByLabelText("Duración del partido (segundos):"));
             
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
         });
@@ -112,7 +112,7 @@ describe("CreateFG", () => {
             const user = setup();
             await loadRoster(user);
 
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             fireEvent.change(input, { target: { value: "-1" } });
 
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
@@ -122,7 +122,7 @@ describe("CreateFG", () => {
             const user = setup();
             await loadRoster(user);
 
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             fireEvent.change(input, { target: { value: "0.5" } });
 
             expect(input).toBeInvalid();
@@ -131,7 +131,7 @@ describe("CreateFG", () => {
 
         it("declara un máximo y deshabilita CREAR por encima de ese máximo", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             const max = input.getAttribute("max");
 
             expect(max).not.toBeNull();
@@ -223,7 +223,7 @@ describe("CreateFG", () => {
         
         it("envía la duración modificada", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             await user.clear(input);
             await user.type(input, "90");
             await loadRoster(user);
@@ -258,7 +258,7 @@ describe("CreateFG", () => {
         });
 
         it("acepta el nombre de ID definido por la respuesta real del backend", async () => {
-            sendNewFM.mockResolvedValue({ id_friendlyGame: FG_ID });
+            sendNewFM.mockResolvedValue({ friendly_game_id: FG_ID });
             const user = setup();
             await loadRoster(user);
 

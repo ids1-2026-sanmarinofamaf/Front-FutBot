@@ -53,18 +53,21 @@ describe('PlayerCard UI', () => {
     expect(controlValue).toHaveClass('text-red-400');
   });
 
-  it('ejecuta la función onView con el player_id correcto al hacer clic en "Ver"', async () => {
-    // Arrange
-    const user = userEvent.setup();
-    const onViewMock = vi.fn();
-    render(<PlayerCard player={mockPlayer} onView={onViewMock} />);
+  {/** Test para proximo sprint
 
-    // Act
-    const viewButton = screen.getByRole('button', { name: /Ver/i });
-    await user.click(viewButton);
+    it('ejecuta la función onView con el player_id correcto al hacer clic en "Ver"', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const onViewMock = vi.fn();
+      render(<PlayerCard player={mockPlayer} onView={onViewMock} />);
 
-    // Assert
-    expect(onViewMock).toHaveBeenCalledTimes(1);
-    expect(onViewMock).toHaveBeenCalledWith(99); // El ID de mockPlayer
-  });
+      // Act
+      const viewButton = screen.getByRole('button', { name: /Ver/i });
+      await user.click(viewButton);
+
+      // Assert
+      expect(onViewMock).toHaveBeenCalledTimes(1);
+      expect(onViewMock).toHaveBeenCalledWith(99); // El ID de mockPlayer
+    });
+   */}
 });

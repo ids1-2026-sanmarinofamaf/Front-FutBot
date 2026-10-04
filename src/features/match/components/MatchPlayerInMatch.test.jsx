@@ -7,14 +7,14 @@ describe('MatchPlayerInMatch', () => {
   it('muestra solamente los jugadores que están en cancha', () => {
     const players = [
       {
-        player_id: 1,
+        id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        player_id: 2,
+        id: 2,
         x: 10,
         y: 15,
         team: 'A',
@@ -43,14 +43,14 @@ describe('MatchPlayerInMatch', () => {
   it('muestra el número correspondiente a cada jugador', () => {
     const players = [
       {
-        player_id: 1,
+        id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        player_id: 2,
+        id: 2,
         x: 20,
         y: 5,
         team: 'B',
@@ -79,14 +79,14 @@ describe('MatchPlayerInMatch', () => {
   it('usa azul para el equipo A y rojo para el equipo B', () => {
     const players = [
       {
-        player_id: 1,
+        id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        player_id: 2,
+        id: 2,
         x: 20,
         y: 5,
         team: 'B',
@@ -122,7 +122,7 @@ describe('MatchPlayerInMatch', () => {
   it('calcula la posición del jugador con el offset de media unidad', () => {
     const players = [
       {
-        player_id: 1,
+        id: 1,
         x: 5.8,
         y: 10.3,
         team: 'A',
@@ -175,7 +175,7 @@ describe('MatchPlayerInMatch', () => {
   it('no dibuja jugadores que no están en cancha', () => {
     const players = [
       {
-        player_id: 1,
+        id: 1,
         x: 5,
         y: 10,
         team: 'A',

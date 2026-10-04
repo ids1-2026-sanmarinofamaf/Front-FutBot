@@ -5,7 +5,7 @@ export const getPlayers = async () => {
         method: 'GET',
     });
 
-    return data.players_list || [];
+    return data || [];
 };
 
 export const createPlayer = async (playerData) => {

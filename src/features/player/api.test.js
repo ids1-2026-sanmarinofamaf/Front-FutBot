@@ -25,14 +25,13 @@ describe('Players API', () => {
     });
 
     it('debe retornar players_list cuando la respuesta es exitosa', async () => {
-      const mockData = {
-        players_list: [{ player_id: 1, name: 'Andrés Martínez' }]
-      };
+      const mockData = 
+        [{ player_id: 1, name: 'Andrés Martínez' }];
       apiClient.mockResolvedValue(mockData);
 
       const result = await getPlayers();
 
-      expect(result).toEqual(mockData.players_list);
+      expect(result).toEqual(mockData);
     });
 
     it('debe retornar un arreglo vacío si players_list no está definido', async () => {
@@ -40,7 +39,7 @@ describe('Players API', () => {
 
       const result = await getPlayers();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
   });
 

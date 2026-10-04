@@ -1,8 +1,11 @@
-export function BehaviourCard({ behaviour, onView }) {
+export function BehaviorCard({ behavior, onView }) {
+  // Si el backend no informa el estado, se considera válido por defecto.
+  const isValid = behavior.is_valid !== false;
+
   const handleView = () => {
     // Ejecuta la función del padre pasando el ID correcto
     if (onView) {
-      onView(behaviour.behaviour_id);
+      onView(behavior.behavior_id);
     }
   };
 
@@ -18,16 +21,16 @@ export function BehaviourCard({ behaviour, onView }) {
     <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg flex justify-between items-center shadow-sm">
       <div className="flex items-center gap-4">
         <span className="text-lg font-medium text-slate-200">
-          {behaviour.name}
+          {behavior.name}
         </span>
         <span 
           className={`text-xs px-2 py-1 rounded font-mono border ${
-            behaviour.is_valid 
+            isValid
               ? 'bg-emerald-900/40 text-emerald-400 border-emerald-800' 
               : 'bg-red-900/40 text-red-400 border-red-800'
           }`}
         >
-          {behaviour.is_valid ? 'Válido' : 'Inválido'}
+          {isValid ? 'Válido' : 'Inválido'}
         </span>
       </div>
 
