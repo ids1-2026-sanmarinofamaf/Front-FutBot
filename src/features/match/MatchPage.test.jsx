@@ -1,13 +1,19 @@
-// features/match/MatchPage.test.jsx
+// features/match/MatchPage.test.jsxvi.mock
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MatchPage } from "./MatchPage";
 
 const mockUseWebSocket = vi.fn();
 
-vi.mock("react-router-dom", () => ({
-  useParams: vi.fn(),
-}));
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useParams: vi.fn(),
+    useNavigate: () => vi.fn(),
+  };
+});
+
 
 vi.mock("../../shared/hooks.js", () => ({
   default: (...args) => mockUseWebSocket(...args),
