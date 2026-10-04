@@ -7,7 +7,10 @@
 @layer base {
   body {
     @apply bg-slate-900 text-slate-200;
+    font-family: "BitPotion", sans-serif;
+    font-size: 2.00rem;
   }
+
 }
 
 @font-face {
