@@ -98,7 +98,7 @@ export default function CreateFG({ onClose }) {
               htmlFor="duration"
               className="shrink-0 text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
             >
-              Duración del partido (minutos):
+              Duración del partido (segundos):
             </label>
 
             <input
