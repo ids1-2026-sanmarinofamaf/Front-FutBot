@@ -66,7 +66,7 @@ describe('Match', () => {
 
     expect(screen.getByText('99')).toBeInTheDocument()
     expect(screen.getByText('88')).toBeInTheDocument()
-    expect(screen.getByText('450/900')).toBeInTheDocument()
+    expect(screen.getByText('45/90sec')).toBeInTheDocument()
   })
 
   it('muestra los nombres por defecto de los equipos en el marcador', () => {
@@ -121,7 +121,7 @@ describe('Match', () => {
     const result = renderMatch(estado_partido)
 
     expect(result.getByText('99')).toBeInTheDocument()
-    expect(result.getByText('450/900')).toBeInTheDocument()
+    expect(result.getByText('45/90sec')).toBeInTheDocument()
 
     const updatedState = {
       actual_tic: 500,
@@ -143,9 +143,9 @@ describe('Match', () => {
 
     expect(result.getByText('77')).toBeInTheDocument()
     expect(result.getByText('88')).toBeInTheDocument()
-    expect(result.getByText('500/900')).toBeInTheDocument()
+    expect(result.getByText('50/90sec')).toBeInTheDocument()
 
-    expect(result.queryByText('450/900')).not.toBeInTheDocument()
+    expect(result.queryByText('45/90sec')).not.toBeInTheDocument()
   })
 
   it('muestra el botón para salir del partido', () => {
