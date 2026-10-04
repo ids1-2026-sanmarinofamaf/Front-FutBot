@@ -258,7 +258,7 @@ describe("CreateFG", () => {
         });
 
         it("acepta el nombre de ID definido por la respuesta real del backend", async () => {
-            sendNewFM.mockResolvedValue({ id_friendlyMatch: FG_ID });
+            sendNewFM.mockResolvedValue({ id_friendlyGame: FG_ID });
             const user = setup();
             await loadRoster(user);
 
