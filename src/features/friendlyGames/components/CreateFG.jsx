@@ -66,7 +66,7 @@ export default function CreateFG({ onClose }) {
     const handleAnyInput = (e,parameter) => {
         setNewFG({...newFG, [parameter]: Number(e.target.value)})
         setAlert("");
-        setToast(null);
+        hideToast();
     }
     console.log(newFG)
     

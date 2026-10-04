@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CreateFG from "./CreateFG";
@@ -107,6 +107,42 @@ describe("CreateFG", () => {
             
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
         });
+
+        it("deshabilita CREAR para una duración negativa", async () => {
+            const user = setup();
+            await loadRoster(user);
+
+            const input = screen.getByLabelText("Duración del partido (minutos):");
+            fireEvent.change(input, { target: { value: "-1" } });
+
+            expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
+        });
+
+        it("deshabilita CREAR para una duración decimal fuera del paso permitido", async () => {
+            const user = setup();
+            await loadRoster(user);
+
+            const input = screen.getByLabelText("Duración del partido (minutos):");
+            fireEvent.change(input, { target: { value: "0.5" } });
+
+            expect(input).toBeInvalid();
+            expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
+        });
+
+        it("declara un máximo y deshabilita CREAR por encima de ese máximo", async () => {
+            const user = setup();
+            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const max = input.getAttribute("max");
+
+            expect(max).not.toBeNull();
+
+            await loadRoster(user);
+            await user.clear(input);
+            await user.type(input, String(Number(max) + 1));
+
+            expect(input).toBeInvalid();
+            expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
+        });
     });
     
     describe("constructor de plantilla", () => {
@@ -173,6 +209,17 @@ describe("CreateFG", () => {
             expect(sendNewFM).toHaveBeenCalledTimes(1);
             expect(sendNewFM).toHaveBeenCalledWith({ duration: 300, roster: ROSTER });
         });
+
+        it("usa una copia de la plantilla para el amistoso sin mutar la plantilla original", async () => {
+            const originalRoster = structuredClone(ROSTER);
+            const user = setup();
+
+            await loadRoster(user);
+            await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+            expect(ROSTER).toEqual(originalRoster);
+            expect(sendNewFM).toHaveBeenCalledWith({ duration: 300, roster: ROSTER });
+        });
         
         it("envía la duración modificada", async () => {
             const user = setup();
@@ -208,6 +255,40 @@ describe("CreateFG", () => {
             expect(joinFG).not.toHaveBeenCalled();
             expect(screen.queryByText("Partido creado")).not.toBeInTheDocument();
             expect(screen.getByRole("button", { name: "CREAR" })).toBeInTheDocument();
+        });
+
+        it("acepta el nombre de ID definido por la respuesta real del backend", async () => {
+            sendNewFM.mockResolvedValue({ id_friendlyMatch: FG_ID });
+            const user = setup();
+            await loadRoster(user);
+
+            await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+            expect(joinFG).toHaveBeenCalledWith(FG_ID);
+            expect(await screen.findByText("Partido creado")).toBeInTheDocument();
+        });
+
+        it("no confirma la creación ni abre el WebSocket si la respuesta no trae ID", async () => {
+            sendNewFM.mockResolvedValue({ roster_id: 9 });
+            const user = setup();
+            await loadRoster(user);
+
+            await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+            expect(joinFG).not.toHaveBeenCalled();
+            expect(screen.queryByText("Partido creado")).not.toBeInTheDocument();
+        });
+
+        it("muestra un error visible si falla la creación", async () => {
+            sendNewFM.mockRejectedValue(new Error("Datos inválidos"));
+            const user = setup();
+            await loadRoster(user);
+
+            await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+            expect(await screen.findByRole("alert")).toHaveTextContent(
+                "No se pudo enviar solicitud al servidor"
+            );
         });
     });
     
