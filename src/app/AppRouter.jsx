@@ -9,7 +9,7 @@ import LoginView from "../features/auth";
 import FriendlyGames from "../features/friendlyGames/index.js";
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
-import { BehaviourList, BehaviourDetail } from "../features/behaviours";
+import { BehaviorList, BehaviorDetail } from "../features/behaviors/index.js";
 
 // Placeholder reutilizable
 const PlaceholderView = ({ title }) => {
@@ -62,11 +62,12 @@ const AppRouter = () => {
           
           {/* Módulo: Jugadores */}
           <Route path="/club/players" element={<PlayersList />} />
+          {/** <Route path="/club/players/:id" element={<PlaceholderView title="TESTING" />} /> */}
           <Route path="/club/players/create" element={<CreatePlayer />} />
           
           {/* Módulo: Comportamientos */}
-          <Route path="/club/behaviours" element={<BehaviourList />} />
-          <Route path="/club/behaviours/:id" element={<BehaviourDetail />} />
+          <Route path="/club/behaviors" element={<BehaviorList />} />
+          <Route path="/club/behaviors/:id" element={<BehaviorDetail />} />
 
           {/* Placeholders con el diseño del proyecto */}
           <Route path="/club/roster" element={<PlaceholderView title="Plantilla" />} />

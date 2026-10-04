@@ -16,7 +16,7 @@ export function MyClub() {
         </button>
         
         <button 
-          onClick={() => navigate('/club/behaviours')}
+          onClick={() => navigate('/club/behaviors')}
           className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
         >
           Gestión de Comportamientos

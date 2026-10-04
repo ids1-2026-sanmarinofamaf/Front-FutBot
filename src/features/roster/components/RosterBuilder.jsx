@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getPlayers } from '../../player/api';
-import { getBehaviours } from '../../behaviours/api';
+import { getBehaviors } from '../../behaviors/api';
 
 export function RosterBuilder({ onSubmit, onCancel }) {
   const [playersList, setPlayersList] = useState([]);
-  const [behavioursList, setBehavioursList] = useState([]);
+  const [behaviorsList, setBehaviorsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -25,13 +25,13 @@ export function RosterBuilder({ onSubmit, onCancel }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [playersData, behavioursData] = await Promise.all([
+        const [playersData, behaviorsData] = await Promise.all([
           getPlayers(),
-          getBehaviours()
+          getBehaviors()
         ]);
         setPlayersList(playersData);
         // Filtramos solo los comportamientos válidos.
-        setBehavioursList(behavioursData.filter(b => b.is_valid !== false));
+        setBehaviorsList(behaviorsData.filter(b => b.is_valid !== false));
       } catch (err) {
         setError('Error al cargar datos del club. ' + err.message);
       } finally {
@@ -64,6 +64,7 @@ export function RosterBuilder({ onSubmit, onCancel }) {
     e.preventDefault();
     if (!isValid()) return;
 
+    const slots = ['left', 'center', 'right'];
     // Empaquetar según documento API
     const rosterPayload = {
       formation,
@@ -71,7 +72,7 @@ export function RosterBuilder({ onSubmit, onCancel }) {
         ...starters.map((s, index) => ({
           player_id: parseInt(s.player_id, 10),
           is_starter: true,
-          slot: `starter_${index + 1}`, // arbitrario
+          slot: slots[index], // arbitrario
           initial_behavior_id: parseInt(s.initial_behavior_id, 10)
         })),
         ...subs.map((s) => ({
@@ -116,8 +117,8 @@ export function RosterBuilder({ onSubmit, onCancel }) {
             className="bg-slate-900 border border-slate-600 text-slate-200 p-2 rounded focus:ring focus:ring-blue-500"
           >
             <option value="">Seleccione una formación...</option>
-            <option value="ofensiva">Ofensiva</option>
-            <option value="defensiva">Defensiva</option>
+            <option value="offensive">Ofensiva</option>
+            <option value="defensive">Defensiva</option>
           </select>
         </div>
 
@@ -135,9 +136,9 @@ export function RosterBuilder({ onSubmit, onCancel }) {
                   <option value="">Seleccionar Jugador...</option>
                   {playersList.map(p => (
                     <option 
-                      key={p.player_id} 
-                      value={p.player_id}
-                      disabled={selectedIds.includes(p.player_id.toString()) && starter.player_id !== p.player_id.toString()}
+                      key={p.id} 
+                      value={p.id}
+                      disabled={selectedIds.includes(p.id.toString()) && starter.d !== p.id.toString()}
                     >
                       {p.name}
                     </option>
@@ -150,8 +151,8 @@ export function RosterBuilder({ onSubmit, onCancel }) {
                   className="bg-slate-900 border border-slate-600 text-slate-200 p-2 rounded text-sm"
                 >
                   <option value="">Asignar Comportamiento...</option>
-                  {behavioursList.map(b => (
-                    <option key={b.behaviour_id} value={b.behaviour_id}>
+                  {behaviorsList.map(b => (
+                    <option key={b.behavior_id} value={b.behavior_id}>
                       {b.name}
                     </option>
                   ))}
@@ -173,9 +174,9 @@ export function RosterBuilder({ onSubmit, onCancel }) {
                   <option value="">Seleccionar Jugador...</option>
                   {playersList.map(p => (
                     <option 
-                      key={p.player_id} 
-                      value={p.player_id}
-                      disabled={selectedIds.includes(p.player_id.toString()) && sub.player_id !== p.player_id.toString()}
+                      key={p.id} 
+                      value={p.id}
+                      disabled={selectedIds.includes(p.id.toString()) && sub.player_id !== p.id.toString()}
                     >
                       {p.name}
                     </option>
