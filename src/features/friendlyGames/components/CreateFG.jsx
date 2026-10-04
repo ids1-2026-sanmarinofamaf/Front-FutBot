@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { sendNewFM } from "../api";
 import { RosterBuilder } from "../../roster/components/RosterBuilder";
 import { useFriendlyGamesSocket } from "../FriendlyGamesProvider";
+import { useToast } from "../../../shared/hooks";
+import RightDownAlert from "../../../shared/components/RightDownAlert";
 
 export default function CreateFG({ onClose }) {
 
-    //const[alert,setAlert] = useState(null)
-    //const {toast,showToast,hideToast} = useToast();
+    const[alert,setAlert] = useState(null)
+    const {toast,showToast,hideToast} = useToast();
     const navigate = useNavigate();
 
     const [newFG,setNewFG] = useState({
@@ -15,6 +17,7 @@ export default function CreateFG({ onClose }) {
         roster: {}
     })
     const rosterLoaded = newFG.roster?.players?.length === 6;
+    const Verification = newFG.duration < 1 || !rosterLoaded || newFG.duration > 300;
 
     {/** Estado para crear roaster */}
     const [builderR, setBuilderR] = useState(false) 
@@ -26,29 +29,46 @@ export default function CreateFG({ onClose }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        setAlert("");
+        hideToast();
         console.log("se intenta enviar");
 
         try{
             const response = await sendNewFM(newFG);
 
-            const fgID = response.id_friendlyGame;
-            joinFG(fgID); // el WebSocket queda abierto
-            setCreatedFGId(fgID); 
+            const fgID = response?.id_friendlyGame;
+
+            if(fgID == null){
+                setAlert("Fallo en comunicación con servidor");
+                showToast(); 
+            } else {
+
+                try{
+                    joinFG(fgID); // el WebSocket queda abierto
+                    setCreatedFGId(fgID); 
+                } catch {
+                    setAlert("No se guardó ID de partido amistoso");
+                    showToast(); 
+                }
+            }
+
 
         } catch (errorStatus) {
             console.log(errorStatus)
+            setAlert("Error al crear, intente en otro momento.");
+            showToast();  
             if(errorStatus == "Error: Not found."){
-                console.log("No se encontró endpoint")
+                //console.log("No se encontró endpoint")
             }
         }
     }
 
     const handleAnyInput = (e,parameter) => {
         setNewFG({...newFG, [parameter]: Number(e.target.value)})
-        //setAlert("");
-        //setToast(null);
+        setAlert("");
+        setToast(null);
     }
-    //console.log(newFG)
+    console.log(newFG)
     
     return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm">
@@ -86,8 +106,23 @@ export default function CreateFG({ onClose }) {
               className="w-full max-w-[100px] border-2 border-slate-500 py-2 px-3 rounded-md text-xl sm:text-3xl"
               type="number"
               min="1"
+              max="300"
               value={newFG.duration}
-              onChange={(event) => handleAnyInput(event, "duration")}
+              onKeyDown={(event) => {
+                const permitidas = ["Backspace", "Delete", "Tab", 
+                                    "Enter", "ArrowLeft", "ArrowRight", 
+                                    "Home", "End"];
+                const esAtajo = event.ctrlKey || event.metaKey; // Ctrl+V, Ctrl+A, etc.
+
+                if (!/^[0-9]$/.test(event.key) && !permitidas.includes(event.key) && !esAtajo) {
+                    event.preventDefault();
+                }
+              }}
+              onChange={(event) => {
+                handleAnyInput(event, "duration");
+              }
+            }
+              
             />
           </div>
           
@@ -97,12 +132,17 @@ export default function CreateFG({ onClose }) {
             <div className="mt-6 min-w-[700px]">
               <RosterBuilder
                 onSubmit={(roster) => {
-                  setNewFG((previous) => ({
-                    ...previous,
-                    roster
-                  }));
-
-                  setBuilderR(false);
+                    try{
+                        setNewFG((previous) => ({
+                          ...previous,
+                          roster
+                        }));
+                    } catch {
+                        setAlert("Error al editar plantilla");
+                        showToast(); 
+                    }
+                    
+                    setBuilderR(false);
                 }}
                 onCancel={() => setBuilderR(false)}
               />
@@ -135,7 +175,7 @@ export default function CreateFG({ onClose }) {
 
             <button
               type="button"
-              disabled={newFG.duration <= 0 || !rosterLoaded}
+              disabled={Verification}
               onClick={handleSubmit}
               className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors
                         disabled:bg-gray-500
@@ -153,6 +193,51 @@ export default function CreateFG({ onClose }) {
           
         </section>
       </div>
+        
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "Error al crear, intente en otro momento." && toast && (
+            <RightDownAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="No se pudo enviar solicitud al servidor"
+                errorDescription={alert}
+                color="red"
+            />
+        )}
+
+        {/** Alerta: mala comunicación entre front y back */}
+        {alert === "Fallo en comunicación con servidor" && toast && (
+            <RightDownAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="Respuesta invalida del servidor"
+                errorDescription={alert}
+                color="red"
+            />
+        )}
+
+        {/** Alerta: error al guardar ID en sessionStorage */}
+        {alert === "Se creó partido amistoso pero falló conexión a lobby" && toast && (
+            <RightDownAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="No se guardó ID de partido amistoso"
+                errorDescription={alert}
+                color="orange"
+            />
+        )}
+
+        {/** Alerta: error al guardar ID en sessionStorage */}
+        {alert === "Error al editar plantilla" && toast && (
+            <RightDownAlert
+                key={toast.id}
+                toast={toast}
+                errorTitle="No se cargó plantilla"
+                errorDescription={alert}
+                color="orange"
+            />
+        )}
+
 
         {/* Notificación de creación exitosa y redirección */}
         {createdFGId !== null && (
