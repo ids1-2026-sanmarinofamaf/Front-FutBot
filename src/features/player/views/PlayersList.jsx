@@ -87,7 +87,7 @@ export function PlayersList() {
         <div className="flex flex-col gap-4">
           {players.map((player) => (
             <PlayerCard 
-              key={player.player_id} 
+              key={player.id} 
               player={player} 
               onView={(id) => navigate(`/club/players/${id}`)}
             />

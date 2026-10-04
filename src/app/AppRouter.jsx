@@ -62,6 +62,7 @@ const AppRouter = () => {
           
           {/* Módulo: Jugadores */}
           <Route path="/club/players" element={<PlayersList />} />
+          {/** <Route path="/club/players/:id" element={<PlaceholderView title="TESTING" />} /> */}
           <Route path="/club/players/create" element={<CreatePlayer />} />
           
           {/* Módulo: Comportamientos */}

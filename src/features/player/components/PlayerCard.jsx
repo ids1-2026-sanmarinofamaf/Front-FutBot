@@ -2,14 +2,14 @@
  * Presentational component displaying a player's summary.
  * Renders PACCS attributes with dynamic color coding based on threshold evaluation (>=75, 45-74, <=44).
  * 
- * @param {Object} props.player - Player entity payload { player_id, name, power, agility, control, speed, strength }.
- * @param {Function} props.onView - Callback returning the player_id to the parent router for detail navigation.
+ * @param {Object} props.player - Player entity payload { id, name, power, agility, control, speed, strength }.
+ * @param {Function} props.onView - Callback returning the id to the parent router for detail navigation.
  */
 
 export function PlayerCard({ player, onView }) {
   const handleView = () => {
     if (onView) {
-      onView(player.player_id);
+      onView(player.id);
     }
   };
 
@@ -55,12 +55,13 @@ export function PlayerCard({ player, onView }) {
 
       {/* Sección Derecha: Acciones */}
       <div className="flex gap-2 w-full md:w-auto justify-center md:justify-end">
-        <button 
+        {/** <button 
           onClick={handleView}
           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors"
         >
           Ver
         </button>
+        
         <button 
           onClick={handleDelete}
           className="px-3 py-1.5 bg-slate-700 text-slate-400 text-sm font-medium rounded cursor-not-allowed opacity-70"
@@ -68,6 +69,7 @@ export function PlayerCard({ player, onView }) {
         >
           Borrar
         </button>
+        */}
       </div>
     </div>
   );
