@@ -67,7 +67,7 @@ describe("CreateFG", () => {
             setup();
             
             expect(screen.getByRole("heading", { name: "Crear partido amistoso" })).toBeInTheDocument();
-            expect(screen.getByLabelText("Duración del partido (minutos):")).toHaveValue(300);
+            expect(screen.getByLabelText("Duración del partido (segundos):")).toHaveValue(300);
             expect(screen.getByRole("button", { name: "Editar plantilla" })).toBeInTheDocument();
             expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
             expect(screen.getByRole("button", { name: "CREAR" })).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe("CreateFG", () => {
     describe("duración", () => {
         it("permite cambiar la duración", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             
             await user.clear(input);
             await user.type(input, "90");
@@ -103,7 +103,7 @@ describe("CreateFG", () => {
             await loadRoster(user);
             expect(screen.getByRole("button", { name: "CREAR" })).toBeEnabled();
             
-            await user.clear(screen.getByLabelText("Duración del partido (minutos):"));
+            await user.clear(screen.getByLabelText("Duración del partido (segundos):"));
             
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
         });
@@ -112,7 +112,7 @@ describe("CreateFG", () => {
             const user = setup();
             await loadRoster(user);
 
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             fireEvent.change(input, { target: { value: "-1" } });
 
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
@@ -122,7 +122,7 @@ describe("CreateFG", () => {
             const user = setup();
             await loadRoster(user);
 
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             fireEvent.change(input, { target: { value: "0.5" } });
 
             expect(input).toBeInvalid();
@@ -131,7 +131,7 @@ describe("CreateFG", () => {
 
         it("declara un máximo y deshabilita CREAR por encima de ese máximo", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             const max = input.getAttribute("max");
 
             expect(max).not.toBeNull();
@@ -223,7 +223,7 @@ describe("CreateFG", () => {
         
         it("envía la duración modificada", async () => {
             const user = setup();
-            const input = screen.getByLabelText("Duración del partido (minutos):");
+            const input = screen.getByLabelText("Duración del partido (segundos):");
             await user.clear(input);
             await user.type(input, "90");
             await loadRoster(user);
