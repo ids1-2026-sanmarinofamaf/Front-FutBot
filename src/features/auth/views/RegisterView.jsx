@@ -109,7 +109,6 @@ export default function Login() {
             const data = await response.json();  
 
         } catch (err) {
-            console.log("Error al registrarse:", err);
             setAlert("Error al conectarse con el servidor.");
             showToast();
         }
@@ -122,7 +121,6 @@ export default function Login() {
         hideToast();
     }
 
-    console.log(newUser);
 
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
