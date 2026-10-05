@@ -60,7 +60,7 @@ describe('Match', () => {
 
       return Promise.resolve({
         player_id: id,
-        Name: 'Player ' + id
+        name: 'Player ' + id
       })
     })
   })

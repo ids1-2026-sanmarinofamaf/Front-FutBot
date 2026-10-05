@@ -7,14 +7,14 @@ describe('MatchPlayerInMatch', () => {
   it('muestra solamente los jugadores que están en cancha', () => {
     const players = [
       {
-        id: 1,
+        player_id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        id: 2,
+        player_id: 2,
         x: 10,
         y: 15,
         team: 'A',
@@ -43,14 +43,14 @@ describe('MatchPlayerInMatch', () => {
   it('muestra el número correspondiente a cada jugador', () => {
     const players = [
       {
-        id: 1,
+        player_id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        id: 2,
+        player_id: 2,
         x: 20,
         y: 5,
         team: 'B',
@@ -79,14 +79,14 @@ describe('MatchPlayerInMatch', () => {
   it('usa azul para el equipo A y rojo para el equipo B', () => {
     const players = [
       {
-        id: 1,
+        player_id: 1,
         x: 5,
         y: 10,
         team: 'A',
         is_on_field: true
       },
       {
-        id: 2,
+        player_id: 2,
         x: 20,
         y: 5,
         team: 'B',
@@ -122,7 +122,7 @@ describe('MatchPlayerInMatch', () => {
   it('calcula la posición del jugador con el offset de media unidad', () => {
     const players = [
       {
-        id: 1,
+        player_id: 1,
         x: 5.8,
         y: 10.3,
         team: 'A',
@@ -154,17 +154,30 @@ describe('MatchPlayerInMatch', () => {
 
   it('calcula correctamente la posición cerca del borde opuesto de la cancha', () => {
     const players = [
-      { player_id: 1, x: 39.5, y: 19.5, team: 'A', is_on_field: true }
+      {
+        player_id: 1,
+        x: 39.5,
+        y: 19.5,
+        team: 'A',
+        is_on_field: true
+      }
     ]
-    const playerNumbers = { 1: 1 }
+
+    const playerNumbers = {
+      1: 1
+    }
 
     const { container } = render(
       <svg>
-        <MatchPlayerInMatch players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerInMatch
+          players={players}
+          playerNumbers={playerNumbers}
+        />
       </svg>
     )
 
     const circle = container.querySelector('circle')
+
     const expectedX = 300 + ((39.5 + 0.5) / 40) * 1320
     const expectedY = 150 + ((19.5 + 0.5) / 20) * 800
 
@@ -175,7 +188,7 @@ describe('MatchPlayerInMatch', () => {
   it('no dibuja jugadores que no están en cancha', () => {
     const players = [
       {
-        id: 1,
+        player_id: 1,
         x: 5,
         y: 10,
         team: 'A',

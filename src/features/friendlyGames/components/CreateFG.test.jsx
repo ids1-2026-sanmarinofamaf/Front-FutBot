@@ -316,7 +316,7 @@ describe("CreateFG", () => {
             await user.click(screen.getByRole("button", { name: "Ir al partido" }));
             
             expect(onClose).toHaveBeenCalledTimes(1);
-            expect(navigate).toHaveBeenCalledWith(`/friendly/${FG_ID}`);
+            expect(navigate).toHaveBeenCalledWith(`/friendly/lobby/${FG_ID}`);
         });
         
         it("el WebSocket ya quedó abierto antes de decidir si navegar", async () => {
