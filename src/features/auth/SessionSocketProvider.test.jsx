@@ -110,18 +110,16 @@ describe("SessionSocketProvider", () => {
         expect(capturedContext.isConnected).toBe(false);
     });
 
-    it("loguea los datos recibidos por onMessage", () => {
+    it("actualiza los mensajes con los datos recibidos por onMessage", () => {
         getToken.mockReturnValue("abc123");
-        const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
         renderWithAuth({ isAuthenticated: true });
 
         const { onMessage } = useWebSocket.mock.calls[0][1];
-        const payload = { type: "ping" };
+        const payload = { friendly_games: [{ id: 1 }] };
         act(() => {
             onMessage(payload);
         });
 
-        expect(logSpy).toHaveBeenCalledWith("Datos:", payload);
-        logSpy.mockRestore();
+        expect(capturedContext.messages).toEqual(payload);
     });
 });

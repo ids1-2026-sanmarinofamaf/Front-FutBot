@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewFM } from "./api";
+import { joinFGAsPlayer, sendNewFM } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 // Se mockea apiClient: acá solo se prueba que sendNewFM arme bien el request.
@@ -75,5 +75,19 @@ describe("sendNewFM", () => {
 
         const [, options] = apiClient.mock.calls[0];
         expect(JSON.parse(options.body)).toEqual(incomplete);
+    });
+});
+
+describe("joinFGAsPlayer", () => {
+    it("envía el roster dentro del objeto del body", async () => {
+        apiClient.mockResolvedValue({});
+
+        const roster = newFG.roster;
+        await joinFGAsPlayer(12, roster);
+
+        const [endpoint, options] = apiClient.mock.calls[0];
+        expect(endpoint).toBe("/friendly_games/12/users");
+        expect(options.method).toBe("POST");
+        expect(JSON.parse(options.body)).toEqual({ roster });
     });
 });

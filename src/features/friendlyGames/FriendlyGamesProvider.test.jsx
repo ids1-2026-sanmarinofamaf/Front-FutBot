@@ -43,18 +43,19 @@ beforeEach(() => {
     });
 });
 
-const urlFor = (id) => Object.keys(handlers).find((u) => u.endsWith(`/ws/friendly_game/${id}`));
-const wasOpened = (id) => opened.some((u) => u.endsWith(`/ws/friendly_game/${id}`));
-const wasClosed = (id) => closed.some((u) => u.endsWith(`/ws/friendly_game/${id}`));
+const socketPath = (id) => `/ws/friendly_game/${id}`;
+const urlFor = (id) => Object.keys(handlers).find((u) => u.includes(socketPath(id)));
+const wasOpened = (id) => opened.some((u) => u.includes(socketPath(id)));
+const wasClosed = (id) => closed.some((u) => u.includes(socketPath(id)));
 const countOpened = (id) =>
-    opened.filter((u) => u.endsWith(`/ws/friendly_game/${id}`)).length;
+    opened.filter((u) => u.includes(socketPath(id))).length;
 
 // Simula un mensaje que llega del servidor por el socket del partido `id`
 const emit = (id, msg) => act(() => handlers[urlFor(id)].onMessage(msg));
 
 // Devuelve las options del socket del partido solo si sigue montado
 const socketFor = (id) => {
-    const url = [...live].find((u) => u.endsWith(`/ws/friendly_game/${id}`));
+    const url = [...live].find((u) => u.includes(socketPath(id)));
     return url ? handlers[url] : undefined;
 };
 
