@@ -32,7 +32,13 @@ function FGSocket({ friendly_game_id, onMessage, onFGGone }) {
     const token = getToken();
     useWebSocket(`${WS_BASE_URL}/ws/friendly_game/${friendly_game_id}?token=${token}`, {
         onMessage: (msg) => onMessage(friendly_game_id, msg),
-        onClose: (e) => { if (e.code === 4404 || e.code === 1000) onFGGone(friendly_game_id)}
+        onClose: (e) => {
+            // 4409 indica que este partido ya no debe mantenerse abierto.
+            // Al quitarlo del provider también se elimina de sessionStorage.
+            if (e.code === 4404 || e.code === 4409 || e.code === 1000) {
+                onFGGone(friendly_game_id);
+            }
+        }
     });
     return null;
 }

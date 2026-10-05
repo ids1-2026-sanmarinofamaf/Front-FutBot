@@ -29,6 +29,16 @@ function useWebSocket(url, options = {}) {
         attemptRef.current = 0;
 
         const connect = () => {
+            if (!shouldReconnectRef.current) return;
+
+            // Una URL no puede tener dos sockets vivos administrados por este hook.
+            // Esto también evita duplicados si se dispara más de un reintento.
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = null;
+            const previousSocket = wsRef.current;
+            wsRef.current = null;
+            previousSocket?.close(1000, "replaced by reconnect");
+
             const socket = new WebSocket(url);
             wsRef.current = socket;
 
@@ -57,6 +67,10 @@ function useWebSocket(url, options = {}) {
                 // Un socket reemplazado no puede afectar la conexión actual.
                 if (wsRef.current !== socket) return;
 
+                // El socket ya no es el actual mientras espera una reconexión.
+                // Así, otro cierre tardío no puede programar otra conexión.
+                wsRef.current = null;
+
                 //crea evento para notificar que se debe cerrar la sesión
                 if (event.code === 4401) {
                     window.dispatchEvent(new Event("auth:expired"));
@@ -68,12 +82,15 @@ function useWebSocket(url, options = {}) {
                 reconnect &&
                 shouldReconnectRef.current &&
                 event.code !== 1000 &&
-                attemptRef.current < 10
+                event.code !== 4409 &&
+                attemptRef.current < 10 &&
+                reconnectTimer.current === null
                 ) {
                     const baseDelay = Math.min(1000 * 2 ** attemptRef.current, 30000);
                     const delay = baseDelay + Math.random() * 1000;
 
                     reconnectTimer.current = setTimeout(() => {
+                        reconnectTimer.current = null;
                         attemptRef.current += 1;
                         connect();
                     }, delay);
@@ -87,6 +104,7 @@ function useWebSocket(url, options = {}) {
         return () => {
             shouldReconnectRef.current = false; //no debe reconectarse (cierre intencional).
             clearTimeout(reconnectTimer.current); //cancela reconexión programada.
+            reconnectTimer.current = null;
             const socket = wsRef.current;
             wsRef.current = null; // los handlers viejos se ignoran
             socket?.close(1000, "hook cleanup");
