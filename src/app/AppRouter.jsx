@@ -73,7 +73,7 @@ const AppRouter = () => {
           <Route path="/club/roster" element={<PlaceholderView title="Plantilla" />} />
           <Route path="/club/stats" element={<PlaceholderView title="Estadísticas" />} />
           <Route path="/friendly" element={<FriendlyGames />} />
-          <Route path="/friendly/:id" element={<PlaceholderView title="FriendlyGameView" />} />
+          <Route path="/friendly/lobby/:id" element={<PlaceholderView title="FriendlyGameView" />} />
           <Route path="/league" element={<PlaceholderView title="Ligas" />} />
           <Route path="/match" element={<PlaceholderView title="Partido" />} />
         </Route>
