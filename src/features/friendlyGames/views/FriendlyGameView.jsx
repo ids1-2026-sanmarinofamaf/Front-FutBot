@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateFG from "../components/CreateFG";
+import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { FGCard } from "../components/FGCard";
 import { RosterBuilder } from "../../roster/components/RosterBuilder";
 
 export default function FriendlyGames() {
   const navigate = useNavigate();
   const [createFMisOpen, setCreateFMisOpen] = useState(false);
-
+  
+  {/* Busca mensajes de ws de sesión y filtra FG */}
+  const { messages } = useSessionSocket();
+  const friendlyGames = messages?.friendly_games ?? []; // [] dsp del test
 
   {/** Estados para crear roaster */}
-  const [roster, setRoster] = useState(null)
+  const [roster, setRoster] = useState({
+    roster: null
+  })
+  
   const [builderR, setBuilderR] = useState(false) 
   //console.log(roster)
 
@@ -78,6 +85,35 @@ export default function FriendlyGames() {
         </div>
 
 
+        {/* Lista de partidos amistosos disponibles */}
+        <section className="bg-slate-800/60 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-100">
+              Partidos disponibles
+            </h2>
+            <span className="text-sm text-slate-400">
+              {friendlyGames.length} disponibles
+            </span>
+          </div>
+
+          {friendlyGames.length > 0 ? (
+            <div className="grid grid-cols-1 xl:grid-cols-1 gap-4">
+              {friendlyGames.map(game => (
+                <FGCard
+                  key={game.friendly_game_id}
+                  game={game}
+                  roster={roster}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="py-8 text-center text-slate-400">
+              No hay partidos amistosos disponibles.
+            </p>
+          )}
+        </section>
+
+        {/** <FGCard game={test}/> */}
       </div>
       
       {/* Constructor de partido amistoso */}
