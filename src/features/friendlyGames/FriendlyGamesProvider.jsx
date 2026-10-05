@@ -73,7 +73,13 @@ export function FriendlyGamesSocketProvider({ children }) {
 
     /** El map crea los websockets viendo los ids guardados */
     return (
-        <FriendlyGamesSocketContext.Provider value={{ messages, joinFG, leaveFG, leaveAll }}>
+        <FriendlyGamesSocketContext.Provider value={{
+            messages,
+            joinedFGIds: FGIds,
+            joinFG,
+            leaveFG,
+            leaveAll
+        }}>
         {FGIds.map((id) => (
             <FGSocket key={id} friendly_game_id={id} onMessage={handleMessage} onFGGone={leaveFG} />
             ))}
