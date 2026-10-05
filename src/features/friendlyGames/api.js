@@ -26,3 +26,22 @@ export const joinFGAsPlayer = async (fgID, roster) => {
     throw error;
   }
 }
+
+/**
+ * Obtiene los datos del usuario logueado (incluye el nombre del club)
+ */
+export const getCurrentUser = async () => {
+    return apiClient("/users/me", {
+        method: "GET",
+    });
+};
+
+/**
+ * Solicita al backend el inicio del partido amistoso
+ */
+export const startFriendlyGame = async (fgID) => {
+    return apiClient(`/friendly_games/${fgID}`, {
+        method: "PATCH",
+        body: JSON.stringify({ state: "JUGANDO" })
+    });
+};
