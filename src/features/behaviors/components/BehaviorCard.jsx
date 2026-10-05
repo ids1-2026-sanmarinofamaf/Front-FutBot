@@ -34,7 +34,7 @@ export function BehaviorCard({ behavior, onView }) {
         </span>
       </div>
 
-      <div className="flex gap-2">
+      {/* <div className="flex gap-2">
         <button 
           onClick={handleView}
           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors"
@@ -55,7 +55,7 @@ export function BehaviorCard({ behavior, onView }) {
         >
           Borrar
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function BehaviorDetail() {
             onClick={handleBack}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-600 transition-colors"
           >
-            Volver al listado
+            Volver
           </button>
         </div>
       </div>

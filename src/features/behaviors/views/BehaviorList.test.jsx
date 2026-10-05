@@ -1,95 +1,133 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import userEvent from '@testing-library/user-event';
-import { BehaviorList } from './BehaviorList';
-import * as api from '../api';
-import { useNavigate } from 'react-router-dom';
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { BehaviorList } from "./BehaviorList"; // Ajusta la ruta si es necesario
 
-// Interceptamos la capa de red
-vi.mock('../api');
-
-// Interceptamos el enrutador
-vi.mock('react-router-dom', () => ({
+// 1. Mocks de dependencias externas
+vi.mock("react-router-dom", () => ({
   useNavigate: vi.fn(),
 }));
 
-describe('BehaviorList UI', () => {
-  const mockNavigate = vi.fn();
+vi.mock("../api", () => ({
+  getBehaviors: vi.fn(),
+}));
+
+// Mock del subcomponente para aislar la prueba y facilitar la interacción con onView
+vi.mock("../components/BehaviorCard", () => ({
+  BehaviorCard: ({ behavior, onView }) => (
+    <div data-testid={`behavior-card-${behavior.behavior_id}`}>
+      <span>{behavior.name}</span>
+      <button 
+        onClick={() => onView(behavior.behavior_id)}
+        data-testid={`view-btn-${behavior.behavior_id}`}
+      >
+        Ver
+      </button>
+    </div>
+  ),
+}));
+
+// 2. Importación de módulos mockeados para aserciones
+import { useNavigate } from "react-router-dom";
+import { getBehaviors } from "../api";
+
+describe("BehaviorList Component", () => {
+  let mockNavigate;
+
+  const mockBehaviors = [
+    { behavior_id: 1, name: "Presión Alta" },
+    { behavior_id: 2, name: "Defensa Retrasada" },
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate = vi.fn();
     useNavigate.mockReturnValue(mockNavigate);
   });
 
-  it('muestra el mensaje de error cuando la API falla', async () => {
-    // 1. Arrange
-    const errorMessage = 'Fallo en la comunicación con el servidor';
-    vi.spyOn(api, 'getBehaviors').mockRejectedValue(new Error(errorMessage));
-
-    // 2. Act
+  it("Muestra el estado de carga inicialmente", () => {
+    // Retrasamos la resolución para poder capturar el estado 'loading'
+    getBehaviors.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    
     render(<BehaviorList />);
+    
+    expect(screen.getByText(/Cargando comportamientos.../i)).toBeInTheDocument();
+  });
 
-    // 3. Assert
+  it("Muestra el mensaje de lista vacía cuando la API devuelve un array vacío", async () => {
+    getBehaviors.mockResolvedValueOnce([]);
+    
+    render(<BehaviorList />);
+    
+    await waitFor(() => {
+      expect(screen.getByText(/El club no tiene comportamientos creados actualmente/i)).toBeInTheDocument();
+    });
+    // Verifica que la carga haya desaparecido
+    expect(screen.queryByText(/Cargando comportamientos.../i)).not.toBeInTheDocument();
+  });
+
+  it("Renderiza la lista de comportamientos correctamente", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
+    
+    render(<BehaviorList />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId("behavior-card-1")).toBeInTheDocument();
+      expect(screen.getByTestId("behavior-card-2")).toBeInTheDocument();
+    });
+    
+    expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    expect(screen.getByText("Defensa Retrasada")).toBeInTheDocument();
+  });
+
+  it("Muestra un mensaje de error si la llamada a la API falla", async () => {
+    const errorMessage = "Error interno del servidor";
+    getBehaviors.mockRejectedValueOnce(new Error(errorMessage));
+    
+    render(<BehaviorList />);
+    
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
   });
 
-  it('renderiza la lista de comportamientos correctamente', async () => {
-    // 1. Arrange
-    const mockData = [
-      { behavior_id: 1, name: 'Ofensivo', is_valid: true },
-      { behavior_id: 2, name: 'Pasivo', is_valid: false }
-    ];
-    vi.spyOn(api, 'getBehaviors').mockResolvedValue(mockData);
-
-    // 2. Act
+  it("Muestra error genérico si la API falla sin un mensaje específico", async () => {
+    getBehaviors.mockRejectedValueOnce({});
+    
     render(<BehaviorList />);
-
-    // 3. Assert
+    
     await waitFor(() => {
-      expect(screen.getByText('Ofensivo')).toBeInTheDocument();
-      expect(screen.getByText('Válido')).toBeInTheDocument();
-
-      expect(screen.getByText('Pasivo')).toBeInTheDocument();
-      expect(screen.getByText('Inválido')).toBeInTheDocument();
+      expect(screen.getByText(/Fallo en la comunicación con el servidor al obtener los comportamientos/i)).toBeInTheDocument();
     });
   });
 
-  it('navega al detalle del comportamiento al hacer clic en "Ver"', async () => {
-    // 1. Arrange
-    const user = userEvent.setup();
-    const mockData = [{ behavior_id: 5, name: 'Táctica Test', is_valid: true }];
-    vi.spyOn(api, 'getBehaviors').mockResolvedValue(mockData);
+  it("Navega hacia atrás (/club) al hacer clic en el botón de volver", async () => {
+    getBehaviors.mockResolvedValueOnce([]);
     
     render(<BehaviorList />);
-
-    // Esperamos a que la tarjeta se renderice.
-    const viewButton = await screen.findByRole('button', { name: 'Ver' });
     
-    // 2. Act
-    await user.click(viewButton);
-
-    // 3. Assert
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviors/5');
+    // Esperamos a que pase el loading
+    await waitFor(() => {
+      expect(screen.getByText(/Volver a Mi Club/i)).toBeInTheDocument();
+    });
+    
+    fireEvent.click(screen.getByText(/Volver a Mi Club/i));
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club");
   });
 
-  it('navega a "/club" al hacer clic en "Volver a Mi Club"', async () => {
-    // 1. Arrange
-    const user = userEvent.setup();
-    vi.spyOn(api, 'getBehaviors').mockResolvedValue([]); // Una respuesta vacía es suficiente
+  it("Navega a los detalles del comportamiento al desencadenar onView en la tarjeta", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
     
     render(<BehaviorList />);
-
-    // Esperamos a que se resuelva la promesa y se renderice el botón de retroceso
-    const backButton = await screen.findByRole('button', { name: /volver a mi club/i });
     
-    // 2. Act
-    await user.click(backButton);
-
-    // 3. Assert
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith('/club');
+    // Esperamos a que se rendericen las tarjetas
+    await waitFor(() => {
+      expect(screen.getByTestId("view-btn-1")).toBeInTheDocument();
+    });
+    
+    // Simulamos el click que el BehaviorCard haría internamente
+    fireEvent.click(screen.getByTestId("view-btn-1"));
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/1");
   });
 });

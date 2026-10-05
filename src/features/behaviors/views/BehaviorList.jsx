@@ -50,7 +50,7 @@ export function BehaviorList() {
         ← Volver a Mi Club
       </button>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-100">Mis Comportamientos</h2>
         <button 
           onClick={handleCreateNew}
@@ -59,7 +59,7 @@ export function BehaviorList() {
         >
           Crear Nuevo
         </button>
-      </div>
+      </div> */}
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/30 border border-red-500 rounded text-red-400">

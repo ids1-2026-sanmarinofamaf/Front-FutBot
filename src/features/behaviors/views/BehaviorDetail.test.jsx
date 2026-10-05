@@ -1,76 +1,121 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import userEvent from '@testing-library/user-event';
-import { BehaviorDetail } from './BehaviorDetail';
-import * as api from '../api';
-import { useParams, useNavigate } from 'react-router-dom';
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { BehaviorDetail } from "./BehaviorDetail";
 
-// Interceptamos dependencias externas
-vi.mock('../api');
-vi.mock('react-router-dom', () => ({
+// 1. Mocks de dependencias externas
+vi.mock("react-router-dom", () => ({
   useParams: vi.fn(),
   useNavigate: vi.fn(),
 }));
 
-describe('BehaviorDetail UI', () => {
-  const mockId = '1';
-  const mockNavigate = vi.fn();
+vi.mock("../api", () => ({
+  getBehaviorById: vi.fn(),
+}));
+
+// 2. Importación de módulos mockeados
+import { useParams, useNavigate } from "react-router-dom";
+import { getBehaviorById } from "../api";
+
+describe("BehaviorDetail Component", () => {
+  let mockNavigate;
+  const mockBehaviorId = "42";
+
+  const mockBehaviorData = {
+    behavior_id: mockBehaviorId,
+    name: "Presión Alta",
+    code: "def apply_pressure(team, ball):\n    team.move_towards(ball.position)",
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Configuramos los mocks de las rutas antes de cada test
-    useParams.mockReturnValue({ id: mockId });
+    
+    mockNavigate = vi.fn();
     useNavigate.mockReturnValue(mockNavigate);
+    useParams.mockReturnValue({ id: mockBehaviorId });
   });
 
-  it('renderiza el código y nombre del comportamiento correctamente', async () => {
-    // Arrange
-    const mockResponse = { 
-      behavior_id: mockId, 
-      name: 'PresionAlta', 
-      code: 'def start_press():\n    return True',
-      is_valid: true
-    };
-    vi.spyOn(api, 'getBehaviorById').mockResolvedValue(mockResponse);
-
-    // Act
-    // Ya no se pasan props, el componente las obtiene del hook useParams
+  it("Muestra el estado de carga al inicializar el componente", () => {
+    // Retorna una promesa pendiente para mantener el estado de carga
+    getBehaviorById.mockImplementationOnce(() => new Promise(() => {}));
+    
     render(<BehaviorDetail />);
+    
+    expect(screen.getByText(/Cargando código del comportamiento.../i)).toBeInTheDocument();
+  });
 
-    // Assert
+  it("Renderiza el nombre y el código del comportamiento tras una respuesta exitosa", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+    
+    render(<BehaviorDetail />);
+    
     await waitFor(() => {
-      expect(screen.getByText('def start_press(): return True')).toBeInTheDocument();
-      expect(screen.getByText('PresionAlta')).toBeInTheDocument();
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+    
+    expect(screen.getByText(/def apply_pressure/)).toBeInTheDocument();
+    expect(screen.queryByText(/Cargando código del comportamiento.../i)).not.toBeInTheDocument();
+  });
+
+  it("Llama a la API con el ID extraído de la URL", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+    
+    render(<BehaviorDetail />);
+    
+    await waitFor(() => {
+      expect(getBehaviorById).toHaveBeenCalledWith(mockBehaviorId);
     });
   });
 
-  it('renderiza el mensaje de error si la petición falla', async () => {
-    // Arrange
-    const errorMessage = 'No se encontró el comportamiento';
-    vi.spyOn(api, 'getBehaviorById').mockRejectedValue(new Error(errorMessage));
-
-    // Act
+  it("Muestra el mensaje de error específico si la API falla", async () => {
+    const errorMessage = "Recurso no encontrado";
+    getBehaviorById.mockRejectedValueOnce(new Error(errorMessage));
+    
     render(<BehaviorDetail />);
-
-    // Assert
+    
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
+    
+    expect(screen.queryByText(/Cargando código del comportamiento.../i)).not.toBeInTheDocument();
   });
 
-  it('ejecuta la navegación al listado al hacer clic en volver en estado de error', async () => {
-    // Arrange
-    const user = userEvent.setup();
-    vi.spyOn(api, 'getBehaviorById').mockRejectedValue(new Error('Error de red'));
-
+  it("Muestra el mensaje de error genérico si la excepción no posee atributo message", async () => {
+    getBehaviorById.mockRejectedValueOnce({});
+    
     render(<BehaviorDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByText("Error de comunicación con el servidor.")).toBeInTheDocument();
+    });
+  });
 
-    // Act
-    const backButton = await screen.findByRole('button', { name: /volver al listado/i });
-    await user.click(backButton);
+  it("Navega hacia atrás (/club/behaviors) al hacer clic en 'Volver' desde la vista principal", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+    
+    render(<BehaviorDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+    
+    const backButton = screen.getByRole("button", { name: /Volver/i });
+    fireEvent.click(backButton);
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors");
+  });
 
-    // Assert
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith('/club/behaviors');
+  it("Navega hacia atrás (/club/behaviors) al hacer clic en 'Volver' desde la vista de error", async () => {
+    getBehaviorById.mockRejectedValueOnce(new Error("Fallo de conexión"));
+    
+    render(<BehaviorDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByText("Fallo de conexión")).toBeInTheDocument();
+    });
+    
+    const backButton = screen.getByRole("button", { name: /Volver/i });
+    fireEvent.click(backButton);
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors");
   });
 });
