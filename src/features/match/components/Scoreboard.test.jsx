@@ -36,7 +36,7 @@ describe('Scoreboard', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('muestra el progreso actual del partido sobre el total de ticks', () => {
+  it('muestra el tiempo actual del partido sobre el tiempo total en segundos', () => {
     render(
       <svg>
         <Scoreboard estado_partido={{
@@ -48,7 +48,7 @@ describe('Scoreboard', () => {
       </svg>
     );
 
-    expect(screen.getByText('450/900')).toBeInTheDocument();
+    expect(screen.getByText('45/90sec')).toBeInTheDocument();
     expect(screen.getByText('Time:')).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe('Scoreboard', () => {
     );
 
     expect(screen.getAllByText('0')).toHaveLength(2);
-    expect(screen.getByText('0/900')).toBeInTheDocument();
+    expect(screen.getByText('0/90sec')).toBeInTheDocument();
   });
 
   it('actualiza el marcador cuando cambian los props', () => {
@@ -81,7 +81,7 @@ describe('Scoreboard', () => {
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('100/900')).toBeInTheDocument();
+    expect(screen.getByText('10/90sec')).toBeInTheDocument();
 
     rerender(
       <svg>
@@ -96,8 +96,8 @@ describe('Scoreboard', () => {
 
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('500/900')).toBeInTheDocument();
-    expect(screen.queryByText('100/900')).not.toBeInTheDocument();
+    expect(screen.getByText('50/90sec')).toBeInTheDocument();
+    expect(screen.queryByText('10/90sec')).not.toBeInTheDocument();
   });
 
   it('mantiene separados los nombres de los equipos y sus respectivos goles', () => {

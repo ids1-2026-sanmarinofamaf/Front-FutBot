@@ -7,14 +7,9 @@ export function MatchPlayerInMatch({ players, playerNumbers }) {
           return p.is_on_field
         })
         .map(function (p) {
-          const snapped = {
-            x: Math.floor(p.x) + 0.5,
-            y: Math.floor(p.y) + 0.5
-          }
-
           const pos = {
-            x: 300 + (snapped.x / 40) * 1320,
-            y: 150 + (snapped.y / 20) * 800
+            x: 300 + ((p.x + 0.5) / 40) * 1320,
+            y: 150 + ((p.y + 0.5) / 20) * 800
           }
           //pinta cada jugador con un color según su equipo y dibuja su número en el centro del círculo
           const color = p.team === "A" ? "blue" : "red"

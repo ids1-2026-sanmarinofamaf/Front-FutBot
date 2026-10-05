@@ -15,19 +15,12 @@ export function MatchPlayerOut({ players, playerNumbers }) {
       getPlayerById(id)
         .then(function (data) {
           setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [id]: data,
-            }
+            return { ...previous, [id]: data }
           })
         })
-        //para no propagar el error. Si no se encuentra el jugador, se muestra "Jugador desconocido" en lugar de su nombre
-        .catch(function (error) {
+        .catch(function () {
           setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [id]: { Name: "Jugador desconocido" },
-            }
+            return { ...previous, [id]: { Name: "Rival" } }
           })
         })
     })
@@ -36,36 +29,28 @@ export function MatchPlayerOut({ players, playerNumbers }) {
   return (
     <>
       <StarterColumn
-        players={players.filter(function (p) {
-          return p.team === "A" && p.is_on_field
-        })}
+        players={players.filter(function (p) { return p.team === "A" && p.is_on_field })}
         x={40}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
       />
 
       <StarterColumn
-        players={players.filter(function (p) {
-          return p.team === "B" && p.is_on_field
-        })}
+        players={players.filter(function (p) { return p.team === "B" && p.is_on_field })}
         x={1790}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
       />
 
       <BenchRow
-        players={players.filter(function (p) {
-          return p.team === "A" && !p.is_on_field
-        })}
+        players={players.filter(function (p) { return p.team === "A" && !p.is_on_field })}
         startX={320}
         direction={1}
         playersInfo={playersInfo}
       />
 
       <BenchRow
-        players={players.filter(function (p) {
-          return p.team === "B" && !p.is_on_field
-        })}
+        players={players.filter(function (p) { return p.team === "B" && !p.is_on_field })}
         startX={1550}
         direction={-1}
         playersInfo={playersInfo}
@@ -74,7 +59,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
   )
 }
 
-// Muestra los jugadores titulares de un equipo en una columna
+// Componente para mostrar los jugadores titulares en la cancha
 function StarterColumn({ players, x, playerNumbers, playersInfo }) {
   return (
     <>
@@ -95,7 +80,7 @@ function StarterColumn({ players, x, playerNumbers, playersInfo }) {
   )
 }
 
-// Muestra los jugadores suplentes de un equipo en una fila
+// Componente para mostrar los jugadores suplentes fuera de la cancha
 function BenchRow({ players, startX, direction, playersInfo }) {
   return (
     <>
@@ -115,70 +100,27 @@ function BenchRow({ players, startX, direction, playersInfo }) {
   )
 }
 
-// Muestra un jugador en un cuadrado con su nombre y número si es titular
+// Componente para mostrar un jugador en la cancha
 function PlayerSquare({ player, playerInfo, x, y, size, number }) {
   return (
     <g>
-      <rect
-        x={x}
-        y={y}
-        width={size}
-        height={size}
-        fill={player.team === "A" ? "blue" : "red"}
-        stroke="white"
-        strokeWidth="2"
-      />
-
-      <text
-        x={x + size / 2}
-        y={y + size / 2 - 8}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="white"
-        fontSize="14"
-        fontWeight="bold"
-      >
+      <rect x={x} y={y} width={size} height={size} fill={player.team === "A" ? "blue" : "red"} stroke="white" strokeWidth="2" />
+      <text x={x + size / 2} y={y + size / 2 - 8} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="14" fontWeight="bold">
         {playerInfo?.Name}
       </text>
-
-      <text
-        x={x + size / 2}
-        y={y + size / 2 + 12}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="white"
-        fontSize="13"
-      >
+      <text x={x + size / 2} y={y + size / 2 + 12} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13">
         Number: {number}
       </text>
     </g>
   )
 }
 
-// Muestra un jugador suplente en un cuadrado con su nombre
+// Componente para mostrar un jugador fuera de la cancha
 function PlayerSquareOut({ player, playerInfo, x, y, size }) {
   return (
     <g>
-      <rect
-        x={x}
-        y={y}
-        width={size}
-        height={size}
-        fill={player.team === "A" ? "blue" : "red"}
-        opacity={0.5}
-        stroke="white"
-        strokeWidth="2"
-      />
-
-      <text
-        x={x + size / 2}
-        y={y + size / 2}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="white"
-        fontSize="13"
-        fontWeight="bold"
-      >
+      <rect x={x} y={y} width={size} height={size} fill={player.team === "A" ? "blue" : "red"} opacity={0.5} stroke="white" strokeWidth="2" />
+      <text x={x + size / 2} y={y + size / 2} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13" fontWeight="bold">
         {playerInfo?.Name}
       </text>
     </g>

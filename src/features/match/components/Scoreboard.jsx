@@ -62,7 +62,7 @@ export function Scoreboard({ estado_partido }) {
       {createText(15.8, -0.3, user1_goals, "White", 40)}
       {createText(24.3, -0.3, user2_goals, "White", 40)}
 
-      {createText(20, -0.3, actual_tic + "/" + total_tic, "Black", 30)}
+      {createText(20, -0.3, actual_tic/10 + "/" + total_tic/10 + "sec", "Black", 30)}
       {createText(20, -1, "Time:", "Black", 30)}
     </>
   )

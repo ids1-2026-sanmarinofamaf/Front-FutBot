@@ -119,7 +119,7 @@ describe('MatchPlayerInMatch', () => {
       .toHaveAttribute('fill', 'red')
   })
 
-  it('calcula la posición del jugador usando el centro de la celda', () => {
+  it('calcula la posición del jugador con el offset de media unidad', () => {
     const players = [
       {
         id: 1,
@@ -145,10 +145,28 @@ describe('MatchPlayerInMatch', () => {
 
     const circle = container.querySelector('circle')
 
-    // Math.floor(5.8) + 0.5 = 5.5
-    // Math.floor(10.3) + 0.5 = 10.5
-    const expectedX = 300 + (5.5 / 40) * 1320
-    const expectedY = 150 + (10.5 / 20) * 800
+    const expectedX = 300 + ((5.8 + 0.5) / 40) * 1320
+    const expectedY = 150 + ((10.3 + 0.5) / 20) * 800
+
+    expect(circle).toHaveAttribute('cx', String(expectedX))
+    expect(circle).toHaveAttribute('cy', String(expectedY))
+  })
+
+  it('calcula correctamente la posición cerca del borde opuesto de la cancha', () => {
+    const players = [
+      { player_id: 1, x: 39.5, y: 19.5, team: 'A', is_on_field: true }
+    ]
+    const playerNumbers = { 1: 1 }
+
+    const { container } = render(
+      <svg>
+        <MatchPlayerInMatch players={players} playerNumbers={playerNumbers} />
+      </svg>
+    )
+
+    const circle = container.querySelector('circle')
+    const expectedX = 300 + ((39.5 + 0.5) / 40) * 1320
+    const expectedY = 150 + ((19.5 + 0.5) / 20) * 800
 
     expect(circle).toHaveAttribute('cx', String(expectedX))
     expect(circle).toHaveAttribute('cy', String(expectedY))
