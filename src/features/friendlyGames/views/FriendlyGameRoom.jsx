@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useFriendlyGamesSocket } from "../FriendlyGamesProvider";
 import { getCurrentUser, startFriendlyGame } from "../api";
 import { useToast } from "../../../shared/hooks";
@@ -8,6 +8,7 @@ import { JoinMatchButton } from "../components/JoinMatchButton";
 
 export function FriendlyGameRoom() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const numericId = Number(id);
 
   const { messages, joinFG } = useFriendlyGamesSocket();
@@ -56,8 +57,6 @@ export function FriendlyGameRoom() {
     
     try {
       await startFriendlyGame(numericId);
-      // Tras el éxito, el WebSocket enviará el nuevo estado ("JUGANDO") 
-      // lo que detonará el renderizado de JoinMatchButton.
     } catch (error) {
       setErrorMsg("Fallo al iniciar el partido.");
       showToast();
@@ -69,10 +68,20 @@ export function FriendlyGameRoom() {
     <div className="min-h-screen bg-slate-900 flex flex-col items-center py-12 px-4 sm:px-8">
       <div className="w-full max-w-5xl bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 sm:p-10">
         
-        <div className="flex justify-between items-center mb-10 border-b border-slate-700 pb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 uppercase tracking-wider">
-            Lobby del Partido
-          </h1>
+        {/* Encabezado con navegación */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 border-b border-slate-700 pb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => navigate("/friendly")}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              Volver
+            </button>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 uppercase tracking-wider">
+              Lobby
+            </h1>
+          </div>
           <span className="text-slate-400 font-mono bg-slate-900 px-3 py-1 rounded border border-slate-700 shadow-inner">
             ID: {numericId}
           </span>

@@ -4,9 +4,8 @@ export function JoinMatchButton({ matchId }) {
   const navigate = useNavigate();
 
   const handleGoToMatch = () => {
-    console.log(`Lógica de unión manual al partido: ${matchId}`);
-    // La implementación final se realizará en un ticket posterior
-    navigate("/match", { replace: true });
+    // Redirige a la ruta definida en AppRouter pasando el ID real del partido
+    navigate(`/matches/${matchId}`, { replace: true });
   };
 
   return (

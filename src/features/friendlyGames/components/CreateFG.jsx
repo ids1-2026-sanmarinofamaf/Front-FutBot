@@ -257,7 +257,7 @@ export default function CreateFG({ onClose, roster: initialRoster = {} }) {
                   type="button"
                   onClick={() => {
                     onClose();
-                    navigate(`/friendly/${createdFGId}`);
+                    navigate(`/friendly/lobby/${createdFGId}`);
                   }}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"
                 >

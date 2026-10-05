@@ -20,7 +20,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         })
         .catch(function () {
           setPlayersInfo(function (previous) {
-            return { ...previous, [id]: { Name: "Rival" } }
+            return { ...previous, [id]: { name: "Rival" } }
           })
         })
     })
@@ -106,7 +106,7 @@ function PlayerSquare({ player, playerInfo, x, y, size, number }) {
     <g>
       <rect x={x} y={y} width={size} height={size} fill={player.team === "A" ? "blue" : "red"} stroke="white" strokeWidth="2" />
       <text x={x + size / 2} y={y + size / 2 - 8} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="14" fontWeight="bold">
-        {playerInfo?.Name}
+        {playerInfo?.name}
       </text>
       <text x={x + size / 2} y={y + size / 2 + 12} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13">
         Number: {number}
@@ -121,7 +121,7 @@ function PlayerSquareOut({ player, playerInfo, x, y, size }) {
     <g>
       <rect x={x} y={y} width={size} height={size} fill={player.team === "A" ? "blue" : "red"} opacity={0.5} stroke="white" strokeWidth="2" />
       <text x={x + size / 2} y={y + size / 2} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13" fontWeight="bold">
-        {playerInfo?.Name}
+        {playerInfo?.name}
       </text>
     </g>
   )
