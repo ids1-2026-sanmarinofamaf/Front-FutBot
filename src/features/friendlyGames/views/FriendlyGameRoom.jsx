@@ -45,8 +45,11 @@ export function FriendlyGameRoom() {
   const opponent = roomState?.users?.find(u => u.is_creator === false) || roomState?.users?.[1] || null;
   
   const isLocalUserCreator = localUserName && creator && localUserName === creator.user_name;
+  // NUEVO: Verificamos si es el oponente
+  const isLocalUserOpponent = localUserName && opponent && localUserName === opponent.user_name;
+  // NUEVO: Bandera combinada para saber si el usuario que mira es uno de los jugadores
+  const isParticipant = isLocalUserCreator || isLocalUserOpponent;
   
-  // Condición para determinar si el servidor ya habilitó el partido
   const isMatchReady = roomState?.state === "JUGANDO" || roomState?.match_id != null;
 
   // 3. Handlers
@@ -126,7 +129,13 @@ export function FriendlyGameRoom() {
         {/* Renderizado condicional de acciones basado en el estado del partido */}
         <div className="flex justify-end items-center mt-8 pt-6 border-t border-slate-700 min-h-[60px]">
           {isMatchReady ? (
-            <JoinMatchButton matchId={roomState.match_id} />
+            isParticipant ? (
+              <JoinMatchButton matchId={roomState.match_id} />
+            ) : (
+              <span className="px-6 py-2 bg-slate-700 text-slate-300 rounded font-semibold animate-pulse">
+                Modo Espectador
+              </span>
+            )
           ) : (
             isLocalUserCreator && (
               <button 
