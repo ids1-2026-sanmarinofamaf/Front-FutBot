@@ -13,10 +13,10 @@ export function MatchPlayerInMatch({ players, playerNumbers }) {
           }
           //pinta cada jugador con un color según su equipo y dibuja su número en el centro del círculo
           const color = p.team === "A" ? "blue" : "red"
-          const number = playerNumbers[p.id]
+          const number = playerNumbers[p.player_id]
 
           return (
-            <g key={p.id}>
+            <g key={p.player_id}>
               <circle
                 cx={pos.x}
                 cy={pos.y}

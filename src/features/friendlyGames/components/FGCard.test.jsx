@@ -1,100 +1,158 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FGCard } from "./FGCard";
-import { joinFGAsPlayer } from "../api";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { FGCard } from "./FGCard"; // Ajusta la ruta si es necesario
 
-const navigate = vi.fn();
-const joinFG = vi.fn();
-const showToast = vi.fn();
-const hideToast = vi.fn();
-const socketState = { joinedFGIds: [] };
-
+// 1. Mocks de dependencias externas
 vi.mock("react-router-dom", () => ({
-    useNavigate: () => navigate,
+  useNavigate: vi.fn(),
 }));
 
 vi.mock("../api", () => ({
-    joinFGAsPlayer: vi.fn(),
+  joinFGAsPlayer: vi.fn(),
 }));
 
 vi.mock("../FriendlyGamesProvider", () => ({
-    useFriendlyGamesSocket: () => ({
-        joinFG,
-        joinedFGIds: socketState.joinedFGIds,
-    }),
+  useFriendlyGamesSocket: vi.fn(),
 }));
 
 vi.mock("../../../shared/hooks", () => ({
-    useToast: () => ({
-        toast: { id: 1 },
-        showToast,
-        hideToast,
-    }),
+  useToast: vi.fn(() => ({
+    toast: { id: 1 },
+    showToast: vi.fn(),
+    hideToast: vi.fn(),
+  })),
 }));
 
-const game = {
-    friendly_game_id: 4,
-    creator_club_name: "Club de prueba",
+// Módulo falso para el componente de alerta (para evitar dependencias de UI complejas)
+vi.mock("../../../shared/components/RightDownAlert", () => ({
+  default: ({ errorDescription }) => <div data-testid="toast-alert">{errorDescription}</div>,
+}));
+
+// 2. Importación de módulos mockeados para aserciones
+import { useNavigate } from "react-router-dom";
+import { joinFGAsPlayer } from "../api";
+import { useFriendlyGamesSocket } from "../FriendlyGamesProvider";
+import { useToast } from "../../../shared/hooks";
+
+describe("FGCard Component", () => {
+  let mockNavigate;
+  let mockJoinFG;
+
+  const defaultGame = {
+    friendly_game_id: 10,
+    creator_club_name: "Test Club",
     current_participants: 1,
-    capacity: 6,
-    state: "waiting",
-};
+    capacity: 2,
+    state: "POR_COMENZAR",
+  };
 
-const roster = {
-    formation: "offensive",
-    players: Array.from({ length: 6 }, (_, index) => ({ player_id: index + 1 })),
-};
+  const validRoster = { players: [1, 2, 3, 4, 5, 6] };
+  const invalidRoster = { players: [] };
 
-const renderCard = (currentRoster = roster) =>
-    render(<FGCard game={game} roster={currentRoster} />);
-
-beforeEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    socketState.joinedFGIds = [];
-    joinFGAsPlayer.mockResolvedValue({});
-});
+    mockNavigate = vi.fn();
+    useNavigate.mockReturnValue(mockNavigate);
 
-afterEach(cleanup);
+    mockJoinFG = vi.fn();
+    useFriendlyGamesSocket.mockReturnValue({
+      joinFG: mockJoinFG,
+      joinedFGIds: [],
+    });
+  });
 
-describe("FGCard", () => {
-    it("deshabilita Unirse si la plantilla es null", () => {
-        renderCard(null);
+  it("Renderiza correctamente los datos del partido", () => {
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    expect(screen.getByText(/Creador: Test Club/i)).toBeInTheDocument();
+    expect(screen.getByText(/Jugadores actuales: 1 de 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/estado: POR_COMENZAR/i)).toBeInTheDocument();
+  });
 
-        expect(screen.getByRole("button", { name: "Unirse" })).toBeDisabled();
+  it("Deshabilita el botón 'Unirse' si no hay plantilla cargada", () => {
+    render(<FGCard game={defaultGame} roster={invalidRoster} />);
+    const button = screen.getByRole("button", { name: /Unirse/i });
+    expect(button).toBeDisabled();
+  });
+
+  it("Navega directamente al lobby si el estado es JUGANDO (sin llamar a la API)", async () => {
+    const playingGame = { ...defaultGame, state: "JUGANDO" };
+    render(<FGCard game={playingGame} roster={invalidRoster} />);
+    
+    const button = screen.getByRole("button", { name: /Reconectar \/ Ver/i });
+    expect(button).not.toBeDisabled();
+    
+    fireEvent.click(button);
+    
+    expect(joinFGAsPlayer).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/friendly/lobby/10");
+  });
+
+  it("Navega directamente si el usuario ya está unido (ID presente en el Provider)", () => {
+    useFriendlyGamesSocket.mockReturnValue({
+      joinFG: mockJoinFG,
+      joinedFGIds: [10], // El ID coincide con el defaultGame
     });
 
-    it("permite unirse y abre el socket después de una respuesta exitosa", async () => {
-        const user = userEvent.setup();
-        renderCard();
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    
+    const button = screen.getByRole("button", { name: /Entrar al lobby/i });
+    fireEvent.click(button);
+    
+    expect(joinFGAsPlayer).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/friendly/lobby/10");
+  });
 
-        await user.click(screen.getByRole("button", { name: "Unirse" }));
+  it("Realiza el POST exitoso y navega al unirse a un partido POR_COMENZAR", async () => {
+    joinFGAsPlayer.mockResolvedValueOnce({});
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    
+    const button = screen.getByRole("button", { name: /Unirse/i });
+    fireEvent.click(button);
 
-        expect(joinFGAsPlayer).toHaveBeenCalledWith(game.friendly_game_id, roster);
-        expect(joinFG).toHaveBeenCalledWith(game.friendly_game_id);
-        expect(screen.getByRole("alert")).toHaveTextContent("Ya puedes ir al lobby");
+    await waitFor(() => {
+      expect(joinFGAsPlayer).toHaveBeenCalledWith(10, validRoster);
+      expect(mockJoinFG).toHaveBeenCalledWith(10);
+      expect(mockNavigate).toHaveBeenCalledWith("/friendly/lobby/10");
     });
+  });
 
-    it("recupera la participación existente y notifica que puede entrar al lobby", async () => {
-        const user = userEvent.setup();
-        const error = new Error("ya participa");
-        error.code = "ALREADY_PARTICIPATING";
-        joinFGAsPlayer.mockRejectedValue(error);
-        renderCard();
+  it("Navega al lobby si la API responde ALREADY_PARTICIPATING", async () => {
+    const error = new Error("Already inside");
+    error.code = "ALREADY_PARTICIPATING";
+    joinFGAsPlayer.mockRejectedValueOnce(error);
 
-        await user.click(screen.getByRole("button", { name: "Unirse" }));
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    fireEvent.click(screen.getByRole("button", { name: /Unirse/i }));
 
-        expect(joinFG).toHaveBeenCalledWith(game.friendly_game_id);
-        expect(screen.getByRole("alert")).toHaveTextContent("Ya participabas, puedes ir al lobby");
+    await waitFor(() => {
+      expect(mockJoinFG).toHaveBeenCalledWith(10);
+      expect(mockNavigate).toHaveBeenCalledWith("/friendly/lobby/10");
     });
+  });
 
-    it("navega al lobby si el usuario ya está unido", async () => {
-        const user = userEvent.setup();
-        socketState.joinedFGIds = [game.friendly_game_id];
-        render(<FGCard game={game} roster={roster} />);
-        await user.click(screen.getByRole("button", { name: "Entrar al lobby" }));
+  it("Muestra alerta si el partido está lleno (Error FULL)", async () => {
+    const error = new Error("Game full");
+    error.code = "FULL";
+    joinFGAsPlayer.mockRejectedValueOnce(error);
 
-        expect(navigate).toHaveBeenCalledWith(`/friendly/lobby/${game.friendly_game_id}`);
-        expect(joinFGAsPlayer).not.toHaveBeenCalled();
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    fireEvent.click(screen.getByRole("button", { name: /Unirse/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toast-alert")).toHaveTextContent("El partido amistoso está lleno");
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
+  });
+
+  it("Muestra alerta genérica ante cualquier otro error de la API", async () => {
+    joinFGAsPlayer.mockRejectedValueOnce(new Error("Network Error"));
+
+    render(<FGCard game={defaultGame} roster={validRoster} />);
+    fireEvent.click(screen.getByRole("button", { name: /Unirse/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toast-alert")).toHaveTextContent("Error al unirse, intente en otro momento.");
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
 });

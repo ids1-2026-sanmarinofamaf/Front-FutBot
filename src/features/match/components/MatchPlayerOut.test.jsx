@@ -34,7 +34,7 @@ describe('MatchPlayerOut', () => {
       if (player.team === 'B') {
         return Promise.reject(new Error('Not found'))
       }
-      return Promise.resolve({ player_id: id, Name: 'Player ' + id })
+      return Promise.resolve({ player_id: id, name: 'Player ' + id })
     })
   })
 
