@@ -5,7 +5,7 @@ import { AuthContext } from "../features/auth/AuthProvider.jsx";
 // Importación de Vistas Base
 import { MainMenu } from "../features/mainMenu";
 import { MyClub } from "../features/club";
-import LoginView from "../features/auth";
+import {LoginView, RegisterView} from "../features/auth";
 import FriendlyGames, { FriendlyGameRoom } from "../features/friendlyGames/index.js";
 import { MatchPage } from "../features/match";
 
@@ -49,11 +49,19 @@ const AppRouter = () => {
 
   return (
     <BrowserRouter>
+      {/** "element" define si una ruta es protegida o no
+       * revisando si está autenticado redirecciona a un lado u otro.
+       * Usar Link aplica la lógica implementada en la ruta correspondiente
+       */}
       <Routes>
-        {/* Ruta Pública */}
+        {/* Rutas Públicas */}
         <Route 
           path="/login" 
           element={isAuthenticated ? <Navigate to="/" replace /> : <LoginView />} 
+        />
+        <Route
+          path="/register"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterView />}
         />
         
         {/* Agrupación de Rutas Protegidas */}
