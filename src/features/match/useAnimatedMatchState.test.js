@@ -82,7 +82,7 @@ describe("useAnimatedMatchState", () => {
     rerender({ estado: estadoFinal });
 
     act(() => {
-      vi.spyOn(performance, "now").mockReturnValue(50);
+      vi.mocked(performance.now).mockReturnValue(50);
       vi.advanceTimersByTime(16);
     });
 
@@ -90,7 +90,7 @@ describe("useAnimatedMatchState", () => {
     expect(result.current.ball.y).toBe(5);
 
     act(() => {
-      vi.spyOn(performance, "now").mockReturnValue(100);
+      vi.mocked(performance.now).mockReturnValue(100);
       vi.advanceTimersByTime(16);
     });
 
@@ -146,7 +146,7 @@ describe("useAnimatedMatchState", () => {
     rerender({ estado: estadoFinal });
 
     act(() => {
-      vi.spyOn(performance, "now").mockReturnValue(50);
+      vi.mocked(performance.now).mockReturnValue(50);
       vi.advanceTimersByTime(16);
     });
 
@@ -154,7 +154,7 @@ describe("useAnimatedMatchState", () => {
     expect(result.current.players[0].y).toBeCloseTo(10);
 
     act(() => {
-      vi.spyOn(performance, "now").mockReturnValue(100);
+      vi.mocked(performance.now).mockReturnValue(100);
       vi.advanceTimersByTime(16);
     });
 
@@ -201,10 +201,55 @@ describe("useAnimatedMatchState", () => {
     rerender({ estado: estadoFinal });
 
     act(() => {
-      vi.spyOn(performance, "now").mockReturnValue(100);
+      vi.mocked(performance.now).mockReturnValue(100);
       vi.advanceTimersByTime(16);
     });
 
     expect(result.current).toEqual(estadoFinal);
   });
+
+  it("continúa suavemente si llega un nuevo estado antes de terminar la animación anterior", () => {
+    const estado1 = {
+        actual_tic: 10, total_tic: 600, user1_goals: 0, user2_goals: 0,
+        ball: { x: 0, y: 0, speed_x: 0, speed_y: 0 },
+        players: [],
+    }
+    const estado2 = {
+        ...estado1,
+        actual_tic: 11,
+        ball: { x: 100, y: 0, speed_x: 0, speed_y: 0 },
+    }
+    const estado3 = {
+        ...estado1,
+        actual_tic: 12,
+        ball: { x: 200, y: 0, speed_x: 0, speed_y: 0 },
+    }
+
+    const { result, rerender } = renderHook(
+        ({ estado }) => useAnimatedMatchState(estado),
+        { initialProps: { estado: estado1 } }
+    )
+
+    rerender({ estado: estado2 })
+
+    act(() => {
+        vi.mocked(performance.now).mockReturnValue(50)
+        vi.advanceTimersByTime(16)
+    })
+
+    expect(result.current.ball.x).toBeCloseTo(50) // a mitad de camino entre 0 y 100
+
+    // llega un estado nuevo ANTES de terminar la interpolación anterior
+    rerender({ estado: estado3 })
+
+    act(() => {
+        vi.mocked(performance.now).mockReturnValue(100)
+        vi.advanceTimersByTime(16)
+    })
+
+    // debería interpolar desde ~50 (donde se interrumpió) hacia 200, no desde 100 ni desde 0
+    expect(result.current.ball.x).toBeGreaterThan(50)
+    expect(result.current.ball.x).toBeLessThan(200)
+    })
+
 });

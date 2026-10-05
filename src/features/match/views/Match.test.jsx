@@ -47,7 +47,17 @@ describe('Match', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
+    // El backend solo devuelve jugadores del propio club.
+    // Los del equipo rival (team "B") responden 404 → se muestran como "Rival".
     getPlayerById.mockImplementation(function (id) {
+      const player = estado_partido.players.find(function (p) {
+        return p.player_id === id
+      })
+
+      if (player.team === 'B') {
+        return Promise.reject(new Error('Not found'))
+      }
+
       return Promise.resolve({
         player_id: id,
         Name: 'Player ' + id
@@ -76,14 +86,17 @@ describe('Match', () => {
     expect(screen.getByText('team 2')).toBeInTheDocument()
   })
 
-  it('muestra los nombres de los 12 jugadores mediante la API', async () => {
+  it('muestra los nombres del equipo propio y "Rival" para el equipo contrario', async () => {
     renderMatch(estado_partido)
 
-    for (const player of estado_partido.players) {
-      expect(
-        await screen.findByText('Player ' + player.player_id)
-      ).toBeInTheDocument()
-    }
+    expect(await screen.findByText('Player 1')).toBeInTheDocument()
+    expect(await screen.findByText('Player 2')).toBeInTheDocument()
+    expect(await screen.findByText('Player 3')).toBeInTheDocument()
+    expect(await screen.findByText('Player 4')).toBeInTheDocument()
+    expect(await screen.findByText('Player 5')).toBeInTheDocument()
+    expect(await screen.findByText('Player 6')).toBeInTheDocument()
+
+    expect(await screen.findAllByText('Rival')).toHaveLength(6)
 
     expect(getPlayerById).toHaveBeenCalledTimes(12)
 
@@ -175,8 +188,6 @@ describe('Match', () => {
 
     await screen.findByText('Player 1')
 
-    // Tanto el player_id 1 (equipo A) como el 7 (equipo B) deberían tener el número 1,
-    // sin importar que el 7 apareció primero en el array
     expect(screen.getAllByText('Number: 1')).toHaveLength(2)
     expect(screen.getAllByText('Number: 2')).toHaveLength(2)
   })
