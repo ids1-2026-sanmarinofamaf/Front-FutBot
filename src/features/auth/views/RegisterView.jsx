@@ -8,14 +8,14 @@ import FieldsetRegister from '../components/FieldsetRegister.jsx';
 
 const validateRegisterForm = (newUser, passwordVerified) => {
     const email = newUser.email.trim();
-    const clubname = newUser.clubname.trim();
+    const club_name = newUser.club_name.trim();
     const password = newUser.password;
     const passwordConfirmation = passwordVerified;
     
     {/** Verificar que todos los campos estén completos */} 
     if (
         !email ||
-        !clubname ||
+        !club_name ||
         !password ||
         !passwordConfirmation ||
         !newUser.avatar
@@ -24,11 +24,11 @@ const validateRegisterForm = (newUser, passwordVerified) => {
     }
         
     {/** Nombre de club: entre 3 y 30 caracteres, sin números*/}
-    if (clubname.length < 3 || clubname.length > 30) {
+    if (club_name.length < 3 || club_name.length > 30) {
         return "El nombre de club debe tener entre 3 y 30 caracteres.";
     }
 
-    if (!/^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]+$/.test(clubname)) {
+    if (!/^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]+$/.test(club_name)) {
         return "El nombre de club no puede contener números ni símbolos.";
     }
 
@@ -56,7 +56,7 @@ export default function Login() {
     const [newUser, setNewUser] = useState({
         email: "",
         password: "",
-        clubname: "",
+        club_name: "",
         avatar: ""
     })
 
@@ -220,8 +220,8 @@ export default function Login() {
 
                 {/** club */}
                 <FieldsetRegister 
-                    title="Nombre de club" idFieldset="clubname" typeFieldset="text"
-                    onChangeFieldset={(e) => handleAnyInput(e, "clubname")} parameter="clubname" valueFieldset={newUser.clubname}
+                    title="Nombre de club" idFieldset="club_name" typeFieldset="text"
+                    onChangeFieldset={(e) => handleAnyInput(e, "club_name")} parameter="club_name" valueFieldset={newUser.club_name}
                 />
 
                 {/** avatar */}
@@ -256,7 +256,7 @@ export default function Login() {
                 disabled={
                         !newUser.email    || 
                         !newUser.password || 
-                        !newUser.clubname || 
+                        !newUser.club_name || 
                         !newUser.avatar   || 
                         !passwordVerified}
                 className="col-span-2 px-6 py-2 min-w-[120px] text-3xl text-center text-emerald-300
