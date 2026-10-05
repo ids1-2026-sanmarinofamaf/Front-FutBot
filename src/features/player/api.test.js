@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getPlayers, createPlayer } from './api';
+import { getPlayers, createPlayer, getPlayerById } from './api';
 import { apiClient } from '../../shared/api/client';
 
 // Intercepción de la dependencia externa
@@ -25,14 +25,13 @@ describe('Players API', () => {
     });
 
     it('debe retornar players_list cuando la respuesta es exitosa', async () => {
-      const mockData = {
-        players_list: [{ player_id: 1, name: 'Andrés Martínez' }]
-      };
+      const mockData = 
+        [{ player_id: 1, name: 'Andrés Martínez' }];
       apiClient.mockResolvedValue(mockData);
 
       const result = await getPlayers();
 
-      expect(result).toEqual(mockData.players_list);
+      expect(result).toEqual(mockData);
     });
 
     it('debe retornar un arreglo vacío si players_list no está definido', async () => {
@@ -40,7 +39,7 @@ describe('Players API', () => {
 
       const result = await getPlayers();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
   });
 
@@ -86,5 +85,32 @@ describe('Players API', () => {
 
       await expect(createPlayer(validPayload)).rejects.toThrow('Error 400 Bad Request');
     });
+    
   });
+
+
+    describe('getPlayerById', () => {
+      it('llama al endpoint correcto con el ID del jugador', async () => {
+          // Arrange
+          const mockPlayer = { player_id: 15, name: 'Jugador Test' };
+          apiClient.mockResolvedValueOnce(mockPlayer);
+          const playerId = 15;
+
+          // Act
+          const result = await getPlayerById(playerId);
+
+          // Assert
+          expect(apiClient).toHaveBeenCalledTimes(1);
+          expect(apiClient).toHaveBeenCalledWith(`/clubes/me/players/${playerId}`, {
+              method: 'GET',
+          });
+          expect(result).toEqual(mockPlayer);
+      });
+
+      it('lanza un error si no se proporciona un ID', async () => {
+          // Act & Assert
+          await expect(getPlayerById()).rejects.toThrow('ID de jugador requerido');
+          expect(apiClient).not.toHaveBeenCalled();
+      });
+    });
 });

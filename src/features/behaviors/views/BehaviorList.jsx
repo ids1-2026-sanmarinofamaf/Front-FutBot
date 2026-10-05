@@ -1,22 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBehaviours } from '../api';
-import { BehaviourCard } from '../components/BehaviourCard';
+import { getBehaviors } from '../api';
+import { BehaviorCard } from '../components/BehaviorCard';
 
-export function BehaviourList() {
-  const [behaviours, setBehaviours] = useState([]);
+export function BehaviorList() {
+  const [behaviors, setBehaviors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchBehaviours = async () => {
+    const fetchBehaviors = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getBehaviours();
-        setBehaviours(data);
+        const data = await getBehaviors();
+        setBehaviors(data);
       } catch (err) {
         setError(err.message || 'Fallo en la comunicación con el servidor al obtener los comportamientos.');
       } finally {
@@ -24,8 +24,10 @@ export function BehaviourList() {
       }
     };
 
-    fetchBehaviours();
+    fetchBehaviors();
   }, []);
+
+  console.log(behaviors)
 
   const handleCreateNew = () => {
     console.info('Endpoint de creación de comportamiento no implementado en el sprint actual.');
@@ -48,7 +50,7 @@ export function BehaviourList() {
         ← Volver a Mi Club
       </button>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-100">Mis Comportamientos</h2>
         <button 
           onClick={handleCreateNew}
@@ -57,7 +59,7 @@ export function BehaviourList() {
         >
           Crear Nuevo
         </button>
-      </div>
+      </div> */}
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/30 border border-red-500 rounded text-red-400">
@@ -65,17 +67,17 @@ export function BehaviourList() {
         </div>
       )}
 
-      {!error && behaviours.length === 0 ? (
+      {!error && behaviors.length === 0 ? (
         <div className="p-8 border border-slate-700 border-dashed rounded-lg text-center bg-slate-800/50">
           <p className="text-slate-400">El club no tiene comportamientos creados actualmente.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {behaviours.map((behaviour) => (
-            <BehaviourCard 
-              key={behaviour.behaviour_id} 
-              behaviour={behaviour} 
-              onView={(id) => navigate(`/club/behaviours/${id}`)} 
+          {behaviors.map((behavior) => (
+            <BehaviorCard 
+              key={behavior.behavior_id} 
+              behavior={behavior} 
+              onView={(id) => navigate(`/club/behaviors/${id}`)} 
             />
           ))}
         </div>

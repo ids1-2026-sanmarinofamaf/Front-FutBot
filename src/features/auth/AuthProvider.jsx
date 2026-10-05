@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
+        window.dispatchEvent(new Event("auth:logout"));
     };
 
     useEffect(() => {

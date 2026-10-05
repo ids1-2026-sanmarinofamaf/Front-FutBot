@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getBehaviourById } from '../api';
+import { getBehaviorById } from '../api';
 
-export function BehaviourDetail() {
+export function BehaviorDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [behaviour, setBehaviour] = useState(null);
+  const [behavior, setBehavior] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,10 +15,10 @@ export function BehaviourDetail() {
     setIsLoading(true);
     setError(null);
 
-    getBehaviourById(id)
+    getBehaviorById(id)
       .then((data) => {
         if (isMounted) {
-          setBehaviour(data);
+          setBehavior(data);
           setIsLoading(false);
         }
       })
@@ -35,7 +35,7 @@ export function BehaviourDetail() {
   }, [id]);
 
   const handleBack = () => {
-    navigate('/club/behaviours');
+    navigate('/club/behaviors');
   };
 
   if (isLoading) {
@@ -55,7 +55,7 @@ export function BehaviourDetail() {
             onClick={handleBack}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-600 transition-colors"
           >
-            Volver al listado
+            Volver
           </button>
         </div>
       </div>
@@ -67,7 +67,7 @@ export function BehaviourDetail() {
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col">
         <div className="flex justify-between items-center bg-slate-800 p-4 border-b border-slate-700">
           <h3 className="text-lg font-bold text-slate-200">
-            Comportamiento: <span className="text-emerald-400">{behaviour?.name}</span>
+            Comportamiento: <span className="text-emerald-400">{behavior?.name}</span>
           </h3>
           <button 
             onClick={handleBack}
@@ -79,7 +79,7 @@ export function BehaviourDetail() {
 
         <div className="p-4 bg-slate-900 overflow-x-auto">
           <pre className="font-mono text-sm text-blue-300">
-            <code>{behaviour?.code}</code>
+            <code>{behavior?.code}</code>
           </pre>
         </div>
       </div>

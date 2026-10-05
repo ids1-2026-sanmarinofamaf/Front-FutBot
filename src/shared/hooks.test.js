@@ -44,6 +44,10 @@ class MockWebSocket {
         });
     }
 
+    triggerRawMessage(data) {
+        this.onmessage?.({ data });
+    }
+
     triggerClose(code = 1000) {
         this.onclose?.({ code });
     }
@@ -201,6 +205,116 @@ describe('useWebSocket', () => {
 
         expect(MockWebSocket.instance).not.toBe(firstSocket);
 
+        vi.useRealTimers();
+    });
+
+    test('no crea conexiones duplicadas si el mismo socket informa dos cierres', () => {
+        vi.useFakeTimers();
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+        const firstSocket = MockWebSocket.instance;
+
+        act(() => {
+            firstSocket.triggerClose(1006);
+            firstSocket.triggerClose(1006);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).not.toBe(firstSocket);
+
+        const secondSocket = MockWebSocket.instance;
+        act(() => {
+            secondSocket.triggerClose(1006);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).not.toBe(firstSocket);
+        expect(MockWebSocket.instance).not.toBe(secondSocket);
+
+        randomSpy.mockRestore();
+        vi.useRealTimers();
+    });
+
+    test('no reintenta cuando el servidor cierra con código 4409', () => {
+        vi.useFakeTimers();
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+        const socket = MockWebSocket.instance;
+
+        act(() => {
+            socket.triggerClose(4409);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).toBe(socket);
+
+        vi.useRealTimers();
+    });
+
+    test('ignora eventos de un socket reemplazado', () => {
+        const onMessage = vi.fn();
+        const authExpired = vi.fn();
+        window.addEventListener('auth:expired', authExpired);
+
+        const { rerender, unmount } = renderHook(
+            ({ url }) => useWebSocket(url, { onMessage, reconnect: false }),
+            { initialProps: { url: 'ws://localhost:8000/ws/one' } }
+        );
+        const firstSocket = MockWebSocket.instance;
+
+        rerender({ url: 'ws://localhost:8000/ws/two' });
+        const secondSocket = MockWebSocket.instance;
+
+        act(() => {
+            firstSocket.triggerMessage({ type: 'stale' });
+            firstSocket.triggerClose(4401);
+        });
+
+        expect(firstSocket).not.toBe(secondSocket);
+        expect(onMessage).not.toHaveBeenCalled();
+        expect(authExpired).not.toHaveBeenCalled();
+
+        window.removeEventListener('auth:expired', authExpired);
+        unmount();
+    });
+
+    test('no ejecuta onMessage cuando el mensaje no es JSON válido', () => {
+        const onMessage = vi.fn();
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { onMessage }));
+
+        act(() => {
+            MockWebSocket.instance.triggerRawMessage('{ mensaje inválido');
+        });
+
+        expect(onMessage).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+            'Mensaje WS inválido:',
+            expect.any(SyntaxError)
+        );
+
+        errorSpy.mockRestore();
+    });
+
+    test('deja de reintentar después de diez reconexiones consecutivas', () => {
+        vi.useFakeTimers();
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+
+        for (let attempt = 0; attempt < 11; attempt += 1) {
+            act(() => {
+                MockWebSocket.instance.triggerClose(1006);
+                vi.advanceTimersByTime(30000);
+            });
+        }
+
+        expect(MockWebSocket.instance.url).toBe('ws://localhost:8000/ws');
+        expect(MockWebSocket.instance).toBeDefined();
+
+        randomSpy.mockRestore();
         vi.useRealTimers();
     });
 });
