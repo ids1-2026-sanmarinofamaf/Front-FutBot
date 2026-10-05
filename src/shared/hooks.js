@@ -54,13 +54,14 @@ function useWebSocket(url, options = {}) {
             };
 
             socket.onclose = (event) => {
-                
+                // Un socket reemplazado no puede afectar la conexión actual.
+                if (wsRef.current !== socket) return;
+
                 //crea evento para notificar que se debe cerrar la sesión
                 if (event.code === 4401) {
                     window.dispatchEvent(new Event("auth:expired"));
                 }
 
-                if (wsRef.current !== socket) return; // socket descartado
                 onCloseRef.current?.(event);
 
                 if (

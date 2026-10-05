@@ -313,6 +313,21 @@ describe("FriendlyGamesSocketProvider", () => {
             expect(storedIds()).toEqual([1]);
         });
 
+        it("joinFG ignora IDs inválidos", () => {
+            const { result } = setup();
+
+            act(() => {
+                result.current.joinFG(0);
+                result.current.joinFG(-1);
+                result.current.joinFG("7");
+                result.current.joinFG(2.5);
+                result.current.joinFG(4);
+            });
+
+            expect(storedIds()).toEqual([4]);
+            expect(opened).toHaveLength(1);
+        });
+
         it("al montar reconecta los partidos guardados", () => {
             sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 4]));
             setup();
@@ -324,6 +339,56 @@ describe("FriendlyGamesSocketProvider", () => {
             sessionStorage.setItem(STORAGE_KEY, "no-es-json");
             setup();
             expect(live.size).toBe(0);
+        });
+
+        it("ignora un valor válido en storage que no sea un array", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ id: 3 }));
+
+            expect(() => setup()).not.toThrow();
+            expect(live.size).toBe(0);
+        });
+
+        it("ignora IDs inválidos o manipulados y elimina duplicados", () => {
+            sessionStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify([3, 3, 0, -1, "7", null, {}, 4.5, 7])
+            );
+
+            setup();
+
+            expect([...live].filter((url) => url.includes("/ws/friendly_game/")).sort())
+                .toEqual(expect.arrayContaining([
+                    expect.stringContaining("/ws/friendly_game/3"),
+                    expect.stringContaining("/ws/friendly_game/7"),
+                ]));
+            expect(opened).toHaveLength(2);
+        });
+
+        it("arranca sin conexiones si sessionStorage no puede leerse", () => {
+            const getItemSpy = vi
+                .spyOn(Storage.prototype, "getItem")
+                .mockImplementationOnce(() => {
+                    throw new Error("Storage bloqueado");
+                });
+
+            expect(() => setup()).not.toThrow();
+            expect(live.size).toBe(0);
+
+            getItemSpy.mockRestore();
+        });
+
+        it("mantiene las conexiones aunque sessionStorage no pueda escribirse", () => {
+            const setItemSpy = vi
+                .spyOn(Storage.prototype, "setItem")
+                .mockImplementation(() => {
+                    throw new Error("Storage lleno");
+                });
+            const { result } = setup();
+
+            expect(() => act(() => result.current.joinFG(3))).not.toThrow();
+            expect(live.size).toBe(1);
+
+            setItemSpy.mockRestore();
         });
     });
 
@@ -362,6 +427,19 @@ describe("FriendlyGamesSocketProvider", () => {
 
             act(() => {
                 window.dispatchEvent(new Event("auth:expired"));
+            });
+
+            expect(live.size).toBe(0);
+            expect(result.current.messages).toEqual({});
+            expect(storedIds()).toEqual([]);
+        });
+
+        it("auth:logout cierra sockets y limpia storage", () => {
+            const { result } = setup();
+            act(() => result.current.joinFG(1));
+
+            act(() => {
+                window.dispatchEvent(new Event("auth:logout"));
             });
 
             expect(live.size).toBe(0);
