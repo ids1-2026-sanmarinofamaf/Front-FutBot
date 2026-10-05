@@ -6,6 +6,7 @@ import { useFriendlyGamesSocket } from "../FriendlyGamesProvider"
 import RightDownAlert from "../../../shared/components/RightDownAlert";
 
 export function FGCard ({game, roster}) {
+    const rosterLoaded = roster?.players?.length === 6;
 
     {/** Manejo de conexiónes websocket */}
     const socket = useFriendlyGamesSocket();
@@ -119,7 +120,7 @@ export function FGCard ({game, roster}) {
         )}
 
         {/** Alerta: Unirse correctamente cuando ya pertenecias */}
-        {alert === "Ya participabas, puedes ir al lobby " && toast && (
+        {alert === "Ya participabas, puedes ir al lobby" && toast && (
             <RightDownAlert
                 key={toast.id}
                 toast={toast}
@@ -141,15 +142,15 @@ export function FGCard ({game, roster}) {
             */}
 
             {/** BLOQUEAR SI EL ESTADO ES JUGANDO Y NO ESTAS UNIDO
-             * BLOQUEAR UNIRSE SI LA SALA ESTA LLENA
              * DESHABILITAR OPCION DE UNIRSE SI NO HAY PLANTILLA CARGADA 
              */}
             <button
+            disabled={!hasJoined && !rosterLoaded}
             onClick={() => hasJoined
                 ? navigate(`/friendly/lobby/${game.friendly_game_id}`)
                 : handleJoin()
             }
-            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors"
+            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-700"
             >
                 {hasJoined ? "Entrar al lobby" : "Unirse"}
             </button>

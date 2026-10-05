@@ -14,9 +14,7 @@ export default function FriendlyGames() {
   const friendlyGames = messages?.friendly_games ?? []; // [] dsp del test
 
   {/** Estados para crear roaster */}
-  const [roster, setRoster] = useState({
-    roster: null
-  })
+  const [roster, setRoster] = useState(null)
   
   const [builderR, setBuilderR] = useState(false) 
   //console.log(roster)
@@ -68,9 +66,18 @@ export default function FriendlyGames() {
           <section className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl
                               p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center
                               sm:justify-between gap-4">
-            <p className="text-lg sm:text-2xl text-slate-300">
-              Edite su plantilla para unirse a un partido amistoso o para crear uno
-            </p>
+            
+            <div>
+              <p className="text-lg sm:text-2xl text-slate-300">
+                Edite su plantilla para unirse a un partido amistoso o para crear uno
+              </p>
+
+              {roster === null && (
+                <p className="text-red-500 font-semibold">
+                  La plantilla todavía no ha sido cargada.
+                </p>
+              )}
+            </div>  
 
             <button
               type="button"
