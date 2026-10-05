@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import useWebSocket from "../../shared/hooks";
+import { getToken } from "../auth/auth";
 
 const WS_BASE_URL = import.meta.env.VITE_WS_SESSION_URL;
 
@@ -23,7 +24,8 @@ const loadIds = () => {
         4404 (not found) o 1000 (cierre exitoso)
     */}
 function FGSocket({ friendly_game_id, onMessage, onFGGone }) {
-    useWebSocket(`${WS_BASE_URL}/ws/friendly_game/${friendly_game_id}`, {
+    const token = getToken();
+    useWebSocket(`${WS_BASE_URL}/ws/friendly_game/${friendly_game_id}?token=${token}`, {
         onMessage: (msg) => onMessage(friendly_game_id, msg),
         onClose: (e) => { if (e.code === 4404 || e.code === 1000) onFGGone(friendly_game_id)}
     });
