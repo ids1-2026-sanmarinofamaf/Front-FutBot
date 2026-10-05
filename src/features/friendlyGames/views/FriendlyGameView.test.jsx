@@ -17,7 +17,14 @@ vi.mock("../components/CreateFG", () => ({
 }));
 
 vi.mock("../../roster/components/RosterBuilder", () => ({
-    RosterBuilder: () => null,
+    RosterBuilder: ({ onSubmit, onCancel }) => (
+        <div data-testid="roster-builder">
+            <button onClick={() => onSubmit({ formation: "offensive", players: [] })}>
+                confirmar plantilla
+            </button>
+            <button onClick={onCancel}>cancelar plantilla</button>
+        </div>
+    ),
 }));
 
 beforeEach(() => navigate.mockClear());
@@ -40,6 +47,11 @@ describe("FriendlyGames", () => {
         it("muestra el botón para volver al menú", () => {
             render(<FriendlyGames />);
             expect(screen.getByRole("button", { name: "Volver al menú" })).toBeInTheDocument();
+        });
+
+        it("notifica cuando todavía no se cargó la plantilla", () => {
+            render(<FriendlyGames />);
+            expect(screen.getByText("La plantilla todavía no ha sido cargada.")).toBeInTheDocument();
         });
 
         it("no muestra el modal de creación al iniciar", () => {
@@ -123,6 +135,16 @@ describe("FriendlyGames", () => {
             await user.click(screen.getByRole("button", { name: "NUEVO" }));
 
             expect(screen.getByRole("dialog")).toBeInTheDocument();
+        });
+
+        it("oculta la notificación cuando se carga la plantilla", async () => {
+            const user = userEvent.setup();
+            render(<FriendlyGames />);
+
+            await user.click(screen.getByRole("button", { name: "EDITAR" }));
+            await user.click(screen.getByRole("button", { name: "confirmar plantilla" }));
+
+            expect(screen.queryByText("La plantilla todavía no ha sido cargada.")).not.toBeInTheDocument();
         });
     });
 });

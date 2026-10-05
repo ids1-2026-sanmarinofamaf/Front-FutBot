@@ -6,7 +6,7 @@ import { useFriendlyGamesSocket } from "../FriendlyGamesProvider";
 import { useToast } from "../../../shared/hooks";
 import RightDownAlert from "../../../shared/components/RightDownAlert";
 
-export default function CreateFG({ onClose }) {
+export default function CreateFG({ onClose, roster: initialRoster = {} }) {
 
     const[alert,setAlert] = useState(null)
     const {toast,showToast,hideToast} = useToast();
@@ -14,7 +14,7 @@ export default function CreateFG({ onClose }) {
 
     const [newFG,setNewFG] = useState({
         duration: 300,
-        roster: {}
+        roster: initialRoster ?? {}
     })
     const rosterLoaded = newFG.roster?.players?.length === 6;
     const Verification = newFG.duration < 1 || !rosterLoaded || newFG.duration > 300;

@@ -43,6 +43,10 @@ class MockWebSocket {
         });
     }
 
+    triggerRawMessage(data) {
+        this.onmessage?.({ data });
+    }
+
     triggerClose(code = 1000) {
         this.onclose?.({ code });
     }
@@ -200,6 +204,72 @@ describe('useWebSocket', () => {
 
         expect(MockWebSocket.instance).not.toBe(firstSocket);
 
+        vi.useRealTimers();
+    });
+
+    test('ignora eventos de un socket reemplazado', () => {
+        const onMessage = vi.fn();
+        const authExpired = vi.fn();
+        window.addEventListener('auth:expired', authExpired);
+
+        const { rerender, unmount } = renderHook(
+            ({ url }) => useWebSocket(url, { onMessage, reconnect: false }),
+            { initialProps: { url: 'ws://localhost:8000/ws/one' } }
+        );
+        const firstSocket = MockWebSocket.instance;
+
+        rerender({ url: 'ws://localhost:8000/ws/two' });
+        const secondSocket = MockWebSocket.instance;
+
+        act(() => {
+            firstSocket.triggerMessage({ type: 'stale' });
+            firstSocket.triggerClose(4401);
+        });
+
+        expect(firstSocket).not.toBe(secondSocket);
+        expect(onMessage).not.toHaveBeenCalled();
+        expect(authExpired).not.toHaveBeenCalled();
+
+        window.removeEventListener('auth:expired', authExpired);
+        unmount();
+    });
+
+    test('no ejecuta onMessage cuando el mensaje no es JSON válido', () => {
+        const onMessage = vi.fn();
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { onMessage }));
+
+        act(() => {
+            MockWebSocket.instance.triggerRawMessage('{ mensaje inválido');
+        });
+
+        expect(onMessage).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+            'Mensaje WS inválido:',
+            expect.any(SyntaxError)
+        );
+
+        errorSpy.mockRestore();
+    });
+
+    test('deja de reintentar después de diez reconexiones consecutivas', () => {
+        vi.useFakeTimers();
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+
+        for (let attempt = 0; attempt < 11; attempt += 1) {
+            act(() => {
+                MockWebSocket.instance.triggerClose(1006);
+                vi.advanceTimersByTime(30000);
+            });
+        }
+
+        expect(MockWebSocket.instance.url).toBe('ws://localhost:8000/ws');
+        expect(MockWebSocket.instance).toBeDefined();
+
+        randomSpy.mockRestore();
         vi.useRealTimers();
     });
 });
