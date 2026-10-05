@@ -113,7 +113,7 @@ describe("RegisterView", () => {
         expect(sendRegisterToAPI).toHaveBeenCalledWith({
             email: "jugador@dominio.com",
             password: "abc123",
-            clubname: "San Marino",
+            club_name: "San Marino",
             avatar: expect.any(String),
         });
         });
@@ -239,7 +239,7 @@ describe("RegisterView", () => {
             expect(sendRegisterToAPI).toHaveBeenCalledWith({
             email: "jugador@dominio.com",
             password: "abc123",
-            clubname: "San Marino",
+            club_name: "San Marino",
             avatar: expect.any(String),
             });
         });
