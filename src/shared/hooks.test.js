@@ -207,6 +207,50 @@ describe('useWebSocket', () => {
         vi.useRealTimers();
     });
 
+    test('no crea conexiones duplicadas si el mismo socket informa dos cierres', () => {
+        vi.useFakeTimers();
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+        const firstSocket = MockWebSocket.instance;
+
+        act(() => {
+            firstSocket.triggerClose(1006);
+            firstSocket.triggerClose(1006);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).not.toBe(firstSocket);
+
+        const secondSocket = MockWebSocket.instance;
+        act(() => {
+            secondSocket.triggerClose(1006);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).not.toBe(firstSocket);
+        expect(MockWebSocket.instance).not.toBe(secondSocket);
+
+        randomSpy.mockRestore();
+        vi.useRealTimers();
+    });
+
+    test('no reintenta cuando el servidor cierra con código 4409', () => {
+        vi.useFakeTimers();
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+        const socket = MockWebSocket.instance;
+
+        act(() => {
+            socket.triggerClose(4409);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).toBe(socket);
+
+        vi.useRealTimers();
+    });
+
     test('ignora eventos de un socket reemplazado', () => {
         const onMessage = vi.fn();
         const authExpired = vi.fn();
