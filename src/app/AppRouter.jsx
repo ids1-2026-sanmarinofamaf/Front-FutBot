@@ -6,7 +6,7 @@ import { AuthContext } from "../features/auth/AuthProvider.jsx";
 import { MainMenu } from "../features/mainMenu";
 import { MyClub } from "../features/club";
 import LoginView from "../features/auth";
-import FriendlyGames from "../features/friendlyGames/index.js";
+import FriendlyGames, { FriendlyGameRoom } from "../features/friendlyGames/index.js";
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
 import { BehaviorList, BehaviorDetail } from "../features/behaviors/index.js";
@@ -73,7 +73,7 @@ const AppRouter = () => {
           <Route path="/club/roster" element={<PlaceholderView title="Plantilla" />} />
           <Route path="/club/stats" element={<PlaceholderView title="Estadísticas" />} />
           <Route path="/friendly" element={<FriendlyGames />} />
-          <Route path="/friendly/lobby/:id" element={<PlaceholderView title="FriendlyGameView" />} />
+          <Route path="/friendly/lobby/:id" element={<FriendlyGameRoom />} />
           <Route path="/league" element={<PlaceholderView title="Ligas" />} />
           <Route path="/match" element={<PlaceholderView title="Partido" />} />
         </Route>
