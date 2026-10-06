@@ -2,3 +2,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Añadir fondo oscuro y color de texto base a toda la aplicación */
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-200;
+    font-family: "BitPotion", sans-serif;
+    font-size: 2.00rem;
+  }
+
+}
+
+@font-face {
+  font-family: "BitPotion";
+  src: url("/fonts/BitPotionExt.ttf") format("truetype");
+}
+.mi-fuente {
+  font-family: "BitPotion", sans-serif;
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.toast-enter {
+  animation: slide-in-right 0.3s ease-out;
+}

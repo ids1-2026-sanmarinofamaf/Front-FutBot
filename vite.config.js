@@ -5,7 +5,15 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({ jsxRuntime: 'automatic' }),
     tailwindcss(),
   ],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/setupTests.js',
+    env: {
+      VITE_WS_SESSION_URL: "wss://test-server:8000",
+    },
+  }
 })
