@@ -20,7 +20,7 @@ export const SessionSocketProvider = ({ children }) => {
   {/** Estado para almacenar respuesta del ws de sesión */}
   const [messages, setMessages] = useState({
     friendly_games: [],
-    //leagues: [],
+    leagues: [],
   });
 
   useWebSocket(url, {
