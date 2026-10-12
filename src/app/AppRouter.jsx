@@ -8,6 +8,7 @@ import { MyClub } from "../features/club";
 import {LoginView, RegisterView} from "../features/auth";
 import FriendlyGames, { FriendlyGameRoom } from "../features/friendlyGames/index.js";
 import { MatchPage } from "../features/match";
+import LeagueListView from "../features/leagues";
 
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
@@ -87,7 +88,7 @@ const AppRouter = () => {
           <Route path="/club/stats" element={<PlaceholderView title="Estadísticas" />} />
           <Route path="/friendly" element={<FriendlyGames />} />
           <Route path="/friendly/lobby/:id" element={<FriendlyGameRoom />} />
-          <Route path="/league" element={<PlaceholderView title="Ligas" />} />
+          <Route path="/league" element={<LeagueListView />} />
         </Route>
 
         {/* Fallback general */}
