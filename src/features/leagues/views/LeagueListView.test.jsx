@@ -29,6 +29,11 @@ describe("LeagueListView", () => {
     expect(screen.getByRole("button", { name: "Volver al menú" })).toBeInTheDocument();
   });
 
+  it("muestra el botón para crear liga", () => {
+    render(<LeagueListView />);
+    expect(screen.getByRole("button", { name: "CREAR LIGA" })).toBeInTheDocument();
+  });
+
   it("navega a la raíz al hacer click en Volver al menú", async () => {
     const user = userEvent.setup();
     render(<LeagueListView />);

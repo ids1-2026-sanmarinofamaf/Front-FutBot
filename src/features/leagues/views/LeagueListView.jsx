@@ -29,6 +29,15 @@ export default function LeagueListView() {
                          bg-gradient-to-r from-blue-400 to-emerald-400">
             LIGAS
           </h1>
+
+          {/* La creación de liga se implementa en otro ticket: por ahora sin acción */}
+          <button
+            type="button"
+            className="sm:ml-auto self-start shrink-0 px-8 py-3 text-3xl bg-emerald-600
+                       hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors"
+          >
+            CREAR LIGA
+          </button>
         </div>
 
         {/* Lista de ligas disponibles */}
