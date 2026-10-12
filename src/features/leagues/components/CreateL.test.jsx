@@ -9,6 +9,11 @@ const navigate = vi.fn();
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
 vi.mock("../api", () => ({ sendNewL: vi.fn() }));
 
+const joinL = vi.fn();
+vi.mock("../LeaguesProvider", () => ({
+  useLeaguesSocket: () => ({ joinL }),
+}));
+
 const ROSTER = {
   formation: "offensive",
   players: Array.from({ length: 6 }, (_, i) => ({
@@ -88,7 +93,7 @@ describe("CreateL", () => {
 
       expect(screen.queryByLabelText("Contraseña:")).not.toBeInTheDocument();
       expect(screen.queryByTestId("roster-builder")).not.toBeInTheDocument();
-      expect(screen.queryByText("Partido creado")).not.toBeInTheDocument();
+      expect(screen.queryByText("Liga creada")).not.toBeInTheDocument();
     });
 
     it("muestra aviso de plantilla faltante y el botón CREAR deshabilitado", () => {
@@ -430,7 +435,40 @@ describe("CreateL", () => {
       expect(sendNewL).toHaveBeenCalledTimes(1);
 
       resolvePromise({ id_liga: LEAGUE_ID });
-      expect(await screen.findByText("Partido creado")).toBeInTheDocument();
+      expect(await screen.findByText("Liga creada")).toBeInTheDocument();
+    });
+
+    it("abre el socket de la liga creada llamando a joinL con su id_liga", async () => {
+      const user = setup();
+      await fillValidForm(user);
+
+      await user.click(screen.getByRole("button", { name: "CREAR" }));
+      await screen.findByText("Liga creada");
+
+      expect(joinL).toHaveBeenCalledTimes(1);
+      expect(joinL).toHaveBeenCalledWith(LEAGUE_ID);
+    });
+
+    it("no llama a joinL si el backend responde sin id_liga", async () => {
+      sendNewL.mockResolvedValue({});
+      const user = setup();
+      await fillValidForm(user);
+
+      await user.click(screen.getByRole("button", { name: "CREAR" }));
+      await screen.findByRole("alert");
+
+      expect(joinL).not.toHaveBeenCalled();
+    });
+
+    it("no llama a joinL si falla la creación", async () => {
+      sendNewL.mockRejectedValue(new Error("Network Error"));
+      const user = setup();
+      await fillValidForm(user);
+
+      await user.click(screen.getByRole("button", { name: "CREAR" }));
+      await screen.findByRole("alert");
+
+      expect(joinL).not.toHaveBeenCalled();
     });
 
     it("muestra la confirmación de éxito cuando el backend retorna un id_liga válido", async () => {
@@ -439,7 +477,7 @@ describe("CreateL", () => {
 
       await user.click(screen.getByRole("button", { name: "CREAR" }));
 
-      expect(await screen.findByText("Partido creado")).toBeInTheDocument();
+      expect(await screen.findByText("Liga creada")).toBeInTheDocument();
       expect(screen.getByText("¿Quieres redirigirte al lobby de tu liga?")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Volver a la lista" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Lobby" })).toBeInTheDocument();
@@ -454,7 +492,7 @@ describe("CreateL", () => {
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Respuesta invalida del servidor");
       expect(screen.getByRole("alert")).toHaveTextContent("Fallo en comunicación con servidor");
-      expect(screen.queryByText("Partido creado")).not.toBeInTheDocument();
+      expect(screen.queryByText("Liga creada")).not.toBeInTheDocument();
     });
 
     it("muestra alerta de parámetros faltantes si sendNewL arroja 'Missing body requirement'", async () => {
@@ -497,7 +535,7 @@ describe("CreateL", () => {
       const user = setup();
       await fillValidForm(user);
       await user.click(screen.getByRole("button", { name: "CREAR" }));
-      await screen.findByText("Partido creado");
+      await screen.findByText("Liga creada");
       return user;
     };
 

@@ -4,6 +4,7 @@ import { RosterBuilder } from "../../roster/components/RosterBuilder";;
 import { useToast } from "../../../shared/hooks";
 import RightDownAlert from "../../../shared/components/RightDownAlert";
 import { sendNewL } from "../api";
+import { useLeaguesSocket } from "../LeaguesProvider";
 
 export default function CreateL({ onClose, roster: initialRoster = {} }) {
 
@@ -40,8 +41,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
     const [createdLId, setcreatedLId] = useState(null) 
 
     {/** Método para conectarse a websocket persistente entre vistas */}
-    // NO IMPLEMENTADO
-    // const {joinL} = useLeaguesSocket();
+    const joinL = useLeaguesSocket()?.joinL;
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -55,18 +55,18 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
         try{
             const response = await sendNewL(newL);
 
-            const fgID = response?.id_liga;
+            const idLiga = response?.id_liga;
 
-            if(fgID == null){
+            if(idLiga == null){
                 setAlert("Fallo en comunicación con servidor");
                 showToast(); 
             } else {
 
                 try{
-                    // joinL(fgID); // el WebSocket queda abierto
-                    setcreatedLId(fgID); 
+                    joinL?.(idLiga); // el WebSocket queda abierto
+                    setcreatedLId(idLiga); 
                 } catch {
-                    setAlert("No se guardó ID de partido amistoso");
+                    setAlert("Se creó la liga pero falló conexión a lobby");
                     showToast(); 
                 }
             }
@@ -347,12 +347,12 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                 />
             )}
     
-            {/** Alerta: error al guardar ID en sessionStorage */}
-            {alert === "Se creó partido amistoso pero falló conexión a lobby" && toast && (
+            {/** Alerta: la liga se creó pero no se pudo abrir la conexión */}
+            {alert === "Se creó la liga pero falló conexión a lobby" && toast && (
                 <RightDownAlert
                     key={toast.id}
                     toast={toast}
-                    errorTitle="No se guardó ID de partido amistoso"
+                    errorTitle="No se pudo conectar a la liga"
                     errorDescription={alert}
                     color="orange"
                 />
@@ -385,7 +385,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
             {createdLId !== null && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70">
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md">
-                  <h3 className="text-2xl font-bold text-slate-100 mb-2">Partido creado</h3>
+                  <h3 className="text-2xl font-bold text-slate-100 mb-2">Liga creada</h3>
                   <p className="text-slate-300 mb-6">¿Quieres redirigirte al lobby de tu liga?</p>
                   <div className="flex gap-3 justify-end">
                     <button
