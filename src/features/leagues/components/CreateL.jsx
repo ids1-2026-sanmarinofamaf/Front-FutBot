@@ -1,32 +1,37 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendNewFM } from "../../friendlyGames/api";
-import { RosterBuilder } from "../../roster/components/RosterBuilder";
-import { useFriendlyGamesSocket } from "../../friendlyGames/FriendlyGamesProvider";
+import { RosterBuilder } from "../../roster/components/RosterBuilder";;
 import { useToast } from "../../../shared/hooks";
 import RightDownAlert from "../../../shared/components/RightDownAlert";
-import FieldsetGeneric from "../../../shared/components/FieldsetGeneric";
+import { sendNewL } from "../api";
 
 export default function CreateL({ onClose, roster: initialRoster = {} }) {
 
+    // Estados para configurar alertas
     const[alert,setAlert] = useState(null)
     const {toast,showToast,hideToast} = useToast();
+    //Estado para verificar envío y evitar clicks repetidos
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    // Constante para navegar entre rutas
     const navigate = useNavigate();
     
-    const [isPrivate, setIsPrivate] = useState(false);
-
-    // "nombre": "string", "duracion_partido": 0, "max_usuarios": 0, "es_privada": false, "password": "string" 
+    // Estado para recopilar datos del formulario 
     const [newL,setNewL] = useState({ 
       nombre: "", 
       duracion_partido: 100, 
       max_usuarios: 3, 
-      es_privada: isPrivate, 
+      es_privada: false, 
       password: "", 
       roster: initialRoster ?? {}
     })
 
+    // Verificadores
     const rosterLoaded = newL.roster?.players?.length === 6;
-    const Verification = newL.duration < 1 || !rosterLoaded || newL.duration > 300;
+    const Verification = !Number.isInteger(newL.duracion_partido) ||
+                         newL.duracion_partido < 1 || newL.duracion_partido > 300 || !rosterLoaded ||
+                         newL.nombre == "" || !Number.isInteger(newL.max_usuarios) ||
+                         newL.max_usuarios < 3 || newL.max_usuarios > 22 ||
+                         (newL.es_privada && newL.password.trim() === "") || newL.nombre.trim() === ""
 
 
     {/** Estado para crear roaster */}
@@ -36,18 +41,21 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
 
     {/** Método para conectarse a websocket persistente entre vistas */}
     // NO IMPLEMENTADO
-    // const {joinFG} = useLeaguesSocket();
+    // const {joinL} = useLeaguesSocket();
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (isSubmitting) return;
+
         setAlert("");
         hideToast();
+        setIsSubmitting(true);
         console.log("se intenta enviar");
 
         try{
-            const response = await sendNewFM(newL);
+            const response = await sendNewL(newL);
 
-            const fgID = response?.friendly_game_id;
+            const fgID = response?.id_liga;
 
             if(fgID == null){
                 setAlert("Fallo en comunicación con servidor");
@@ -55,7 +63,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
             } else {
 
                 try{
-                    joinFG(fgID); // el WebSocket queda abierto
+                    // joinL(fgID); // el WebSocket queda abierto
                     setcreatedLId(fgID); 
                 } catch {
                     setAlert("No se guardó ID de partido amistoso");
@@ -65,12 +73,16 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
 
 
         } catch (errorStatus) {
-            console.log(errorStatus)
-            setAlert("Error al crear, intente en otro momento.");
+          if(errorStatus === "Missing body requirement"){
+            setAlert("Error al crear, faltan parametros necesarios.");
             showToast();  
-            if(errorStatus == "Error: Not found."){
-                //console.log("No se encontró endpoint")
-            }
+          } else {
+            console.log(errorStatus)
+              setAlert("Error al crear, intente en otro momento.");
+              showToast();  
+          } 
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -118,9 +130,9 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                   type="text"
                   value={newL.nombre}              
                   onChange={(event) => {
-                    handleAnyInput(event, "nombre");
-                  }
-                }                  
+                      handleAnyInput(event, "nombre");
+                    }
+                  }                  
                 />
               </div>
 
@@ -170,7 +182,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
     
                 <input
                   id="max_usuarios"
-                  className="w-full max-w-[100px] shrink-0 border-2 border-slate-500 py-2 px-3 rounded-md text-xl sm:text-3xl"
+                  className="w-full max-w-[80px] shrink-0 border-2 border-slate-500 py-2 px-3 rounded-md text-xl sm:text-3xl"
                   type="number"
                   min="3"
                   max="22"
@@ -210,11 +222,15 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                   checked={newL.es_privada}
                   value={newL.es_privada}              
                   onChange={(e) => {
-                      setNewL({...newL, ["es_privada"]: e.target.checked})
-                      setAlert("");
-                      hideToast();
-                    }
-                  }                 
+                    const checked = e.target.checked;
+                    setNewL({
+                      ...newL,
+                      es_privada: checked,
+                      password: checked ? newL.password : "",
+                    });
+                    setAlert("");
+                    hideToast();
+                    }}                
                 />
               </div>
 
@@ -290,7 +306,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
     
                 <button
                   type="button"
-                  disabled={Verification}
+                  disabled={Verification || isSubmitting}
                   onClick={handleSubmit}
                   className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors
                             disabled:bg-gray-500
@@ -302,7 +318,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                             disabled:focus:ring-0
                             disabled:cursor-not-allowed"
                 >
-                  CREAR
+                  {isSubmitting ? "CREANDO..." : "CREAR"}
                 </button>
               </div>
               
@@ -343,6 +359,17 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
             )}
     
             {/** Alerta: error al guardar ID en sessionStorage */}
+            {alert === "Error al crear, faltan parametros necesarios." && toast && (
+                <RightDownAlert
+                    key={toast.id}
+                    toast={toast}
+                    errorTitle="Felicidades, rompiste el formulario"
+                    errorDescription={alert}
+                    color="red"
+                />
+            )}
+
+            {/** Alerta: error al guardar ID en sessionStorage */}
             {alert === "Error al editar plantilla" && toast && (
                 <RightDownAlert
                     key={toast.id}
@@ -359,7 +386,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
               <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70">
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md">
                   <h3 className="text-2xl font-bold text-slate-100 mb-2">Partido creado</h3>
-                  <p className="text-slate-300 mb-6">¿Querés ir a la vista del partido ahora?</p>
+                  <p className="text-slate-300 mb-6">¿Quieres redirigirte al lobby de tu liga?</p>
                   <div className="flex gap-3 justify-end">
                     <button
                       type="button"
@@ -372,11 +399,11 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                       type="button"
                       onClick={() => {
                         onClose();
-                        navigate(`/friendly/lobby/${createdLId}`);
+                        navigate(`/league/lobby/${createdLId}`);
                       }}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"
                     >
-                      Ir al partido
+                      Lobby
                     </button>
                   </div>
                 </div>
