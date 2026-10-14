@@ -20,12 +20,10 @@ export function MatchPage() {
   const handleClose = useCallback(function (event) {
     if (event.code === 4404) {
       setErrorMessage("El partido no existe");
-      return;
     }
 
     if (event.code === 1000) {
       console.log("El partido finalizó");
-      return;
     }
 
     console.log("Conexión del partido cerrada:", event);
@@ -44,12 +42,17 @@ export function MatchPage() {
 
   if (errorMessage) {
     return (
-        <div className="relative">
-        <p>{errorMessage}</p>
-        <ExitMatchButton />
+      <div className="relative min-h-screen flex items-center justify-center bg-slate-900 p-8">
+        <div className="w-full max-w-3xl px-12 py-16 bg-slate-800 border border-slate-700 rounded-xl shadow-lg text-center">
+          <h2 className="text-5xl font-semibold text-slate-100">{errorMessage}</h2>
+          <p className="mt-6 text-2xl text-slate-400">
+            Presioná «Salir del partido» (abajo a la izquierda) para volver.
+          </p>
         </div>
+        <ExitMatchButton />
+      </div>
     );
-}
+  }
 
   if (!estadoAnimado) {
     return <p>Conectando al partido...</p>;
