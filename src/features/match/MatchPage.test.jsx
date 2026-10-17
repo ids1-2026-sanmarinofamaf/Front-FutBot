@@ -1,6 +1,7 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MatchPage } from "./MatchPage";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 const mockUseWebSocket = vi.fn();
 
@@ -12,6 +13,17 @@ vi.mock("react-router-dom", async (importOriginal) => {
     useNavigate: () => vi.fn(),
   };
 });
+
+//Para último test
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={["/matches/1"]}>
+      <Routes>
+        <Route path="/matches/:matchId" element={<MatchPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
 
 
 vi.mock("../../shared/hooks.js", () => ({
@@ -189,8 +201,8 @@ describe("MatchPage", () => {
     ).toHaveTextContent("50/600 - 3-2");
   });
 
-  it("muestra un mensaje de error si el partido no existe", () => {
-    render(<MatchPage />);
+  it("muestra un mensaje de error y el botón de salir si el partido no existe", () => {
+    renderPage();
 
     const [, options] = mockUseWebSocket.mock.calls[0];
 
@@ -199,7 +211,11 @@ describe("MatchPage", () => {
     });
 
     expect(
-      screen.getByText("El partido no existe")
+      screen.getByRole("heading", { name: "El partido no existe" })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: "Salir del partido" })
     ).toBeInTheDocument();
   });
 });

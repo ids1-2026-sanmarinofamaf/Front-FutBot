@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { ExitMatchButton } from './ExitMatchButton'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: vi.fn()
+  useNavigate: vi.fn(),
+  useLocation: vi.fn()
 }))
 
 describe('ExitMatchButton', () => {
@@ -14,6 +15,7 @@ describe('ExitMatchButton', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useNavigate.mockReturnValue(navigate)
+    useLocation.mockReturnValue({ state: null })
   })
 
   it('muestra el botón para salir del partido', () => {
@@ -36,7 +38,7 @@ describe('ExitMatchButton', () => {
     expect(navigate).toHaveBeenCalledTimes(1)
   })
 
-  it('vuelve a la página anterior al hacer click', async () => {
+  it('vuelve a la página anterior al hacer click cuando no viene como espectador', async () => {
     const user = userEvent.setup()
 
     render(<ExitMatchButton />)
@@ -48,6 +50,19 @@ describe('ExitMatchButton', () => {
     expect(navigate).toHaveBeenCalledWith(-1)
   })
 
+  it('redirige a /friendly si proviene desde la lista como espectador', async () => {
+    useLocation.mockReturnValue({ state: { from: '/friendly' } })
+    const user = userEvent.setup()
+
+    render(<ExitMatchButton />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Salir del partido' })
+    )
+
+    expect(navigate).toHaveBeenCalledWith('/friendly', { replace: true })
+  })
+
   it('es un botón de tipo button', () => {
     render(<ExitMatchButton />)
 
@@ -55,5 +70,4 @@ describe('ExitMatchButton', () => {
       screen.getByRole('button', { name: 'Salir del partido' })
     ).toHaveAttribute('type', 'button')
   })
-
 })

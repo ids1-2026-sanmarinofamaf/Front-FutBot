@@ -38,6 +38,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -64,6 +65,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -92,6 +94,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -118,6 +121,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,

@@ -12,6 +12,14 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         return
       }
 
+      // Rival: no se llama a la API
+      if (player.team !== "A") {
+        setPlayersInfo(function (previous) {
+          return { ...previous, [id]: { name: "Rival" } }
+        })
+        return
+      }
+
       getPlayerById(id)
         .then(function (data) {
           setPlayersInfo(function (previous) {
@@ -20,7 +28,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         })
         .catch(function () {
           setPlayersInfo(function (previous) {
-            return { ...previous, [id]: { name: "Rival" } }
+            return { ...previous, [id]: { name: "Jugador" } }
           })
         })
     })
