@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { LeagueCard } from "../components/LeagueCard";
+import { useState } from "react";
+import CreateL from "../components/CreateL";
 
 export default function LeagueListView() {
   const navigate = useNavigate();
@@ -8,6 +10,8 @@ export default function LeagueListView() {
   {/* Busca mensajes de ws de sesión y filtra las ligas */}
   const { messages } = useSessionSocket();
   const leagues = messages?.leagues ?? [];
+
+  const [createLisOpen, setCreateLisOpen] = useState(false);
 
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8">
@@ -33,11 +37,17 @@ export default function LeagueListView() {
           {/* La creación de liga se implementa en otro ticket: por ahora sin acción */}
           <button
             type="button"
+            onClick={() => setCreateLisOpen(true)}
             className="sm:ml-auto self-start shrink-0 px-8 py-3 text-3xl bg-emerald-600
                        hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors"
           >
             CREAR LIGA
           </button>
+
+          {/* Constructor de partido amistoso */}
+          {/* IMPLEMENTAR GESTION DE ROSTER PARA USAR COMO PARAMETRO (roster={initialRoster}), AHORA POR DEFAULT {}  */}
+          {createLisOpen && <CreateL onClose={() => setCreateLisOpen(false)} />} 
+
         </div>
 
         {/* Lista de ligas disponibles */}

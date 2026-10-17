@@ -10,46 +10,66 @@ Este repositorio contiene el frontend del juego Futbot, desarrollado con React, 
 
 Tras clonar el [repositorio](https://github.com/ids1-2026-sanmarinofamaf/Front-FutBot):
 
-1. **Configuración del entorno**
+1. **Instalar las dependencias y configurar entorno**
 
-Antes de correr el proyecto, creá un archivo `.env` en la raíz del frontend con las variables:
-* `VITE_API_URL`: URL de API (Backend del proyecto)
-* `VITE_WS_SESSION_URL`: URL para conexión websocket de sesión
+    Sobre la raiz del repositorio ejecutar el siguiente comandos:
 
-A modo de ejemplo:
-```env
-VITE_API_URL=http://127.0.0.1:8000
-VITE_WS_SESSION_URL=ws://127.0.0.1:8000
-```
+    ```bash
+    make install
+    ```
 
-Estas variables dependen de cada entorno (desarrollo, producción, etc.), por eso el `.env` **no está incluido en el repositorio**. Ajustá las URLs según dónde esté corriendo el backend.
+    Al instalar se creará un .env genérico:
 
-### Sobre la raiz del repositorio ejecutar el siguiente comandos
+    ```env
+    VITE_API_URL=http://127.0.0.1:8000
+    VITE_WS_SESSION_URL=ws://127.0.0.1:8000
+    ```
 
-2. **Instalar las dependencias:**
+    Las variables dependen de cada entorno (desarrollo, producción, etc.), por eso el `.env` **no está incluido en el repositorio**. Ajustá las URLs según dónde esté corriendo el backend. La variables utilizadas son:
 
-```bash
-npm install
-```
+    * `VITE_API_URL`: URL de API (Backend del proyecto)
+    * `VITE_WS_SESSION_URL`: URL para conexión websocket de sesión
+
 
 3. **Iniciar el servidor de desarrollo:**
-```bash
-npm run dev
-```
+
+    ```bash
+    make run
+    ```
 
 4. **Abrir la aplicación**
 
-El terminal mostrará una URL local (generalmente `http://localhost:5173/`). Abre ese enlace en tu navegador.
+    El terminal mostrará una URL local (generalmente `http://localhost:5173/`). Abre ese enlace en tu navegador.
 
 ## Test
 
 Para ejecutar todos los test ejecute sobre la raiz del repositorio:
 
 ```bash
-npm test
+make test
 ```
 Si quiere ejecutar un archivo de test particular ejecute: 
 
 ```bash
-npm test -- nombreDeArchivo.test.js/jsx
+make test FILE=NombreDelArchivo.test.jsx/js
+```
+## Limpieza y reinstalación
+
+Para borrar todas las librerías locales ejecute:
+
+```bash
+make clean
+```
+
+En caso de que quiera reinstalar las librerias utilice:
+
+```bash
+make reinstall
+```
+## Otros
+
+Para consultar los comandos disponibles en front ejecute:
+
+```bash
+make help
 ```
