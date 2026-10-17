@@ -98,10 +98,21 @@ describe('Match', () => {
 
     expect(await screen.findAllByText('Rival')).toHaveLength(6)
 
-    expect(getPlayerById).toHaveBeenCalledTimes(12)
+    const myPlayers = estado_partido.players.filter(function (player) {
+      return player.team === "A"
+    })
+    const rivals = estado_partido.players.filter(function (player) {
+      return player.team !== "A"
+    })
 
-    estado_partido.players.forEach(function (player) {
+    expect(getPlayerById).toHaveBeenCalledTimes(myPlayers.length)
+
+    myPlayers.forEach(function (player) {
       expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
+    })
+
+    rivals.forEach(function (player) {
+      expect(getPlayerById).not.toHaveBeenCalledWith(player.player_id)
     })
   })
 
