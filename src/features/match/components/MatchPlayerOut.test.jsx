@@ -110,12 +110,25 @@ describe('MatchPlayerOut', () => {
     expect(benchRects).toHaveLength(6)
   })
 
-  it('obtiene los datos de cada jugador por su ID', async () => {
+  it('obtiene los datos solo de los jugadores de mi equipo por su ID', async () => {
     render(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
+
+    const myPlayers = players.filter(function (player) {
+      return player.team === "A"
+    })
+    const rivals = players.filter(function (player) {
+      return player.team !== "A"
+    })
+
     await waitFor(function () {
-      expect(getPlayerById).toHaveBeenCalledTimes(12)
-      players.forEach(function (player) {
+      expect(getPlayerById).toHaveBeenCalledTimes(myPlayers.length)
+
+      myPlayers.forEach(function (player) {
         expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
+      })
+
+      rivals.forEach(function (player) {
+        expect(getPlayerById).not.toHaveBeenCalledWith(player.player_id)
       })
     })
   })
@@ -149,11 +162,11 @@ describe('MatchPlayerOut', () => {
   it('no vuelve a pedir un jugador que ya fue cargado, ante un rerender', async () => {
     const { rerender } = render(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
     await waitFor(function () {
-      expect(getPlayerById).toHaveBeenCalledTimes(12)
+      expect(getPlayerById).toHaveBeenCalledTimes(6)
     })
     rerender(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(getPlayerById).toHaveBeenCalledTimes(12)
+    expect(getPlayerById).toHaveBeenCalledTimes(6)
   })
 
 })

@@ -83,6 +83,7 @@ function useWebSocket(url, options = {}) {
                 shouldReconnectRef.current &&
                 event.code !== 1000 &&
                 event.code !== 4409 &&
+                event.code !== 4404 &&
                 attemptRef.current < 10 &&
                 reconnectTimer.current === null
                 ) {

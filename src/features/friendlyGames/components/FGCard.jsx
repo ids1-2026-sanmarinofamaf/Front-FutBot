@@ -15,10 +15,22 @@ export function FGCard({ game, roster }) {
     const { toast, showToast, hideToast } = useToast();
 
     const [joinedAfterRecovery, setJoinedAfterRecovery] = useState(false);
-    const hasJoined = joinedAfterRecovery || joinedFGIds.includes(game.friendly_game_id);
+    // Comparación robusta insensible al tipo (número vs string)
+    const hasJoined = joinedAfterRecovery || joinedFGIds.some(
+        (id) => Number(id) === Number(game.friendly_game_id)
+    );
     
-    const isFull = game.current_participants >= game.capacity;
     const isPlaying = game.state === "JUGANDO";
+
+    // Un partido se considera iniciado si ya tiene match_id o si su estado es JUGANDO
+    const isMatchStarted = game.match_id != null || isPlaying; 
+
+    // Lógica para unirse como espectador a partido en juego
+    const handleSpectator = () => {
+        // La conexión del ws de match se hace en su propia vista, solo redireccionar
+        // Se agrega state para volver a la lista de partidos amistosos con el botón Salir del partido
+        navigate(`/matches/${game.match_id}`, { replace: true, state: { from: "/friendly" } });
+    };
 
     const handleJoin = async () => {
         setAlert("");
@@ -66,7 +78,7 @@ export function FGCard({ game, roster }) {
             setAlert("Error al unirse, intente en otro momento.");
             showToast();
         }
-    }
+    };
 
     // Se deshabilita si NO estamos jugando, NO estamos unidos y NO hay plantilla
     const isButtonDisabled = !hasJoined && !isPlaying && !rosterLoaded;
@@ -94,16 +106,36 @@ export function FGCard({ game, roster }) {
                     color={alert.includes("plantilla") || alert.includes("lleno") ? "orange" : "red"}
                 />
             )}
-            
+
             <div className="flex gap-2">
-                <button
-                    disabled={isButtonDisabled}
-                    onClick={handleJoin}
-                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {hasJoined ? "Entrar al lobby" : (isPlaying ? "Reconectar / Ver" : "Unirse")}
-                </button>
+                {/* 1. Si el partido YA inició (match_id != null o state === "JUGANDO") */}
+                {isMatchStarted ? (
+                    hasJoined ? (
+                            <button
+                                onClick={handleSpectator}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-slate-600 text-slate-200 text-xl font-medium rounded transition-colors"
+                            >
+                                Ver partido
+                            </button>
+                    ) : (
+                        <button
+                            onClick={handleSpectator}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-slate-600 text-slate-200 text-xl font-medium rounded transition-colors"
+                        >
+                            Espectador
+                        </button>
+                    )
+                ) : (
+                    /* 2. Si el partido NO inició todavía */
+                    <button
+                        disabled={isButtonDisabled}
+                        onClick={handleJoin}
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xl font-medium rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {hasJoined ? "Entrar al lobby" : "Unirse"}
+                    </button>
+                )}
             </div>
         </div>
-    )
+    );
 }

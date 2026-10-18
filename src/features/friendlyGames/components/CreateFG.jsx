@@ -68,7 +68,7 @@ export default function CreateFG({ onClose, roster: initialRoster = {} }) {
         setAlert("");
         hideToast();
     }
-    console.log(newFG)
+    //console.log(newFG)
     
     return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm">
