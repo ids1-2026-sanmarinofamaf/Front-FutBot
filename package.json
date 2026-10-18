@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
- "scripts": {
+  "scripts": {
     "dev": "vite",
     "test": "vitest",
     "build": "vite build",
@@ -29,6 +29,6 @@
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.3"
   }
 }
