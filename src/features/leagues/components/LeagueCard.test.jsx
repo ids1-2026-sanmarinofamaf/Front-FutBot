@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LeagueCard } from "./LeagueCard";
 
+vi.mock("react-router-dom", () => ({
+  useNavigate: vi.fn(),
+}));
+
 vi.mock("../api", () => ({
   joinLeagueAsPlayer: vi.fn(),
 }));
@@ -24,11 +28,13 @@ vi.mock("../../../shared/components/RightDownAlert", () => ({
   default: ({ errorDescription }) => <div data-testid="toast-alert">{errorDescription}</div>,
 }));
 
+import { useNavigate } from "react-router-dom";
 import { joinLeagueAsPlayer } from "../api";
 import { useLeaguesSocket } from "../LeaguesProvider";
 
 describe("LeagueCard", () => {
   let mockJoinL;
+  let mockNavigate;
 
   const defaultLeague = {
     id_liga: 1,
@@ -45,6 +51,8 @@ describe("LeagueCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockJoinL = vi.fn();
+    mockNavigate = vi.fn();
+    useNavigate.mockReturnValue(mockNavigate);
     useLeaguesSocket.mockReturnValue({ joinL: mockJoinL, joinedLIds: [] });
   });
 
@@ -100,15 +108,34 @@ describe("LeagueCard", () => {
       expect(screen.getByRole("button", { name: "Unirse" })).toBeDisabled();
     });
 
-    it("muestra Unido (deshabilitado) si el id ya está en el provider", () => {
+    it("muestra 'Entrar al lobby' habilitado si el id ya está en el provider y navega directo sin hacer POST", () => {
       useLeaguesSocket.mockReturnValue({ joinL: mockJoinL, joinedLIds: [1] });
-      render(<LeagueCard league={defaultLeague} roster={validRoster} />);
-      expect(screen.getByRole("button", { name: "Unido" })).toBeDisabled();
+      render(<LeagueCard league={defaultLeague} roster={null} />);
+
+      const button = screen.getByRole("button", { name: "Entrar al lobby" });
+      expect(button).toBeEnabled();
+
+      fireEvent.click(button);
+
+      expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+    });
+
+    it("si ya está unido a una liga privada, navega directo al lobby sin pedir contraseña", () => {
+      useLeaguesSocket.mockReturnValue({ joinL: mockJoinL, joinedLIds: [1] });
+      render(<LeagueCard league={{ ...defaultLeague, privacy: "PRIVADA" }} roster={null} />);
+
+      const button = screen.getByRole("button", { name: "Entrar al lobby" });
+      fireEvent.click(button);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
     });
   });
 
   describe("unirse a una liga pública", () => {
-    it("hace el POST sin contraseña, abre el socket y pasa a Unido", async () => {
+    it("hace el POST sin contraseña, abre el socket, navega al lobby y pasa a Entrar al lobby", async () => {
       joinLeagueAsPlayer.mockResolvedValueOnce({});
       render(<LeagueCard league={defaultLeague} roster={validRoster} />);
 
@@ -117,11 +144,12 @@ describe("LeagueCard", () => {
       await waitFor(() => {
         expect(joinLeagueAsPlayer).toHaveBeenCalledWith(1, { roster: validRoster, password: undefined });
         expect(mockJoinL).toHaveBeenCalledWith(1);
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
       });
-      expect(await screen.findByRole("button", { name: "Unido" })).toBeDisabled();
+      expect(await screen.findByRole("button", { name: "Entrar al lobby" })).toBeEnabled();
     });
 
-    it("trata ALREADY_PARTICIPATING como unido", async () => {
+    it("trata ALREADY_PARTICIPATING como unido y navega al lobby", async () => {
       const error = new Error("Already inside");
       error.code = "ALREADY_PARTICIPATING";
       joinLeagueAsPlayer.mockRejectedValueOnce(error);
@@ -129,11 +157,14 @@ describe("LeagueCard", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Unirse" }));
 
-      await waitFor(() => expect(mockJoinL).toHaveBeenCalledWith(1));
-      expect(await screen.findByRole("button", { name: "Unido" })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(mockJoinL).toHaveBeenCalledWith(1);
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+      });
+      expect(await screen.findByRole("button", { name: "Entrar al lobby" })).toBeInTheDocument();
     });
 
-    it("muestra alerta si la liga está llena (FULL) y no abre el socket", async () => {
+    it("muestra alerta si la liga está llena (FULL), no abre el socket ni navega", async () => {
       const error = new Error("full");
       error.code = "FULL";
       joinLeagueAsPlayer.mockRejectedValueOnce(error);
@@ -145,10 +176,11 @@ describe("LeagueCard", () => {
         expect(screen.getByTestId("toast-alert")).toHaveTextContent("La liga está llena");
       });
       expect(mockJoinL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(screen.getByRole("button", { name: "Unirse" })).toBeEnabled();
     });
 
-    it("muestra alerta genérica ante cualquier otro error", async () => {
+    it("muestra alerta genérica ante cualquier otro error y no navega", async () => {
       joinLeagueAsPlayer.mockRejectedValueOnce(new Error("Network Error"));
       render(<LeagueCard league={defaultLeague} roster={validRoster} />);
 
@@ -158,6 +190,7 @@ describe("LeagueCard", () => {
         expect(screen.getByTestId("toast-alert")).toHaveTextContent("Error al unirse, intente en otro momento.");
       });
       expect(mockJoinL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it("deshabilita el botón mientras se procesa para evitar dobles envíos", async () => {
@@ -171,7 +204,7 @@ describe("LeagueCard", () => {
       expect(joinLeagueAsPlayer).toHaveBeenCalledTimes(1);
 
       resolveJoin({});
-      expect(await screen.findByRole("button", { name: "Unido" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Entrar al lobby" })).toBeInTheDocument();
     });
   });
 
@@ -185,6 +218,7 @@ describe("LeagueCard", () => {
 
       expect(screen.getByRole("dialog", { name: "Contraseña de la liga" })).toBeInTheDocument();
       expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it("Confirmar está deshabilitado con contraseña vacía o solo espacios", async () => {
@@ -198,7 +232,7 @@ describe("LeagueCard", () => {
       expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
     });
 
-    it("envía la contraseña junto al roster, abre el socket y cierra el modal", async () => {
+    it("envía la contraseña junto al roster, abre el socket, cierra el modal y navega al lobby", async () => {
       joinLeagueAsPlayer.mockResolvedValueOnce({});
       const user = userEvent.setup();
       render(<LeagueCard league={privateLeague} roster={validRoster} />);
@@ -210,11 +244,12 @@ describe("LeagueCard", () => {
       await waitFor(() => {
         expect(joinLeagueAsPlayer).toHaveBeenCalledWith(1, { roster: validRoster, password: "clave123" });
         expect(mockJoinL).toHaveBeenCalledWith(1);
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
       });
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("con contraseña incorrecta muestra alerta y mantiene el modal abierto", async () => {
+    it("con contraseña incorrecta muestra alerta, mantiene el modal abierto y no navega", async () => {
       const error = new Error("Incorrect password");
       error.code = "INCORRECT_PASSWORD";
       joinLeagueAsPlayer.mockRejectedValueOnce(error);
@@ -230,9 +265,10 @@ describe("LeagueCard", () => {
       });
       expect(screen.getByRole("dialog")).toBeInTheDocument();
       expect(mockJoinL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    it("Cancelar cierra el modal sin hacer el POST", async () => {
+    it("Cancelar cierra el modal sin hacer el POST ni navegar", async () => {
       const user = userEvent.setup();
       render(<LeagueCard league={privateLeague} roster={validRoster} />);
       await user.click(screen.getByRole("button", { name: "Unirse" }));
@@ -241,6 +277,7 @@ describe("LeagueCard", () => {
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

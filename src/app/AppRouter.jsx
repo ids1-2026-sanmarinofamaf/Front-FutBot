@@ -89,6 +89,7 @@ const AppRouter = () => {
           <Route path="/friendly" element={<FriendlyGames />} />
           <Route path="/friendly/lobby/:id" element={<FriendlyGameRoom />} />
           <Route path="/league" element={<LeagueListView />} />
+          <Route path="/league/lobby/:id" element={<PlaceholderView title="Lobby de Liga" />} />
         </Route>
 
         {/* Fallback general */}

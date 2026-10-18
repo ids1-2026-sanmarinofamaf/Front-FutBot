@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../shared/hooks";
 import RightDownAlert from "../../../shared/components/RightDownAlert";
 import { joinLeagueAsPlayer } from "../api";
@@ -19,6 +20,7 @@ export function LeagueCard({ league, roster }) {
     const socket = useLeaguesSocket();
     const joinL = socket?.joinL;
     const joinedLIds = socket?.joinedLIds ?? [];
+    const navigate = useNavigate();
 
     const [alert, setAlert] = useState(null);
     const { toast, showToast, hideToast } = useToast();
@@ -34,8 +36,8 @@ export function LeagueCard({ league, roster }) {
     const isFull = league.current_participants >= league.capacity;
     const isPlaying = league.state === "JUGANDO";
 
-    // Solo se puede unir con plantilla, con cupo, sin haber comenzado y sin estar ya unido
-    const isJoinDisabled = hasJoined || isFull || isPlaying || !rosterLoaded || isJoining;
+    // Si ya está unido puede entrar al lobby; si no, requiere plantilla, cupo y estado POR_COMENZAR
+    const isJoinDisabled = !hasJoined && (isFull || isPlaying || !rosterLoaded || isJoining);
 
     const closePasswordModal = () => {
         setAskPassword(false);
@@ -46,6 +48,7 @@ export function LeagueCard({ league, roster }) {
         joinL?.(league.id_liga);
         setJoinedNow(true);
         closePasswordModal();
+        navigate(`/league/lobby/${league.id_liga}`);
     };
 
     const submitJoin = async (pass) => {
@@ -75,6 +78,10 @@ export function LeagueCard({ league, roster }) {
     };
 
     const handleJoin = () => {
+        if (hasJoined) {
+            navigate(`/league/lobby/${league.id_liga}`);
+            return;
+        }
         if (isPrivate) {
             setAskPassword(true);
             return;
@@ -116,7 +123,7 @@ export function LeagueCard({ league, roster }) {
                     onClick={handleJoin}
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {hasJoined ? "Unido" : "Unirse"}
+                    {hasJoined ? "Entrar al lobby" : "Unirse"}
                 </button>
             </div>
 
