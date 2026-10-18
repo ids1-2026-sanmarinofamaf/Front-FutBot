@@ -50,7 +50,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
         setAlert("");
         hideToast();
         setIsSubmitting(true);
-        console.log("se intenta enviar");
+        // console.log("se intenta enviar");
 
         try{
             const response = await sendNewL(newL);
@@ -77,7 +77,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
             setAlert("Error al crear, faltan parametros necesarios.");
             showToast();  
           } else {
-            console.log(errorStatus)
+            // console.log(errorStatus)
               setAlert("Error al crear, intente en otro momento.");
               showToast();  
           } 
@@ -91,7 +91,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
         setAlert("");
         hideToast();
     }
-    console.log(newL)
+    // console.log(newL)
     
     return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm">

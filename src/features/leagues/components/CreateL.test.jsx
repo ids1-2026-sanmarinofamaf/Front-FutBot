@@ -66,7 +66,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   nextRoster = ROSTER;
   sendNewL.mockResolvedValue({ id_liga: LEAGUE_ID });
-  vi.spyOn(console, "log").mockImplementation(() => {});
+  // vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 afterEach(cleanup);
