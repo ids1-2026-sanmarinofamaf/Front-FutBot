@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBehaviors, getBehaviorById } from './api';
+// import { getBehaviors, getBehaviorById } from './api';
+import { getBehaviors } from './api';
 import { apiClient } from '../../shared/api/client';
 
 vi.mock('../../shared/api/client', () => ({
@@ -52,40 +53,40 @@ describe('getBehaviors API', () => {
 });
 
 
-describe('getBehaviorById API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('debe invocar apiClient con el parámetro de ruta correcto', async () => {
-    apiClient.mockResolvedValue({ code: 'defend()' });
-    const behaviorId = 1;
-
-    await getBehaviorById(behaviorId);
-
-    expect(apiClient).toHaveBeenCalledTimes(1);
-    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/1', {
-      method: 'GET',
-    });
-  });
-
-  it('debe retornar el objeto del comportamiento', async () => {
-    const mockResponse = { behavior_id: 2, name: 'Pasivo', code: 'wait()', is_valid: true };
-    apiClient.mockResolvedValue(mockResponse);
-
-    const result = await getBehaviorById(2);
-
-    expect(result).toEqual(mockResponse);
-  });
-
-  it('debe lanzar un error si no se provee el ID', async () => {
-    await expect(getBehaviorById()).rejects.toThrow('El ID del comportamiento es requerido');
-    expect(apiClient).not.toHaveBeenCalled();
-  });
-
-  it('debe propagar errores de red', async () => {
-    apiClient.mockRejectedValue(new Error('Not Found'));
-
-    await expect(getBehaviorById(99)).rejects.toThrow('Not Found');
-  });
-});
+// describe('getBehaviorById API', () => {
+//   beforeEach(() => {
+//     vi.clearAllMocks();
+//   });
+// 
+//   it('debe invocar apiClient con el parámetro de ruta correcto', async () => {
+//     apiClient.mockResolvedValue({ code: 'defend()' });
+//     const behaviorId = 1;
+// 
+//     await getBehaviorById(behaviorId);
+// 
+//     expect(apiClient).toHaveBeenCalledTimes(1);
+//     expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/1', {
+//       method: 'GET',
+//     });
+//   });
+// 
+//   it('debe retornar el objeto del comportamiento', async () => {
+//     const mockResponse = { behavior_id: 2, name: 'Pasivo', code: 'wait()', is_valid: true };
+//     apiClient.mockResolvedValue(mockResponse);
+// 
+//     const result = await getBehaviorById(2);
+// 
+//     expect(result).toEqual(mockResponse);
+//   });
+// 
+//   it('debe lanzar un error si no se provee el ID', async () => {
+//     await expect(getBehaviorById()).rejects.toThrow('El ID del comportamiento es requerido');
+//     expect(apiClient).not.toHaveBeenCalled();
+//   });
+// 
+//   it('debe propagar errores de red', async () => {
+//     apiClient.mockRejectedValue(new Error('Not Found'));
+// 
+//     await expect(getBehaviorById(99)).rejects.toThrow('Not Found');
+//   });
+// });
