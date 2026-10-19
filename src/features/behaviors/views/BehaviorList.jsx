@@ -27,8 +27,6 @@ export function BehaviorList() {
     fetchBehaviors();
   }, []);
 
-  console.log(behaviors)
-
   const handleCreateNew = () => {
     console.info('Endpoint de creación de comportamiento no implementado en el sprint actual.');
   };
@@ -77,7 +75,8 @@ export function BehaviorList() {
             <BehaviorCard 
               key={behavior.behavior_id} 
               behavior={behavior} 
-              onView={(id) => navigate(`/club/behaviors/${id}`)} 
+              // onView={(id) => navigate(`/club/behaviors/${id}`)} 
+              onView={(id) => navigate(`/club/behaviors/${id}`, { state: { behavior } })} 
             />
           ))}
         </div>

@@ -1,26 +1,56 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getBehaviorById } from '../api';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+// import { getBehaviorById } from '../api';
+import { getBehaviors } from '../api';
 
 export function BehaviorDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const stateBehavior = location?.state?.behavior ?? null;
 
-  const [behavior, setBehavior] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [behavior, setBehavior] = useState(stateBehavior);
+  const [isLoading, setIsLoading] = useState(!stateBehavior);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (stateBehavior) {
+      setBehavior(stateBehavior);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     let isMounted = true;
     setIsLoading(true);
     setError(null);
 
-    getBehaviorById(id)
+    // getBehaviorById(id)
+    //   .then((data) => {
+    //     if (isMounted) {
+    //       setBehavior(data);
+    //       setIsLoading(false);
+    //     }
+    //   })
+    //   .catch((err) => {
+    //     if (isMounted) {
+    //       setError(err.message || 'Error de comunicación con el servidor.');
+    //       setIsLoading(false);
+    //     }
+    //   });
+
+    getBehaviors()
       .then((data) => {
-        if (isMounted) {
-          setBehavior(data);
-          setIsLoading(false);
+        if (!isMounted) return;
+        const found = (data || []).find(
+          (b) => String(b.behavior_id) === String(id)
+        );
+        if (!found) {
+          setError('Comportamiento no encontrado.');
+        } else {
+          setBehavior(found);
         }
+        setIsLoading(false);
       })
       .catch((err) => {
         if (isMounted) {
@@ -32,7 +62,7 @@ export function BehaviorDetail() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, stateBehavior]);
 
   const handleBack = () => {
     navigate('/club/behaviors');
