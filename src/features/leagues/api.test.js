@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewL } from "./api";
+import { sendNewL, joinLeagueAsPlayer } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 // Se mockea apiClient: se prueba que sendNewL arme y despache correctamente la solicitud HTTP.
@@ -78,6 +78,62 @@ describe("sendNewL", () => {
     await sendNewL(newLeaguePayload);
 
     expect(newLeaguePayload).toEqual(payloadClone);
+  });
+});
+
+describe("joinLeagueAsPlayer", () => {
+  const roster = newLeaguePayload.roster;
+
+  it("hace POST a /leagues/{id}/users", async () => {
+    apiClient.mockResolvedValue({});
+
+    await joinLeagueAsPlayer(7, { roster });
+
+    const [endpoint, options] = apiClient.mock.calls[0];
+    expect(endpoint).toBe("/leagues/7/users");
+    expect(options.method).toBe("POST");
+  });
+
+  it("envía solo el roster si no hay contraseña (liga pública)", async () => {
+    apiClient.mockResolvedValue({});
+
+    await joinLeagueAsPlayer(7, { roster });
+
+    const [, options] = apiClient.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({ roster });
+  });
+
+  it("envía roster y password si hay contraseña (liga privada)", async () => {
+    apiClient.mockResolvedValue({});
+
+    await joinLeagueAsPlayer(7, { roster, password: "clave" });
+
+    const [, options] = apiClient.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({ roster, password: "clave" });
+  });
+
+  it("devuelve la respuesta del backend", async () => {
+    apiClient.mockResolvedValue({ ok: true });
+
+    await expect(joinLeagueAsPlayer(7, { roster })).resolves.toEqual({ ok: true });
+  });
+
+  it.each([
+    ["User is already participating in this league", "ALREADY_PARTICIPATING"],
+    ["Incorrect password", "INCORRECT_PASSWORD"],
+    ["League is already full.", "FULL"],
+  ])("mapea el error '%s' al código %s", async (message, code) => {
+    apiClient.mockRejectedValue(new Error(message));
+
+    await expect(joinLeagueAsPlayer(7, { roster })).rejects.toMatchObject({ code });
+  });
+
+  it("propaga errores desconocidos sin código", async () => {
+    const error = new Error("Network Error");
+    apiClient.mockRejectedValue(error);
+
+    await expect(joinLeagueAsPlayer(7, { roster })).rejects.toBe(error);
+    expect(error.code).toBeUndefined();
   });
 });
 

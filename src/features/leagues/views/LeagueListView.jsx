@@ -3,6 +3,7 @@ import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { LeagueCard } from "../components/LeagueCard";
 import { useState } from "react";
 import CreateL from "../components/CreateL";
+import { RosterBuilder } from "../../roster/components/RosterBuilder";
 
 export default function LeagueListView() {
   const navigate = useNavigate();
@@ -12,6 +13,10 @@ export default function LeagueListView() {
   const leagues = messages?.leagues ?? [];
 
   const [createLisOpen, setCreateLisOpen] = useState(false);
+
+  {/** Estados para crear roster, compartido entre crear y unirse a ligas */}
+  const [roster, setRoster] = useState(null);
+  const [builderR, setBuilderR] = useState(false);
 
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8">
@@ -34,7 +39,6 @@ export default function LeagueListView() {
             LIGAS
           </h1>
 
-          {/* La creación de liga se implementa en otro ticket: por ahora sin acción */}
           <button
             type="button"
             onClick={() => setCreateLisOpen(true)}
@@ -44,11 +48,38 @@ export default function LeagueListView() {
             CREAR LIGA
           </button>
 
-          {/* Constructor de partido amistoso */}
-          {/* IMPLEMENTAR GESTION DE ROSTER PARA USAR COMO PARAMETRO (roster={initialRoster}), AHORA POR DEFAULT {}  */}
-          {createLisOpen && <CreateL onClose={() => setCreateLisOpen(false)} />} 
+          {/* Constructor de liga */}
+          {createLisOpen && (
+            <CreateL onClose={() => setCreateLisOpen(false)} roster={roster} />
+          )}
 
         </div>
+
+        {/* Definición de roster */}
+        <section className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl
+                            p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center
+                            sm:justify-between gap-4">
+          <div>
+            <p className="text-lg sm:text-2xl text-slate-300">
+              Edite su plantilla para unirse a una liga o para crear una
+            </p>
+
+            {roster === null && (
+              <p className="text-red-500 font-semibold">
+                La plantilla todavía no ha sido cargada.
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setBuilderR(true)}
+            className="shrink-0 px-12 py-3 text-5xl bg-emerald-600 hover:bg-emerald-500
+                      text-white rounded-lg font-semibold transition-colors"
+          >
+            EDITAR
+          </button>
+        </section>
 
         {/* Lista de ligas disponibles */}
         <section className="bg-slate-800/60 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-8">
@@ -65,8 +96,9 @@ export default function LeagueListView() {
             <div className="grid grid-cols-1 gap-4">
               {leagues.map(league => (
                 <LeagueCard
-                  key={league.league_id}
+                  key={league.id_liga}
                   league={league}
+                  roster={roster}
                 />
               ))}
             </div>
@@ -77,7 +109,27 @@ export default function LeagueListView() {
           )}
         </section>
       </div>
+
+      {/* Editor de plantilla */}
+      {builderR && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setBuilderR(false)} // cerrar al hacer click afuera
+        >
+          <div
+            className="max-h-[90vh] min-w-[700px] overflow-auto rounded-lg p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()} // evita cerrar al hacer click adentro
+          >
+            <RosterBuilder
+              onSubmit={(nuevoRoster) => {
+                setRoster(nuevoRoster);
+                setBuilderR(false);
+              }}
+              onCancel={() => setBuilderR(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
