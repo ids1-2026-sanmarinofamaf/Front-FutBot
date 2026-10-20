@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 // import { getBehaviorById } from '../api';
 import { getBehaviors } from '../api';
+import Editor from '@monaco-editor/react'
 
 export function BehaviorDetail() {
   const { id } = useParams();
@@ -24,20 +25,6 @@ export function BehaviorDetail() {
     let isMounted = true;
     setIsLoading(true);
     setError(null);
-
-    // getBehaviorById(id)
-    //   .then((data) => {
-    //     if (isMounted) {
-    //       setBehavior(data);
-    //       setIsLoading(false);
-    //     }
-    //   })
-    //   .catch((err) => {
-    //     if (isMounted) {
-    //       setError(err.message || 'Error de comunicación con el servidor.');
-    //       setIsLoading(false);
-    //     }
-    //   });
 
     getBehaviors()
       .then((data) => {
@@ -108,9 +95,17 @@ export function BehaviorDetail() {
         </div>
 
         <div className="p-4 bg-slate-900 overflow-x-auto">
-          <pre className="font-mono text-sm text-blue-300">
-            <code>{behavior?.code}</code>
-          </pre>
+          <Editor
+            height="2000px"
+            language="python"
+            theme="vs-dark"
+            value={behavior?.code}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+            }}
+          />
         </div>
       </div>
     </div>
