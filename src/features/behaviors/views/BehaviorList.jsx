@@ -75,8 +75,7 @@ export function BehaviorList() {
             <BehaviorCard 
               key={behavior.behavior_id} 
               behavior={behavior} 
-              // onView={(id) => navigate(`/club/behaviors/${id}`)} 
-              onView={(id) => navigate(`/club/behaviors/${id}`, { state: { behavior } })} 
+              onView={(id) => navigate(`/club/behaviors/${id}`)} 
             />
           ))}
         </div>

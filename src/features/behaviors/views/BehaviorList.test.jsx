@@ -128,9 +128,6 @@ describe("BehaviorList Component", () => {
     // Simulamos el click que el BehaviorCard haría internamente
     fireEvent.click(screen.getByTestId("view-btn-1"));
     
-    // expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/1");
-    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/1", {
-      state: { behavior: mockBehaviors[0] },
-    });
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/1");
   });
 });
