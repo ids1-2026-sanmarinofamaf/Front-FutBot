@@ -14,6 +14,10 @@ vi.mock("../api", () => ({
   getBehaviors: vi.fn(),
 }));
 
+vi.mock("@monaco-editor/react", () => ({
+  default: ({ value }) => <pre data-testid="code-editor">{value}</pre>,
+}));
+
 // 2. Importación de módulos mockeados
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 // import { getBehaviorById } from "../api";

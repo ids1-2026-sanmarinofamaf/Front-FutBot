@@ -12,7 +12,7 @@ import LeagueListView from "../features/leagues";
 
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
-import { BehaviorList, BehaviorDetail } from "../features/behaviors/index.js";
+import { BehaviorList, BehaviorDetail, CreateBehavior, EditBehavior } from "../features/behaviors/index.js";
 
 // Placeholder reutilizable
 const PlaceholderView = ({ title }) => {
