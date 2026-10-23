@@ -78,7 +78,9 @@ const AppRouter = () => {
           
           {/* Módulo: Comportamientos */}
           <Route path="/club/behaviors" element={<BehaviorList />} />
+          <Route path="/club/behaviors/new" element={<CreateBehavior />} />
           <Route path="/club/behaviors/:id" element={<BehaviorDetail />} />
+          <Route path="/club/behaviors/:id/edit" element={<EditBehavior />} />
 
           {/* Módulo: Partidos */}
           <Route path="/matches/:matchId" element={<MatchPage />} />
