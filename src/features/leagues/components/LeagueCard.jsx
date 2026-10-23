@@ -31,13 +31,13 @@ export function LeagueCard({ league, roster }) {
     const [askPassword, setAskPassword] = useState(false);
     const [password, setPassword] = useState("");
 
-    const hasJoined = joinedNow || joinedLIds.includes(league.id_liga);
+    const hasJoined = joinedNow || joinedLIds.includes(league.league_id);
     const isPrivate = league.privacy === "PRIVADA";
     const isFull = league.current_participants >= league.capacity;
-    const isPlaying = league.state === "JUGANDO";
+    const canJoin = league.state === "POR_COMENZAR";
 
     // Si ya está unido puede entrar al lobby; si no, requiere plantilla, cupo y estado POR_COMENZAR
-    const isJoinDisabled = !hasJoined && (isFull || isPlaying || !rosterLoaded || isJoining);
+    const isJoinDisabled = !hasJoined && (!canJoin || isFull || !rosterLoaded || isJoining);
 
     const closePasswordModal = () => {
         setAskPassword(false);
@@ -45,10 +45,10 @@ export function LeagueCard({ league, roster }) {
     };
 
     const markJoined = () => {
-        joinL?.(league.id_liga);
+        joinL?.(league.league_id);
         setJoinedNow(true);
         closePasswordModal();
-        navigate(`/league/lobby/${league.id_liga}`);
+        navigate(`/league/lobby/${league.league_id}`);
     };
 
     const submitJoin = async (pass) => {
@@ -57,7 +57,7 @@ export function LeagueCard({ league, roster }) {
         setIsJoining(true);
 
         try {
-            await joinLeagueAsPlayer(league.id_liga, { roster, password: pass });
+            await joinLeagueAsPlayer(league.league_id, { roster, password: pass });
             markJoined();
         } catch (err) {
             if (err.code === "ALREADY_PARTICIPATING") {
@@ -79,7 +79,7 @@ export function LeagueCard({ league, roster }) {
 
     const handleJoin = () => {
         if (hasJoined) {
-            navigate(`/league/lobby/${league.id_liga}`);
+            navigate(`/league/lobby/${league.league_id}`);
             return;
         }
         if (isPrivate) {
@@ -138,11 +138,11 @@ export function LeagueCard({ league, roster }) {
                             Liga privada
                         </h3>
 
-                        <label htmlFor={`league-password-${league.id_liga}`} className="block text-slate-300 mb-2">
+                        <label htmlFor={`league-password-${league.league_id}`} className="block text-slate-300 mb-2">
                             Contraseña:
                         </label>
                         <input
-                            id={`league-password-${league.id_liga}`}
+                            id={`league-password-${league.league_id}`}
                             type="password"
                             value={password}
                             onChange={(e) => {
