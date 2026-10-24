@@ -7,6 +7,10 @@ export function BehaviorDetail() {
   const navigate = useNavigate();
   const { behavior, isLoading, error } = useBehavior(id);
   
+  const handleEdit = () => {
+    navigate(`/club/behaviors/${id}/edit`
+    );
+  };
   const handleBack = () => {
     navigate('/club/behaviors');
   };
@@ -42,12 +46,20 @@ export function BehaviorDetail() {
           <h3 className="text-lg font-bold text-slate-200">
             Comportamiento: <span className="text-emerald-400">{behavior?.name}</span>
           </h3>
+          <div className="flex gap-2">
+          <button 
+            onClick={handleEdit}
+            className="text-sm px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
+          >
+            Editar
+          </button>
           <button 
             onClick={handleBack}
             className="text-sm px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
           >
             Volver
           </button>
+        </div>
         </div>
 
         <CodeEditor value={behavior?.code} readOnly />

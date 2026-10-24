@@ -28,7 +28,7 @@ export function BehaviorList() {
   }, []);
 
   const handleCreateNew = () => {
-    console.info('Endpoint de creación de comportamiento no implementado en el sprint actual.');
+    navigate('/club/behaviors/new');
   };
 
   if (loading) {
@@ -48,16 +48,15 @@ export function BehaviorList() {
         ← Volver a Mi Club
       </button>
 
-      {/* <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-100">Mis Comportamientos</h2>
         <button 
           onClick={handleCreateNew}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-sm transition-colors cursor-not-allowed opacity-80"
-          title="No disponible en este sprint"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-sm transition-colors"
         >
           Crear Nuevo
         </button>
-      </div> */}
+      </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/30 border border-red-500 rounded text-red-400">
@@ -75,7 +74,8 @@ export function BehaviorList() {
             <BehaviorCard 
               key={behavior.behavior_id} 
               behavior={behavior} 
-              onView={(id) => navigate(`/club/behaviors/${id}`)} 
+              onView={(id) => navigate(`/club/behaviors/${id}`)}
+              onEdit={(id) => navigate(`/club/behaviors/${id}/edit`)} 
             />
           ))}
         </div>
