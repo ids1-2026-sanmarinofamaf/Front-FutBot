@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createBehavior } from "../api";
 import { BehaviorForm } from "../components/BehaviorForm";
@@ -13,7 +13,7 @@ export function CreateBehavior() {
             setIsSubmitting(true);
             setServerError(null);
             await createBehavior(data);
-            navigate('club/behaviors');
+            navigate('/club/behaviors');
         } catch (err) {
             setServerError(err.message || 'No se pudo crear el comportamiento.');
         } finally {
@@ -23,11 +23,11 @@ export function CreateBehavior() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h2>Nuevo comportamiento</h2>
-            {serverError && <p>{serverError}</p>}
+            <h2 className="text-2xl font-bold text-slate-100 mb-6">Nuevo comportamiento</h2>
+            {serverError && <p className="mb-4 text-red-400">{serverError}</p>}
             <BehaviorForm
                 onSubmit={handleCreate}
-                onCancel={() => navigate('/club/bheaviors')}
+                onCancel={() => navigate('/club/behaviors')}
                 isSubmitting={isSubmitting}
                 submitLabel="Crear"
             />

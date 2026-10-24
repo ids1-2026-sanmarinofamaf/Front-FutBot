@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom"
 import { useBehavior } from "../useBehavior.js"
 import { useState } from "react";
 import { updateBehavior } from "../api";
+import { BehaviorForm } from "../components/BehaviorForm.jsx";
 export function EditBehavior() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -28,8 +29,8 @@ export function EditBehavior() {
 
     return(
         <div className="max-w-4xl mx-auto p-6">
-        <h2>Editar comportamiento</h2>
-        {serverError && <p>{serverError}</p>}
+        <h2 className="text-2xl font-bold text-slate-100 mb-6">Editar comportamiento</h2>
+        {serverError && <p className="mb-4 text-red-400">{serverError}</p>}
         <BehaviorForm
             initialName={behavior.name}
             initialCode={behavior.code}
