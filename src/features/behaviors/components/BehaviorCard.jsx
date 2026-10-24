@@ -1,4 +1,5 @@
-export function BehaviorCard({ behavior, onView }) {
+export function BehaviorCard({ behavior, onView, onEdit }) {
+
   const handleView = () => {
     // Ejecuta la función del padre pasando el ID correcto
     if (onView) {
@@ -7,7 +8,10 @@ export function BehaviorCard({ behavior, onView }) {
   };
 
   const handleEdit = () => {
-    console.info('Endpoint de edición no implementado.');
+    if(onEdit) {
+      onEdit(behavior.behavior_id);
+    }
+    
   };
 
   const handleDelete = () => {
@@ -31,8 +35,7 @@ export function BehaviorCard({ behavior, onView }) {
         </button>
         <button 
           onClick={handleEdit}
-          className="px-3 py-1.5 bg-slate-700 text-slate-400 text-sm font-medium rounded cursor-not-allowed opacity-70"
-          title="No disponible en este sprint"
+          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors"
         >
           Editar
         </button>
