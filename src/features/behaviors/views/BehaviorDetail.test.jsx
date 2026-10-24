@@ -121,4 +121,31 @@ describe("BehaviorDetail Component", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors");
   });
+
+  it("Navega a la vista de edición (/club/behaviors/:id/edit) al hacer clic en 'Editar'", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Editar/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/42/edit");
+  });
+
+  it("Muestra la etiqueta 'Por defecto' y oculta el botón 'Editar' cuando is_default es true", async () => {
+    getBehaviorById.mockResolvedValueOnce({ ...mockBehaviorData, is_default: true });
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Por defecto")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editar/i })).not.toBeInTheDocument();
+  });
 });

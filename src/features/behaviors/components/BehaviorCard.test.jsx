@@ -50,5 +50,18 @@ describe('BehaviorCard Component', () => {
 
     expect(screen.getByText('Presión Alta')).toBeInTheDocument();
   });
+
+  it('muestra la etiqueta Por defecto y deshabilita Editar cuando is_default es true', async () => {
+    const user = userEvent.setup();
+    const defaultBehavior = { ...behavior, is_default: true };
+    render(<BehaviorCard behavior={defaultBehavior} onView={mockOnView} onEdit={mockOnEdit} />);
+
+    expect(screen.getByText('Por defecto')).toBeInTheDocument();
+    const editBtn = screen.getByRole('button', { name: 'Editar' });
+    expect(editBtn).toBeDisabled();
+
+    await user.click(editBtn);
+    expect(mockOnEdit).not.toHaveBeenCalled();
+  });
 });
 
