@@ -264,12 +264,22 @@ export function LeagueLobby() {
       </div>
     :        
       <div className="min-h-screen mi-fuente bg-slate-900 flex flex-col items-center justify-center gap-5">
+        {/* Boton para volver */}
+          <button
+            type="button"
+            onClick={() => navigate("/league")}
+            className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+          >
+            Volver
+        </button>
         <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
         <span className="text-slate-400 text-4xl">
           Esperando estado del servidor
         </span>
+        <span className="text-slate-400 text-2xl">
+          La reconexión automática está desactivada hasta nuevo aviso. Si recargaste la página volvé a unirte desde la lista de liga.
+        </span>
       </div>
-
 
   )
 }
