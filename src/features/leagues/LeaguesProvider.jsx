@@ -39,7 +39,8 @@ function LSocket({ id_liga, onMessage, onLGone }) {
             if (e.code === 4404 || e.code === 4403 || e.code === 4409 || e.code === 1000) {
                 onLGone(id_liga);
             }
-        }
+        },
+        reconnect: false
     });
     return null;
 }
