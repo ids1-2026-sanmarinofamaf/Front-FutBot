@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 const URL_AVATARS = "/assets/defaultAvatars/";
 const AVATAR_STYLENAME = "";
 const AVATARS_COUNT = 6;
@@ -9,18 +10,25 @@ const AVATARS_COUNT = 6;
  * @param clubId: ID del club 
  * @returns avatar del usuario
  */
-export function Avatar({ avatar, name, clubId }) {
-  const isDefault = !avatar || avatar === "default";
-  const index = (clubId % AVATARS_COUNT) + 1; // 1..200
+export function Avatar({ avatar, name, clubId = 0 }) {
+  const [failed, setFailed] = useState(false);
 
-  const src = isDefault
-    ? `${URL_AVATARS}${AVATAR_STYLENAME}${index}.png`//DEFAULT_AVATARS[clubId % DEFAULT_AVATARS.length]
+  // Si cambia el avatar, se reintenta
+  useEffect(() => setFailed(false), [avatar]);
+
+  const isDefault = !avatar || avatar === "default";
+  const index = (clubId % AVATARS_COUNT) + 1;
+  const defaultSrc = `${URL_AVATARS}${AVATAR_STYLENAME}${index}.png`;
+
+  const src = isDefault || failed
+    ? defaultSrc
     : `data:image/png;base64,${avatar}`;
 
   return (
     <img
       src={src}
       alt={name}
+      onError={() => setFailed(true)}
       className="w-12 h-12 rounded-full object-cover border border-slate-600"
     />
   );
