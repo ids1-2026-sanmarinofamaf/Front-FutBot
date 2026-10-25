@@ -81,11 +81,16 @@ export function LeagueLobby() {
       case "user_joined": // cambio: se aplica sobre lo anterior
         if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
         if (lobby.users.some((u) => u.club_id === msg.user.club_id)) return lobby; // duplicado
-        return { ...lobby, users: [...lobby.users, msg.user] };
+        {
+          const users = [...lobby.users, msg.user];
+          return { ...lobby, users, currentUsers: users.length };
+        }
 
-      case "user_left":
+      case "user_left": {
         if (!lobby.ready) return lobby;
-        return { ...lobby, users: lobby.users.filter((u) => u.club_id !== msg.user.club_id) };
+        const users = lobby.users.filter((u) => u.club_id !== msg.user.club_id);
+        return { ...lobby, users, currentUsers: users.length };
+      }
 
       default:
         return lobby;
@@ -154,7 +159,7 @@ export function LeagueLobby() {
 
   return(
     
-    !lobby.ready ?  
+    lobby.ready ?  
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
 
         {/** Alerta: Error al usar apiClient */}
