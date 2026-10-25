@@ -96,7 +96,7 @@ export default function LeagueListView() {
             <div className="grid grid-cols-1 gap-4">
               {leagues.map(league => (
                 <LeagueCard
-                  key={league.id_liga}
+                  key={league.league_id}
                   league={league}
                   roster={roster}
                 />

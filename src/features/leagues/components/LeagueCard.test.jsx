@@ -37,7 +37,7 @@ describe("LeagueCard", () => {
   let mockNavigate;
 
   const defaultLeague = {
-    id_liga: 1,
+    league_id: 1,
     name: "Liga Test",
     current_participants: 3,
     capacity: 8,
@@ -103,8 +103,8 @@ describe("LeagueCard", () => {
       expect(screen.getByRole("button", { name: "Unirse" })).toBeDisabled();
     });
 
-    it("se deshabilita si la liga ya está JUGANDO", () => {
-      render(<LeagueCard league={{ ...defaultLeague, state: "JUGANDO" }} roster={validRoster} />);
+    it("se deshabilita si la liga ya está INICIADA", () => {
+      render(<LeagueCard league={{ ...defaultLeague, state: "INICIADA" }} roster={validRoster} />);
       expect(screen.getByRole("button", { name: "Unirse" })).toBeDisabled();
     });
 
