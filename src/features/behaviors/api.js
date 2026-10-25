@@ -49,3 +49,13 @@ export const updateBehavior = async (id, behaviorData) => {
   return data;
 };
 
+export const validateBehaviorCode = async (code) => {
+  if (!code || !code.trim()) {
+    throw new Error("El código del comportamiento es requerido");
+  }
+  const data = await apiClient('/clubes/me/behaviors/validate', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  return data;
+};
