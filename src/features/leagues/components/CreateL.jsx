@@ -399,7 +399,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                       type="button"
                       onClick={() => {
                         onClose();
-                        navigate(`/league/lobby/${createdLId}`);
+                        navigate(`/league/lobby/${createdLId}/${newL.nombre}`);
                       }}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"
                     >
