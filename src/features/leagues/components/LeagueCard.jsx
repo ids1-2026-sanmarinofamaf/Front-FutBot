@@ -48,7 +48,7 @@ export function LeagueCard({ league, roster }) {
         joinL?.(league.league_id);
         setJoinedNow(true);
         closePasswordModal();
-        navigate(`/league/lobby/${league.league_id}`);
+        navigate(`/league/lobby/${league.league_id}/${league.name}`);
     };
 
     const submitJoin = async (pass) => {
@@ -79,7 +79,7 @@ export function LeagueCard({ league, roster }) {
 
     const handleJoin = () => {
         if (hasJoined) {
-            navigate(`/league/lobby/${league.league_id}`);
+            navigate(`/league/lobby/${league.league_id}/${league.name}`);
             return;
         }
         if (isPrivate) {
