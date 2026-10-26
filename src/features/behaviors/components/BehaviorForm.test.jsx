@@ -113,4 +113,17 @@ describe('BehaviorForm Component', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Guardando...' })).toBeDisabled();
   });
+
+  it('abre y cierra el manual de comportamientos al hacer clic en su botón', async () => {
+    const user = userEvent.setup();
+    render(<BehaviorForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Manual de comportamientos/i }));
+    expect(screen.getByText(/Reglas de ejecución/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Cerrar/i }));
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+  });
 });

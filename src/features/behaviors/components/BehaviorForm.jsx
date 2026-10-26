@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CodeEditor } from './CodeEditor';
+import { BehaviorApiDocs } from './BehaviorApiDocs';
 import { validateBehaviorCode } from '../api';
 
 const DEFAULT_CODE = 'def play():\n    return wait()\n';
@@ -16,6 +17,7 @@ export function BehaviorForm({
     const [code, setCode] = useState(initialCode);
     const [isValidating, setIsValidating] = useState(false);
     const [validationStatus, setValidationStatus] = useState(null);
+    const [isDocsOpen, setIsDocsOpen] = useState(false);
     
     const isFormValid = name.trim() !== '' && code.trim() !== '' && !isSubmitting;
     const canValidate = code.trim() !== '' && !isSubmitting && !isValidating;
@@ -72,31 +74,41 @@ export function BehaviorForm({
                 {validationStatus.message}
             </p>
         )}
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+        <div className="flex justify-between items-center gap-3 pt-4 border-t border-slate-700">
             <button
                 type="button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded transition-colors disabled:opacity-50"
+                onClick={() => setIsDocsOpen(true)}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded transition-colors"
             >
-                Cancelar
+                Manual de comportamientos
             </button>
-            <button
-                type="button"
-                onClick={handleValidate}
-                disabled={!canValidate}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:text-slate-400 text-white font-medium rounded transition-colors"
-            >
-                {isValidating ? 'Validando...' : 'Validar código'}
-            </button>
-            <button
-                type="submit"
-                disabled={!isFormValid}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-400 text-white font-medium rounded shadow-sm transition-colors"
-            >
-                {isSubmitting ? 'Guardando...' : submitLabel}
-            </button>
+            <div className="flex gap-3">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded transition-colors disabled:opacity-50"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="button"
+                    onClick={handleValidate}
+                    disabled={!canValidate}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:text-slate-400 text-white font-medium rounded transition-colors"
+                >
+                    {isValidating ? 'Validando...' : 'Validar código'}
+                </button>
+                <button
+                    type="submit"
+                    disabled={!isFormValid}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-400 text-white font-medium rounded shadow-sm transition-colors"
+                >
+                    {isSubmitting ? 'Guardando...' : submitLabel}
+                </button>
+            </div>
         </div>
+        <BehaviorApiDocs isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
     </form>
     );
 }

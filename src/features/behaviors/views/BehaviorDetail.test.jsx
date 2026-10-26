@@ -148,4 +148,22 @@ describe("BehaviorDetail Component", () => {
     expect(screen.getByText("Por defecto")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Editar/i })).not.toBeInTheDocument();
   });
+
+  it("Abre y cierra el manual de comportamientos desde la vista de detalle", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Manual de comportamientos/i }));
+    expect(screen.getByText(/Reglas de ejecución/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cerrar/i }));
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+  });
 });

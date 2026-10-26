@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBehavior } from '../useBehavior';
 import { CodeEditor } from "../components/CodeEditor";
+import { BehaviorApiDocs } from "../components/BehaviorApiDocs";
 
 export function BehaviorDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { behavior, isLoading, error } = useBehavior(id);
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
   
   const isDefault = Boolean(behavior?.is_default);
 
@@ -55,6 +58,13 @@ export function BehaviorDetail() {
             )}
           </div>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsDocsOpen(true)}
+              className="text-sm px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
+            >
+              Manual de comportamientos
+            </button>
             {!isDefault && (
               <button 
                 onClick={handleEdit}
@@ -74,6 +84,7 @@ export function BehaviorDetail() {
 
         <CodeEditor value={behavior?.code} readOnly />
       </div>
+      <BehaviorApiDocs isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
     </div>
   );
 }
