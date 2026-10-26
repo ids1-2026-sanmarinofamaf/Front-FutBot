@@ -5,6 +5,7 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
+import { leaveLeagueAsPlayer } from "../api";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -132,6 +133,19 @@ export function LeagueLobby() {
   const [activeTab, setActiveTab] = useState("usuarios");
 
   const [isCreator, setIsCreator] = useState(true);
+
+  useEffect(() => {
+    if (!localUserName || !lobby?.ready || !lobby?.users) return;
+
+    const currentUser = lobby.users.find(
+      (user) => user.user_name === localUserName
+    );
+
+    if (currentUser) {
+      setIsCreator(currentUser.is_creator);
+    }
+  }, [localUserName, lobby]);
+
   /**
    * Handle para iniciar la liga, solo se implementó el manejo de error al iniciar liga sin ser creador
    * @precondition league.state === "POR_COMENZAR"
@@ -154,8 +168,46 @@ export function LeagueLobby() {
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleLeave = async () => {
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      setAlert("El ID de la liga no es válido.");
+      showToast();
+      return;
+    }
 
-  }
+    if (isCreator) {
+      setAlert("El creador no puede abandonar su propia liga.");
+      showToast();
+      return;
+    }
+
+    try {
+      await leaveLeagueAsPlayer(numericId);
+
+      leaveL(numericId);
+      navigate("/league", { replace: true });
+    } catch (err) {
+      console.error("Error al abandonar la liga:", err);
+
+      switch (err?.code) {
+        case "CREATOR_CANNOT_LEAVE":
+          setAlert("El creador no puede abandonar su propia liga.");
+          break;
+        case "LEAGUE_ALREADY_STARTED":
+          setAlert("No podés abandonar una liga que ya comenzó.");
+          break;
+        case "LEAGUE_NOT_FOUND":
+          setAlert("La liga no existe.");
+          break;
+        case "NOT_PARTICIPATING":
+          setAlert("No participás en esta liga.");
+          break;
+        default:
+          setAlert(err?.message || "Ocurrió un error al abandonar la liga.");
+      }
+
+      showToast();
+    }
+  };
 
   return(
     
@@ -163,7 +215,7 @@ export function LeagueLobby() {
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
 
         {/** Alerta: Error al usar apiClient */}
-        {alert === "No eres el creador." && toast && (
+        {alert && toast && (
           <RightDownAlert
             key={toast.id}
             toast={toast}
