@@ -35,3 +35,13 @@ export const joinLeagueAsPlayer = async (idLiga, { roster, password } = {}) => {
     throw error;
   }
 };
+
+/**
+ * Solicita al backend el inicio de la liga
+ */
+export const startLeague = async (lID) => {
+    return apiClient(`/leagues/${lID}`, {
+        method: "PATCH",
+        body: JSON.stringify({ state: "INICIADA" })
+    });
+};

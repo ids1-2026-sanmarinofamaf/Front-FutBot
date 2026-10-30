@@ -5,6 +5,7 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
+import { startLeague } from "../api";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -136,14 +137,44 @@ export function LeagueLobby() {
    * Handle para iniciar la liga, solo se implementó el manejo de error al iniciar liga sin ser creador
    * @precondition league.state === "POR_COMENZAR"
    */
-  const handleInit = async () => {
-    try{
+  const handleStartLeague = async () => {
+    if(lobby.currentUsers >= 3 && lobby.state == "POR_COMENZAR"){
+      try{
+        await startLeague(numericId)
+      } catch (err) {
+        switch(err.detail) {
 
-    } catch (err) {
-      if(err.detail === "User is not the host of the league"){
-        setIsCreator(false)
-        setAlert("No eres el creador.")
-        showToast()
+          case "Only the league creator can start the league": {
+            setIsCreator(false)
+            setAlert("No eres el creador.")
+            showToast()
+          }
+
+          case "League does not exist": {
+            setIsCreator(false)
+            setAlert("La liga no existe.")
+            showToast()
+          }
+
+          case "League cannot be started": {
+            setIsCreator(false)
+            setAlert("La liga ya estaba iniciada.")
+            showToast()
+          }
+
+          case "Invalid state transition": {
+            setIsCreator(false)
+            setAlert("La liga no estaba en estado de comenzar.")
+            showToast()
+          }
+
+          case "League does not have enough participants": {
+            setIsCreator(false)
+            setAlert("Se necesitan tres participantes para iniciar.")
+            showToast()
+          }
+        }
+        
       }
     }
 
@@ -164,12 +195,31 @@ export function LeagueLobby() {
 
         {/** Alerta: Error al usar apiClient */}
         {alert === "No eres el creador." && toast && (
-          <RightDownAlert
-            key={toast.id}
-            toast={toast}
-            errorTitle="No pudiste iniciar la liga"
-            errorDescription={alert}
-            color="red"
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga no existe." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga ya estaba iniciada." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga no estaba en estado de comenzar." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "Se necesitan tres participantes para iniciar." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
           />
         )}
 
@@ -193,7 +243,7 @@ export function LeagueLobby() {
             <button
               type="button"
               disabled={!isCreator}
-              onClick={handleInit}
+              onClick={handleStartLeague}
               className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
                 disabled:border-gray-500
                 disabled:text-gray-300
