@@ -278,6 +278,95 @@ describe("LeagueLobby Component", () => {
       expect(screen.getByTestId("user-3")).toBeInTheDocument();
       expect(screen.getByText(/Jugadores: 2/i)).toBeInTheDocument();
     });
+
+    describe("evento league_started", () => {
+      const mockFixture = [
+        {
+          match_id: 1,
+          round: 1,
+          state: "POR_COMENZAR",
+          home_club: { club_id: 1, club_name: "Club A" },
+          away_club: { club_id: 2, club_name: "Club B" },
+        },
+      ];
+      const mockStandings = [
+        {
+          club_id: 1,
+          club_name: "Club A",
+          points: 0,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          goals_for: 0,
+          goals_against: 0,
+          goal_difference: 0,
+        },
+        {
+          club_id: 2,
+          club_name: "Club B",
+          points: 0,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          goals_for: 0,
+          goals_against: 0,
+          goal_difference: 0,
+        },
+      ];
+
+      it("descarta league_started si llega antes del lobby_state inicial", () => {
+        mockSocketState.messages = {
+          10: [
+            {
+              type: "league_started",
+              league_id: 10,
+              fixture: mockFixture,
+              standings: mockStandings,
+            },
+          ],
+        };
+
+        render(<LeagueLobby />);
+
+        // Permanece en pantalla de espera porque lobby.ready sigue siendo false
+        expect(screen.getByText(/Esperando estado del servidor/i)).toBeInTheDocument();
+        expect(screen.queryByTestId("lobby-users")).not.toBeInTheDocument();
+      });
+
+      it("procesa league_started luego de lobby_state actualizando el estado de la liga a INICIADA y preservando los datos del lobby", () => {
+        mockSocketState.messages = {
+          10: [
+            {
+              type: "lobby_state",
+              league_id: 10,
+              current_users: 2,
+              state: "POR_COMENZAR",
+              users: [
+                { club_id: 1, user_name: "Club A", avatar: "default" },
+                { club_id: 2, user_name: "Club B", avatar: "default" },
+              ],
+            },
+            {
+              type: "league_started",
+              league_id: 10,
+              fixture: mockFixture,
+              standings: mockStandings,
+            },
+          ],
+        };
+
+        render(<LeagueLobby />);
+
+        // El lobby sigue listo y muestra los usuarios
+        expect(screen.queryByText(/Esperando estado del servidor/i)).not.toBeInTheDocument();
+        expect(screen.getByText("Liga Master")).toBeInTheDocument();
+        expect(screen.getByText(/Jugadores: 2/i)).toBeInTheDocument();
+        expect(screen.getByTestId("user-1")).toBeInTheDocument();
+        expect(screen.getByTestId("user-2")).toBeInTheDocument();
+      });
+    });
   });
 
   describe("Navegación de pestañas (Tabs)", () => {
@@ -287,9 +376,13 @@ describe("LeagueLobby Component", () => {
           {
             type: "lobby_state",
             league_id: 10,
-            current_users: 1,
+            current_users: 3,
             state: "POR_COMENZAR",
-            users: [{ club_id: 1, user_name: "Club A", avatar: "default" }],
+            users: [
+              { club_id: 1, user_name: "Club A", avatar: "default" },
+              { club_id: 2, user_name: "Club B", avatar: "default" },
+              { club_id: 3, user_name: "Club C", avatar: "default" },
+            ],
           },
         ],
       };
@@ -315,9 +408,13 @@ describe("LeagueLobby Component", () => {
           {
             type: "lobby_state",
             league_id: 10,
-            current_users: 1,
+            current_users: 3,
             state: "POR_COMENZAR",
-            users: [{ club_id: 1, user_name: "Club A", avatar: "default" }],
+            users: [
+              { club_id: 1, user_name: "Club A", avatar: "default" },
+              { club_id: 2, user_name: "Club B", avatar: "default" },
+              { club_id: 3, user_name: "Club C", avatar: "default" },
+            ],
           },
         ],
       };

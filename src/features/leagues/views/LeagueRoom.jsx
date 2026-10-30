@@ -93,6 +93,15 @@ export function LeagueLobby() {
         return { ...lobby, users, currentUsers: users.length };
       }
 
+      case "league_started": // el creador inició la liga: se guardan fixture y tabla tal cual llegan
+        if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
+        return {
+          ...lobby,
+          state: "INICIADA",
+          fixture: msg.fixture,
+          standings: msg.standings,
+        };
+
       default:
         return lobby;
     }
