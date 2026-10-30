@@ -40,6 +40,14 @@ vi.mock("../../friendlyGames/api", () => ({
   getCurrentUser: () => mockGetCurrentUser(),
 }));
 
+const mockGetUserSessionInfo = vi.fn();
+const mockStartLeague = vi.fn();
+
+vi.mock("../api", () => ({
+  getUserSessionInfo: () => mockGetUserSessionInfo(),
+  startLeague: (...args) => mockStartLeague(...args),
+}));
+
 // Mock del componente de usuarios para aislar la vista
 vi.mock("../components/LobbyUsers", () => ({
   LobbyUsers: ({ users }) => (
@@ -75,6 +83,8 @@ describe("LeagueLobby Component", () => {
     };
     mockToastState = null;
     mockGetCurrentUser.mockResolvedValue({ user_name: "MiClub" });
+    mockGetUserSessionInfo.mockResolvedValue({ user_id: 1, user_name: "Club A", user_email: "club_a@test.com" });
+    mockStartLeague.mockResolvedValue();
   });
 
   describe("Control de acceso temprano y conexión", () => {
@@ -411,7 +421,7 @@ describe("LeagueLobby Component", () => {
             current_users: 3,
             state: "POR_COMENZAR",
             users: [
-              { club_id: 1, user_name: "Club A", avatar: "default" },
+              { club_id: 1, user_name: "Club A", avatar: "default", is_creator: true },
               { club_id: 2, user_name: "Club B", avatar: "default" },
               { club_id: 3, user_name: "Club C", avatar: "default" },
             ],
@@ -429,10 +439,10 @@ describe("LeagueLobby Component", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/league");
     });
 
-    it("muestra el botón de Iniciar habilitado inicialmente para el creador", () => {
+    it("muestra el botón de Iniciar habilitado inicialmente para el creador", async () => {
       render(<LeagueLobby />);
 
-      const btnIniciar = screen.getByRole("button", { name: /iniciar/i });
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
       expect(btnIniciar).toBeInTheDocument();
       expect(btnIniciar).not.toBeDisabled();
     });
@@ -443,7 +453,7 @@ describe("LeagueLobby Component", () => {
 
       render(<LeagueLobby />);
 
-      const btnIniciar = screen.getByRole("button", { name: /iniciar/i });
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
       expect(btnIniciar).not.toBeDisabled();
 
       // Simulamos la acción del clic cuando el servicio rechaza el inicio
@@ -452,6 +462,339 @@ describe("LeagueLobby Component", () => {
       // Si handleInit maneja el error 'User is not the host of the league'
       // el botón se deshabilita
       // Nota: cuando conectes apiClient.initLeague(), este test valida el flujo
+    });
+  });
+
+  describe("Identificación del creador", () => {
+    it("llama a getUserSessionInfo para obtener el id del usuario autenticado (GET /users/me)", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      await waitFor(() => {
+        expect(mockGetUserSessionInfo).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("identifica al usuario como creador y muestra el botón Iniciar cuando user_id coincide con el club_id con is_creator: true", async () => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: 1, user_name: "Club A" });
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).toBeInTheDocument();
+      expect(screen.queryByText(/Esperando que el creador inicie la liga/i)).not.toBeInTheDocument();
+    });
+
+    it("identifica que el usuario NO es el creador, oculta el botón Iniciar y muestra 'Esperando que el creador inicie la liga'", async () => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: 2, user_name: "Club B" });
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const mensajeEspera = await screen.findByText(/Esperando que el creador inicie la liga/i);
+      expect(mensajeEspera).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /iniciar/i })).not.toBeInTheDocument();
+    });
+
+    it("compara correctamente los IDs de forma numérica aunque uno sea string", async () => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: "42", user_name: "Club 42" });
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 42, user_name: "Club 42", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).toBeInTheDocument();
+    });
+
+    it("no reconoce como creador si ningún usuario en lobby_state tiene is_creator: true", async () => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: 1, user_name: "Club A" });
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: false },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const mensajeEspera = await screen.findByText(/Esperando que el creador inicie la liga/i);
+      expect(mensajeEspera).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /iniciar/i })).not.toBeInTheDocument();
+    });
+
+    it("maneja error en getUserSessionInfo mostrando toast y ocultando el botón Iniciar", async () => {
+      mockGetUserSessionInfo.mockRejectedValue(new Error("Error al obtener datos de sesión."));
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalled();
+      });
+      expect(screen.getByText(/Esperando que el creador inicie la liga/i)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /iniciar/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Validaciones locales para el botón Iniciar", () => {
+    beforeEach(() => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: 1, user_name: "Club A" });
+    });
+
+    it("deshabilita el botón Iniciar si la liga tiene menos de 3 integrantes", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 2,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).toBeDisabled();
+    });
+
+    it("habilita el botón Iniciar si la liga tiene al menos 3 integrantes", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).not.toBeDisabled();
+    });
+
+    it("se habilita en tiempo real al llegar user_joined completando 3 participantes", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 2,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+            ],
+          },
+        ],
+      };
+
+      const { rerender } = render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).toBeDisabled();
+
+      // Llega un nuevo participante
+      mockSocketState.messages = {
+        10: [
+          ...mockSocketState.messages[10],
+          {
+            type: "user_joined",
+            user: { club_id: 3, user_name: "Club C", avatar: "default" },
+          },
+        ],
+      };
+
+      rerender(<LeagueLobby />);
+
+      expect(btnIniciar).not.toBeDisabled();
+    });
+
+    it("se deshabilita en tiempo real al llegar user_left reduciendo los participantes a menos de 3", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      const { rerender } = render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).not.toBeDisabled();
+
+      // Un participante abandona la liga
+      mockSocketState.messages = {
+        10: [
+          ...mockSocketState.messages[10],
+          {
+            type: "user_left",
+            user: { club_id: 3 },
+          },
+        ],
+      };
+
+      rerender(<LeagueLobby />);
+
+      expect(btnIniciar).toBeDisabled();
+    });
+
+    it("no habilita ni muestra el botón de iniciar para participantes no creadores aunque haya 3 o más integrantes", async () => {
+      mockGetUserSessionInfo.mockResolvedValue({ user_id: 2, user_name: "Club B" });
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 4,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+              { club_id: 4, user_name: "Club D" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const mensajeEspera = await screen.findByText(/Esperando que el creador inicie la liga/i);
+      expect(mensajeEspera).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /iniciar/i })).not.toBeInTheDocument();
+    });
+
+    it("llama a startLeague con el ID numérico de la liga al hacer click estando habilitado", async () => {
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            current_users: 3,
+            state: "POR_COMENZAR",
+            users: [
+              { club_id: 1, user_name: "Club A", is_creator: true },
+              { club_id: 2, user_name: "Club B" },
+              { club_id: 3, user_name: "Club C" },
+            ],
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      const btnIniciar = await screen.findByRole("button", { name: /iniciar/i });
+      expect(btnIniciar).not.toBeDisabled();
+
+      fireEvent.click(btnIniciar);
+
+      await waitFor(() => {
+        expect(mockStartLeague).toHaveBeenCalledWith(10);
+      });
     });
   });
 

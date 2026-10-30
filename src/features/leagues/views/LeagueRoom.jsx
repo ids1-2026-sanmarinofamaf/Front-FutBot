@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { startLeague } from "../api";
+import { getUserSessionInfo, startLeague } from "../api";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -25,7 +25,6 @@ export function LeagueLobby() {
   const [alert, setAlert] = useState("");
   // Hook para navegación
   const navigate = useNavigate();
-  // Hook para manej
 
   /** 
    * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinFG):
@@ -76,7 +75,9 @@ export function LeagueLobby() {
                 leagueID: msg.league_id, 
                 currentUsers: msg.current_users, 
                 state: msg.state, 
-                users: msg.users 
+                users: msg.users,
+                fixture: null,   // se completa con league_started o con GET /leagues/{id}
+                standings: null,
               };
 
       case "user_joined": // cambio: se aplica sobre lo anterior
@@ -130,6 +131,32 @@ export function LeagueLobby() {
   }, [messages, numericId]);
 
   /**
+   * Logica para identificar si el usuario de la sesion actual es el creador de la liga
+   */
+  const [session, setSession] = useState(null); // Hook para manejo de datos de la sesión
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const data = await getUserSessionInfo();
+        setSession(data);
+      } catch (err) {
+        setAlert("Error al obtener datos de sesión.");
+        showToast();
+      }
+    };
+    fetchSession();
+  }, []);
+
+  const isCreator = useMemo(() => { //se usa useMemo para guardar resultados entre render a no ser que cambien 
+    const creator = lobby?.users?.find((u) => u.is_creator === true);
+    if (!creator || !session) {
+      return false;
+    } else {
+      return Number(creator.club_id) === Number(session.user_id); 
+    }
+  }, [lobby?.users, session]); //todo lo que la funcion lee debe estar en las dependencias
+
+  /**
    * Logica para manejo de componentes principales
    * - TABS: Lista de id-label
    * - activeTab: Hook para modificar el componente activo
@@ -141,7 +168,6 @@ export function LeagueLobby() {
   ];
   const [activeTab, setActiveTab] = useState("usuarios");
 
-  const [isCreator, setIsCreator] = useState(true);
   /**
    * Handle para iniciar la liga, solo se implementó el manejo de error al iniciar liga sin ser creador
    * @precondition league.state === "POR_COMENZAR"
@@ -154,31 +180,26 @@ export function LeagueLobby() {
         switch(err.detail) {
 
           case "Only the league creator can start the league": {
-            setIsCreator(false)
             setAlert("No eres el creador.")
             showToast()
           }
 
           case "League does not exist": {
-            setIsCreator(false)
             setAlert("La liga no existe.")
             showToast()
           }
 
           case "League cannot be started": {
-            setIsCreator(false)
             setAlert("La liga ya estaba iniciada.")
             showToast()
           }
 
           case "Invalid state transition": {
-            setIsCreator(false)
             setAlert("La liga no estaba en estado de comenzar.")
             showToast()
           }
 
           case "League does not have enough participants": {
-            setIsCreator(false)
             setAlert("Se necesitan tres participantes para iniciar.")
             showToast()
           }
@@ -232,7 +253,6 @@ export function LeagueLobby() {
           />
         )}
 
-
         {/* Componente: info de liga */}
         <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
 
@@ -248,22 +268,30 @@ export function LeagueLobby() {
               Volver
             </button>
 
-            {/* Boton para iniciar liga */}
-            <button
-              type="button"
-              disabled={!isCreator}
-              onClick={handleStartLeague}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
-                disabled:border-gray-500
-                disabled:text-gray-300
-                disabled:hover:bg-gray-500
-                disabled:hover:text-gray-300
-                disabled:active:text-gray-300
-                disabled:focus:ring-0
-                disabled:cursor-not-allowed"
-            >
-              Iniciar
-            </button>
+            {/* Logica para ocultar boton de inicio a participantes no creadores */}
+            {isCreator ? (
+              /* Boton para iniciar liga, solo visible para el creador */
+              <button
+                type="button"
+                disabled={lobby.currentUsers < 3}
+                onClick={handleStartLeague}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                  disabled:border-gray-500
+                  disabled:text-gray-300
+                  disabled:hover:bg-gray-500
+                  disabled:hover:text-gray-300
+                  disabled:active:text-gray-300
+                  disabled:focus:ring-0
+                  disabled:cursor-not-allowed"
+              >
+                Iniciar
+              </button>
+            ) : (
+              /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
+              <p className="px-4 py-2 text-slate-400">
+                Esperando que el creador inicie la liga
+              </p>
+            )}
 
             {/* Boton para cancelar liga */}
             <button

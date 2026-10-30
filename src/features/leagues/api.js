@@ -45,3 +45,21 @@ export const startLeague = async (lID) => {
         body: JSON.stringify({ state: "INICIADA" })
     });
 };
+
+/**
+ * Llama a /users/me y retorna el objeto con los 3 datos de sesión.
+ */
+export const getUserSessionInfo = async () => {
+
+  const response = await apiClient("/users/me", {
+      method: "GET",
+  });
+
+  const { user_id, user_name, user_email } = response;
+
+  return {
+      user_id,
+      user_name,
+      user_email,
+  };
+};
