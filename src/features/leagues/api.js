@@ -57,3 +57,30 @@ export const leaveLeagueAsPlayer = async (leagueId) => {
     throw error;
   }
 };
+/**
+ * Solicita al backend el inicio de la liga
+ */
+export const startLeague = async (lID) => {
+    return apiClient(`/leagues/${lID}`, {
+        method: "PATCH",
+        body: JSON.stringify({ state: "INICIADA" })
+    });
+};
+
+/**
+ * Llama a /users/me y retorna el objeto con los 3 datos de sesión.
+ */
+export const getUserSessionInfo = async () => {
+
+  const response = await apiClient("/users/me", {
+      method: "GET",
+  });
+
+  const { user_id, user_name, user_email } = response;
+
+  return {
+      user_id,
+      user_name,
+      user_email,
+  };
+};
