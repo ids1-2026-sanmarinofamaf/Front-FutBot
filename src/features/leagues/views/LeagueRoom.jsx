@@ -25,10 +25,12 @@ export function LeagueLobby() {
   const [alert, setAlert] = useState("");
   // Hook para navegación
   const navigate = useNavigate();
+  // Hook para manejar estado de carga al iniciar
+  const [starting, setStarting] = useState(false)
 
   /** 
-   * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinFG):
-   * - Si estaba → el usuario llegó por la UI (FGCard llamó joinFG antes de navegar).
+   * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinL):
+   * - Si estaba → el usuario llegó por la UI (lCard llamó joinl antes de navegar).
    * - Si no estaba → el usuario escribió la URL directamente → acceso no permitido.
   */
   const wasAlreadyJoined = useRef(
@@ -40,7 +42,7 @@ export function LeagueLobby() {
     if (!wasAlreadyJoined.current) {
       navigate("/league", { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   const [localUserName, setLocalUserName] = useState(null);
 
@@ -163,8 +165,8 @@ export function LeagueLobby() {
    */
   const TABS = [
     { id: "usuarios", label: "Usuarios", disabled: false },
-    { id: "fixture", label: "Fixture", disabled: true },
-    { id: "tabla", label: "Tabla de posiciones", disabled: true },
+    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR"},
+    { id: "tabla", label: "Tabla de posiciones", disabled: lobby.state === "POR_COMENZAR" },
   ];
   const [activeTab, setActiveTab] = useState("usuarios");
 
@@ -173,7 +175,8 @@ export function LeagueLobby() {
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleStartLeague = async () => {
-    if(lobby.currentUsers >= 3 && lobby.state == "POR_COMENZAR"){
+    if(lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR"){
+      setStarting(true)
       try{
         await startLeague(numericId)
       } catch (err) {
@@ -182,33 +185,54 @@ export function LeagueLobby() {
           case "Only the league creator can start the league": {
             setAlert("No eres el creador.")
             showToast()
+            break
           }
 
           case "League does not exist": {
             setAlert("La liga no existe.")
             showToast()
+            break;
           }
 
           case "League cannot be started": {
             setAlert("La liga ya estaba iniciada.")
             showToast()
+            break
           }
 
           case "Invalid state transition": {
             setAlert("La liga no estaba en estado de comenzar.")
             showToast()
+            break
           }
 
           case "League does not have enough participants": {
             setAlert("Se necesitan tres participantes para iniciar.")
             showToast()
+            break
           }
-        }
-        
-      }
-    }
 
+          default: 
+            setAlert("Error desconocido.")
+            showToast()
+            break
+          
+          } 
+          
+          setStarting(false)
+        
+      } 
+    }
   }
+
+  /**
+   * Logica para manejar estado de carga, se activa previamente al intentar iniciar la liga
+   */
+  useEffect(() => {
+    if (lobby.state !== "POR_COMENZAR") {
+      setStarting(false)
+    }
+  }, [lobby.state])
 
   /**
    * Handle para abandonar liga. Si el usuario es el creador de la liga abandona su liga esta se cancela
@@ -252,6 +276,12 @@ export function LeagueLobby() {
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
           />
         )}
+    
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "Error desconocido." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
 
         {/* Componente: info de liga */}
         <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
@@ -268,24 +298,33 @@ export function LeagueLobby() {
               Volver
             </button>
 
-            {/* Logica para ocultar boton de inicio a participantes no creadores */}
-            {isCreator ? (
+            {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
+            {isCreator && lobby.state !== "INICIADA" && lobby.state !== "FINALIZADA" ? (
               /* Boton para iniciar liga, solo visible para el creador */
-              <button
-                type="button"
-                disabled={lobby.currentUsers < 3}
-                onClick={handleStartLeague}
-                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
-                  disabled:border-gray-500
-                  disabled:text-gray-300
-                  disabled:hover:bg-gray-500
-                  disabled:hover:text-gray-300
-                  disabled:active:text-gray-300
-                  disabled:focus:ring-0
-                  disabled:cursor-not-allowed"
-              >
-                Iniciar
-              </button>
+              <> {/* En JSX, una expresión solo puede devolver un único elemento */}
+                <button
+                  type="button"
+                  disabled={lobby.currentUsers < 3 || starting}
+                  onClick={handleStartLeague}
+                  className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                    disabled:border-gray-500
+                    disabled:text-gray-300
+                    disabled:hover:bg-gray-500
+                    disabled:hover:text-gray-300
+                    disabled:active:text-gray-300
+                    disabled:focus:ring-0
+                    disabled:cursor-not-allowed"
+                >
+                  {starting ? "Iniciando..." : "Iniciar liga"}
+                </button>
+
+                {lobby.currentUsers < 3 && (
+                  <p className="px-4 py-2 text-slate-400">
+                    Se necesitan al menos 3 integrantes
+                  </p>
+                )}
+              </>
+
             ) : (
               /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
               <p className="px-4 py-2 text-slate-400">
