@@ -118,7 +118,7 @@ describe("LeagueCard", () => {
       fireEvent.click(button);
 
       expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1/Liga Test");
     });
 
     it("si ya está unido a una liga privada, navega directo al lobby sin pedir contraseña", () => {
@@ -130,7 +130,7 @@ describe("LeagueCard", () => {
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(joinLeagueAsPlayer).not.toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+      expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1/Liga Test");
     });
   });
 
@@ -144,7 +144,7 @@ describe("LeagueCard", () => {
       await waitFor(() => {
         expect(joinLeagueAsPlayer).toHaveBeenCalledWith(1, { roster: validRoster, password: undefined });
         expect(mockJoinL).toHaveBeenCalledWith(1);
-        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1/Liga Test");
       });
       expect(await screen.findByRole("button", { name: "Entrar al lobby" })).toBeEnabled();
     });
@@ -159,7 +159,7 @@ describe("LeagueCard", () => {
 
       await waitFor(() => {
         expect(mockJoinL).toHaveBeenCalledWith(1);
-        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1/Liga Test");
       });
       expect(await screen.findByRole("button", { name: "Entrar al lobby" })).toBeInTheDocument();
     });
@@ -244,7 +244,7 @@ describe("LeagueCard", () => {
       await waitFor(() => {
         expect(joinLeagueAsPlayer).toHaveBeenCalledWith(1, { roster: validRoster, password: "clave123" });
         expect(mockJoinL).toHaveBeenCalledWith(1);
-        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1");
+        expect(mockNavigate).toHaveBeenCalledWith("/league/lobby/1/Liga Test");
       });
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });

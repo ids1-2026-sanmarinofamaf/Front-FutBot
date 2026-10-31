@@ -40,6 +40,11 @@ vi.mock("../../friendlyGames/api", () => ({
   getCurrentUser: () => mockGetCurrentUser(),
 }));
 
+const mockLeaveLeagueAsPlayer = vi.fn();
+vi.mock("../api", () => ({
+  leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
+}));
+
 // Mock del componente de usuarios para aislar la vista
 vi.mock("../components/LobbyUsers", () => ({
   LobbyUsers: ({ users }) => (
@@ -75,6 +80,7 @@ describe("LeagueLobby Component", () => {
     };
     mockToastState = null;
     mockGetCurrentUser.mockResolvedValue({ user_name: "MiClub" });
+    mockLeaveLeagueAsPlayer.mockResolvedValue(undefined);
   });
 
   describe("Control de acceso temprano y conexión", () => {
@@ -100,7 +106,6 @@ describe("LeagueLobby Component", () => {
   });
 
   describe("Estado de carga inicial y desbloqueo con lobby_state", () => {
-
     it("muestra pantalla de espera ('Esperando estado del servidor') si no se ha recibido lobby_state", () => {
       mockSocketState.messages = { 10: [] };
 
@@ -356,6 +361,175 @@ describe("LeagueLobby Component", () => {
       // el botón se deshabilita
       // Nota: cuando conectes apiClient.initLeague(), este test valida el flujo
     });
+
+    describe("Botón Abandonar", () => {
+      const renderLobbyWithUser = (userName, isCreator = false) => {
+        mockSocketState.messages = {
+          10: [
+            {
+              type: "lobby_state",
+              league_id: 10,
+              current_users: 2,
+              state: "POR_COMENZAR",
+              users: [
+                { club_id: 1, user_name: "Club A", is_creator: isCreator, avatar: "default" },
+                { club_id: 2, user_name: "Club B", is_creator: false, avatar: "default" },
+              ],
+            },
+          ],
+        };
+        mockGetCurrentUser.mockResolvedValue({ user_name: userName });
+        return render(<LeagueLobby />);
+      };
+
+      it("abandona la liga, desconecta el WebSocket y navega a /league si la operación tiene éxito", async () => {
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+          expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+          expect(mockNavigate).toHaveBeenCalledWith("/league", { replace: true });
+        });
+      });
+
+      it("no llama al servicio ni abandona la liga si el usuario es el creador", async () => {
+        renderLobbyWithUser("Club A", true);
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /abandonar/i })).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+        expect(mockShowToast).toHaveBeenCalled();
+      });
+
+      it("maneja el error CREATOR_CANNOT_LEAVE sin desconectar ni redirigir", async () => {
+        mockToastState = { id: 1 };
+        mockLeaveLeagueAsPlayer.mockRejectedValue({
+          code: "CREATOR_CANNOT_LEAVE",
+          message: "Error del servicio",
+        });
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+          expect(mockShowToast).toHaveBeenCalled();
+          expect(screen.getByTestId("alert-error")).toHaveTextContent(
+            "El creador no puede abandonar su propia liga."
+          );
+        });
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+      });
+
+      it("maneja el error LEAGUE_ALREADY_STARTED sin desconectar ni redirigir", async () => {
+        mockToastState = { id: 1 };
+        mockLeaveLeagueAsPlayer.mockRejectedValue({
+          code: "LEAGUE_ALREADY_STARTED",
+          message: "Error del servicio",
+        });
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+          expect(mockShowToast).toHaveBeenCalled();
+          expect(screen.getByTestId("alert-error")).toHaveTextContent(
+            "No podés abandonar una liga que ya comenzó."
+          );
+        });
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+      });
+
+      it("maneja el error LEAGUE_NOT_FOUND sin desconectar ni redirigir", async () => {
+        mockToastState = { id: 1 };
+        mockLeaveLeagueAsPlayer.mockRejectedValue({
+          code: "LEAGUE_NOT_FOUND",
+          message: "Error del servicio",
+        });
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+          expect(mockShowToast).toHaveBeenCalled();
+          expect(screen.getByTestId("alert-error")).toHaveTextContent(
+            "La liga no existe."
+          );
+        });
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+      });
+
+      it("maneja el error NOT_PARTICIPATING sin desconectar ni redirigir", async () => {
+        mockToastState = { id: 1 };
+        mockLeaveLeagueAsPlayer.mockRejectedValue({
+          code: "NOT_PARTICIPATING",
+          message: "Error del servicio",
+        });
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+          expect(mockShowToast).toHaveBeenCalled();
+          expect(screen.getByTestId("alert-error")).toHaveTextContent(
+            "No participás en esta liga."
+          );
+        });
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+      });
+
+      it("muestra un mensaje de error genérico si el servicio falla con un error no contemplado", async () => {
+        mockToastState = { id: 1 };
+        mockLeaveLeagueAsPlayer.mockRejectedValue(new Error("Fallo inesperado"));
+        renderLobbyWithUser("Club B");
+
+        await waitFor(() => {
+          expect(screen.getByRole("button", { name: /iniciar/i })).toBeDisabled();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+        await waitFor(() => {
+          expect(screen.getByTestId("alert-error")).toHaveTextContent("Fallo inesperado");
+        });
+        expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+      });
+    });
   });
 
   const lobbyState = (users, extra = {}) => ({
@@ -365,102 +539,101 @@ describe("LeagueLobby Component", () => {
     current_users: users.length,
     users,
     ...extra,
-    })
+  });
 
-    const u = (club_id, user_name = `Club ${club_id}`) => ({ club_id, user_name })
+  const u = (club_id, user_name = `Club ${club_id}`) => ({ club_id, user_name });
 
-    const setEvents = (events) => {
-    mockSocketState = { ...mockSocketState, messages: { 10: events } }
-    }
+  const setEvents = (events) => {
+    mockSocketState = { ...mockSocketState, messages: { 10: events } };
+  };
 
-    const counter = () => screen.getByText(/Jugadores:/)
+  const counter = () => screen.getByText(/Jugadores:/);
 
   describe("LeagueLobby - contador de jugadores", () => {
     beforeEach(() => {
-        vi.clearAllMocks()
-        mockParams = { id: "10", leagueName: "Liga Master" }
-        mockSocketState = {
+      vi.clearAllMocks();
+      mockParams = { id: "10", leagueName: "Liga Master" };
+      mockSocketState = {
         messages: {},
         joinL: vi.fn(),
         leaveL: vi.fn(),
         joinedLIds: [10],
-        }
-        mockGetCurrentUser.mockResolvedValue({ user_name: "Luca" })
-    })
+      };
+      mockGetCurrentUser.mockResolvedValue({ user_name: "Luca" });
+    });
 
     it("muestra la cantidad inicial de lobby_state", () => {
-        setEvents([lobbyState([u(1), u(2)])])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 2")
-    })
+      setEvents([lobbyState([u(1), u(2)])]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 2");
+    });
 
     it("incrementa con user_joined sin recargar", () => {
-        setEvents([
+      setEvents([
         lobbyState([u(1), u(2)]),
         { type: "user_joined", user: u(3) },
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 3")
-        expect(screen.getByTestId("user-3")).toBeInTheDocument()
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 3");
+      expect(screen.getByTestId("user-3")).toBeInTheDocument();
+    });
 
     it("decrementa con user_left", () => {
-        setEvents([
+      setEvents([
         lobbyState([u(1), u(2)]),
         { type: "user_left", user: u(2) },
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 1")
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 1");
+    });
 
     it("no cambia con user_joined duplicado", () => {
-        setEvents([
+      setEvents([
         lobbyState([u(1), u(2)]),
         { type: "user_joined", user: u(2) },
         { type: "user_joined", user: u(2) },
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 2")
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 2");
+    });
 
     it("no cambia con user_left de un usuario inexistente", () => {
-        setEvents([
+      setEvents([
         lobbyState([u(1), u(2)]),
         { type: "user_left", user: u(99) },
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 2")
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 2");
+    });
 
     it("descarta user_joined/user_left previos al lobby_state", () => {
-        setEvents([
+      setEvents([
         { type: "user_joined", user: u(5) },
         { type: "user_left", user: u(1) },
         lobbyState([u(1), u(2)]),
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 2")
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 2");
+    });
 
     it("lobby_state repetido reemplaza el contador con el último recibido", () => {
-        setEvents([
+      setEvents([
         lobbyState([u(1), u(2), u(3)]),
         lobbyState([u(1)]),
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 1")
-    })
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 1");
+    });
 
     it("nunca muestra valores negativos", () => {
-        setEvents([
+      setEvents([
         lobbyState([]),
         { type: "user_left", user: u(1) },
         { type: "user_left", user: u(2) },
-        ])
-        render(<LeagueLobby />)
-        expect(counter()).toHaveTextContent("Jugadores: 0")
-        expect(counter().textContent).not.toMatch(/-\d/)
-    })
-
+      ]);
+      render(<LeagueLobby />);
+      expect(counter()).toHaveTextContent("Jugadores: 0");
+      expect(counter().textContent).not.toMatch(/-\d/);
     });
+  });
 });
