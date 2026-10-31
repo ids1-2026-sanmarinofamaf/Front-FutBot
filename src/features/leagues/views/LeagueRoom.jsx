@@ -299,7 +299,8 @@ export function LeagueLobby() {
             </button>
 
             {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
-            {isCreator && lobby.state !== "INICIADA" && lobby.state !== "FINALIZADA" ? (
+            {lobby.state === "POR_COMENZAR" && (
+              isCreator ? (
               /* Boton para iniciar liga, solo visible para el creador */
               <> {/* En JSX, una expresión solo puede devolver un único elemento */}
                 <button
@@ -324,12 +325,14 @@ export function LeagueLobby() {
                   </p>
                 )}
               </>
-
-            ) : (
-              /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
-              <p className="px-4 py-2 text-slate-400">
-                Esperando que el creador inicie la liga
-              </p>
+              ) 
+              : 
+              (
+                /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
+                <p className="px-4 py-2 text-slate-400">
+                  Esperando que el creador inicie la liga
+                </p>
+              )
             )}
 
             {/* Boton para cancelar liga */}
