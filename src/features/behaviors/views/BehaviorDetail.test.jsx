@@ -12,6 +12,10 @@ vi.mock("../api", () => ({
   getBehaviorById: vi.fn(),
 }));
 
+vi.mock("@monaco-editor/react", () => ({
+  default: ({ value }) => <pre data-testid="code-editor">{value}</pre>,
+}));
+
 // 2. Importación de módulos mockeados
 import { useParams, useNavigate } from "react-router-dom";
 import { getBehaviorById } from "../api";
@@ -28,39 +32,38 @@ describe("BehaviorDetail Component", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockNavigate = vi.fn();
     useNavigate.mockReturnValue(mockNavigate);
     useParams.mockReturnValue({ id: mockBehaviorId });
   });
 
   it("Muestra el estado de carga al inicializar el componente", () => {
-    // Retorna una promesa pendiente para mantener el estado de carga
     getBehaviorById.mockImplementationOnce(() => new Promise(() => {}));
-    
+
     render(<BehaviorDetail />);
-    
+
     expect(screen.getByText(/Cargando código del comportamiento.../i)).toBeInTheDocument();
   });
 
   it("Renderiza el nombre y el código del comportamiento tras una respuesta exitosa", async () => {
     getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(screen.getByText("Presión Alta")).toBeInTheDocument();
     });
-    
+
     expect(screen.getByText(/def apply_pressure/)).toBeInTheDocument();
     expect(screen.queryByText(/Cargando código del comportamiento.../i)).not.toBeInTheDocument();
   });
 
-  it("Llama a la API con el ID extraído de la URL", async () => {
+  it("Llama a getBehaviorById con el ID extraído de la URL", async () => {
     getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(getBehaviorById).toHaveBeenCalledWith(mockBehaviorId);
     });
@@ -69,21 +72,21 @@ describe("BehaviorDetail Component", () => {
   it("Muestra el mensaje de error específico si la API falla", async () => {
     const errorMessage = "Recurso no encontrado";
     getBehaviorById.mockRejectedValueOnce(new Error(errorMessage));
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
-    
+
     expect(screen.queryByText(/Cargando código del comportamiento.../i)).not.toBeInTheDocument();
   });
 
   it("Muestra el mensaje de error genérico si la excepción no posee atributo message", async () => {
     getBehaviorById.mockRejectedValueOnce({});
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(screen.getByText("Error de comunicación con el servidor.")).toBeInTheDocument();
     });
@@ -91,31 +94,76 @@ describe("BehaviorDetail Component", () => {
 
   it("Navega hacia atrás (/club/behaviors) al hacer clic en 'Volver' desde la vista principal", async () => {
     getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(screen.getByText("Presión Alta")).toBeInTheDocument();
     });
-    
+
     const backButton = screen.getByRole("button", { name: /Volver/i });
     fireEvent.click(backButton);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors");
   });
 
   it("Navega hacia atrás (/club/behaviors) al hacer clic en 'Volver' desde la vista de error", async () => {
     getBehaviorById.mockRejectedValueOnce(new Error("Fallo de conexión"));
-    
+
     render(<BehaviorDetail />);
-    
+
     await waitFor(() => {
       expect(screen.getByText("Fallo de conexión")).toBeInTheDocument();
     });
-    
+
     const backButton = screen.getByRole("button", { name: /Volver/i });
     fireEvent.click(backButton);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors");
+  });
+
+  it("Navega a la vista de edición (/club/behaviors/:id/edit) al hacer clic en 'Editar'", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Editar/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/42/edit");
+  });
+
+  it("Muestra la etiqueta 'Por defecto' y oculta el botón 'Editar' cuando is_default es true", async () => {
+    getBehaviorById.mockResolvedValueOnce({ ...mockBehaviorData, is_default: true });
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Por defecto")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editar/i })).not.toBeInTheDocument();
+  });
+
+  it("Abre y cierra el manual de comportamientos desde la vista de detalle", async () => {
+    getBehaviorById.mockResolvedValueOnce(mockBehaviorData);
+
+    render(<BehaviorDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Presión Alta")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Manual de comportamientos/i }));
+    expect(screen.getByText(/Reglas de ejecución/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cerrar/i }));
+    expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
   });
 });
