@@ -80,6 +80,8 @@ export function LeagueLobby() {
                 users: msg.users,
                 fixture: null,   // se completa con league_started o con GET /leagues/{id}
                 standings: null,
+                round: 0,
+                matchIDs: [] //Lista de matchs ejecutados en la ronda actual
               };
 
       case "user_joined": // cambio: se aplica sobre lo anterior
@@ -105,7 +107,44 @@ export function LeagueLobby() {
           standings: msg.standings,
         };
 
+      case "league_round_started":{
+        // Verifica que el evento pertenezca a esta liga 
+        if(id == msg.league_id){
+          // Actualizar round en juego
+          // Actualizar partidos en juego (estado -> "JUGANDO" y habilitar opción de ver partido)
+          return {...lobby, round: msg.round, matchIDs: msg.match_ids}
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_round_finished":{
+        // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
+        if(id == msg.league_id && lobby.round == msg.round){
+          //(LISTO) Actualizar la tabla de puntos
+          //Actualizar resultados de partidos en fixture (agregar puntos y cambiar estado a "Finalizado")
+          //Marcar round como terminado
+          return {...lobby, standings: msg.standings, matchIDs: msg.match_ids}
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_finished":{
+        if(id == msg.league_id && lobby.round == msg.round){
+          return {...lobby, state: "FINALIZADA"}
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
       default:
+        console.log("Se intentó procesar un evento no reconocido")
         return lobby;
     }
   }
