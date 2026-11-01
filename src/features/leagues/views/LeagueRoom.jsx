@@ -321,6 +321,11 @@ export function LeagueLobby() {
           />
         )}
 
+        {alert === "El creador no puede abandonar su propia liga." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
         {/* Componente: info de liga */}
         <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
 
