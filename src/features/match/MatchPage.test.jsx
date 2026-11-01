@@ -35,8 +35,8 @@ vi.mock("./useAnimatedMatchState.js", () => ({
 }));
 
 vi.mock("./views/Match", () => ({
-  Match: ({ estado_partido }) => (
-    <div data-testid="match">
+  Match: ({ estado_partido, matchId }) => (
+    <div data-testid="match" data-match-id={matchId}>
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
       {estado_partido.user1_goals}-{estado_partido.user2_goals}
@@ -104,6 +104,9 @@ describe("MatchPage", () => {
     expect(
       screen.getByTestId("match")
     ).toHaveTextContent("25/600 - 2-1");
+    expect(
+      screen.getByTestId("match")
+    ).toHaveAttribute("data-match-id", "123");
   });
 
   it("actualiza el partido cuando recibe un nuevo estado", () => {

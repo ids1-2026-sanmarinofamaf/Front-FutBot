@@ -60,6 +60,7 @@ export function MatchPage() {
 
   return (
     <Match
+      matchId={matchId}
       estado_partido={estadoAnimado}
     />
   );
