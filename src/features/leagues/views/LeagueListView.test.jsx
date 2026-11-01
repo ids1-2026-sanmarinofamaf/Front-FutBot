@@ -23,7 +23,7 @@ vi.mock("../components/CreateL", () => ({
 
 vi.mock("../components/LeagueCard", () => ({
   LeagueCard: ({ league, roster }) => (
-    <div data-testid={`card-${league.id_liga}`}>
+    <div data-testid={`card-${league.league_id}`}>
       {league.name} {roster ? "con roster" : "sin roster"}
     </div>
   ),
@@ -47,8 +47,8 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const leagues = [
-  { id_liga: 1, name: "Liga Uno", current_participants: 2, capacity: 4, privacy: "PUBLICA", state: "POR_COMENZAR" },
-  { id_liga: 2, name: "Liga Dos", current_participants: 4, capacity: 4, privacy: "PRIVADA", state: "JUGANDO" },
+  { league_id: 1, name: "Liga Uno", current_participants: 2, capacity: 4, privacy: "PUBLICA", state: "POR_COMENZAR" },
+  { league_id: 2, name: "Liga Dos", current_participants: 4, capacity: 4, privacy: "PRIVADA", state: "INICIADA" },
 ];
 
 describe("LeagueListView", () => {
@@ -96,7 +96,7 @@ describe("LeagueListView", () => {
       expect(screen.getByText("No hay ligas disponibles.")).toBeInTheDocument();
     });
 
-    it("lista todas las ligas recibidas usando id_liga como clave", () => {
+    it("lista todas las ligas recibidas usando league_id como clave", () => {
       useSessionSocket.mockReturnValue({ isConnected: true, messages: { leagues } });
       render(<LeagueListView />);
 

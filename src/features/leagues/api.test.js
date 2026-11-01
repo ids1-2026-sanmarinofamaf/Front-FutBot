@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewL, joinLeagueAsPlayer } from "./api";
+import { sendNewL, joinLeagueAsPlayer, startLeague } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 // Se mockea apiClient: se prueba que sendNewL arme y despache correctamente la solicitud HTTP.
@@ -137,3 +137,63 @@ describe("joinLeagueAsPlayer", () => {
   });
 });
 
+describe("startLeague", () => {
+  
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("hace PATCH a /leagues/{id} con el id recibido", async () => {
+    apiClient.mockResolvedValue(undefined);
+
+    await startLeague(10);
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+    const [url, options] = apiClient.mock.calls[0];
+    expect(url).toBe("/leagues/10");
+    expect(options.method).toBe("PATCH");
+  });
+
+  it('envía el body {"state":"INICIADA"} en formato JSON', async () => {
+    apiClient.mockResolvedValue(undefined);
+
+    await startLeague(10);
+
+    const [, options] = apiClient.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({ state: "INICIADA" });
+  });
+
+  it("usa el id de la liga indicado en la URL", async () => {
+    apiClient.mockResolvedValue(undefined);
+
+    await startLeague(99);
+
+    expect(apiClient.mock.calls[0][0]).toBe("/leagues/99");
+  });
+
+  it("devuelve lo que responde apiClient (204 sin cuerpo)", async () => {
+    apiClient.mockResolvedValue(undefined);
+
+    await expect(startLeague(10)).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ["403: no es el creador", { status: 403, detail: "Only the league creator can start the league" }],
+    ["404: liga inexistente", { status: 404, detail: "League does not exist" }],
+    ["409: liga ya iniciada", { status: 409, detail: "League cannot be started" }],
+    ["409: transición de estado inválida", { status: 409, detail: "Invalid state transition" }],
+    ["409: menos de 3 participantes", { status: 409, detail: "League does not have enough participants" }],
+    ["401: sesión vencida", { status: 401, detail: "Unauthorized" }],
+  ])("propaga el error %s para que la UI lo maneje", async (_name, error) => {
+    apiClient.mockRejectedValue(error);
+
+    await expect(startLeague(10)).rejects.toEqual(error);
+  });
+
+  it("propaga errores de red", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    apiClient.mockRejectedValue(networkError);
+
+    await expect(startLeague(10)).rejects.toBe(networkError);
+  });
+});

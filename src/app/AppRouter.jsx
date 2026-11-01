@@ -13,6 +13,7 @@ import LeagueListView from "../features/leagues";
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
 import { BehaviorList, BehaviorDetail, CreateBehavior, EditBehavior } from "../features/behaviors/index.js";
+import { LeagueLobby } from "../features/leagues/views/LeagueRoom.jsx";
 
 // Placeholder reutilizable
 const PlaceholderView = ({ title }) => {
@@ -91,7 +92,7 @@ const AppRouter = () => {
           <Route path="/friendly" element={<FriendlyGames />} />
           <Route path="/friendly/lobby/:id" element={<FriendlyGameRoom />} />
           <Route path="/league" element={<LeagueListView />} />
-          <Route path="/league/lobby/:id" element={<PlaceholderView title="Lobby de Liga" />} />
+          <Route path="/league/lobby/:id/:leagueName" element={<LeagueLobby />} />
         </Route>
 
         {/* Fallback general */}

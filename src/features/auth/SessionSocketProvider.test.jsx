@@ -120,6 +120,64 @@ describe("SessionSocketProvider", () => {
             onMessage(payload);
         });
 
-        expect(capturedContext.messages).toEqual(payload);
+        expect(capturedContext.messages).toEqual({
+          friendly_games: [{id: 1}],
+          leagues: [],
+        });
+    });
+
+    it("conserva los amistosos cuando recibe una actualización de ligas", () => {
+        getToken.mockReturnValue("abc123");
+        renderWithAuth({ isAuthenticated: true });
+
+        const { onMessage } = useWebSocket.mock.calls[0][1];
+
+        act(() => {
+            onMessage({
+                friendly_games: [{ id: 1 }],
+                leagues: [{ league_id: 10, name: "Liga A" }],
+            });
+        });
+
+        act(() => {
+            onMessage({
+                leagues: [{ league_id: 10, name: "Liga A", current_participants: 3 }],
+            });
+        });
+
+        expect(capturedContext.messages).toEqual({
+            friendly_games: [{ id: 1 }],
+            leagues: [
+                {
+                    league_id: 10,
+                    name: "Liga A",
+                    current_participants: 3,
+                },
+            ],
+        });
+    });
+    it("conserva las ligas cuando recibe una actualización de amistosos", () => {
+        getToken.mockReturnValue("abc123");
+        renderWithAuth({ isAuthenticated: true });
+
+        const { onMessage } = useWebSocket.mock.calls[0][1];
+
+        act(() => {
+            onMessage({
+                friendly_games: [{ id: 1 }],
+                leagues: [{ league_id: 10, name: "Liga A" }],
+            });
+        });
+
+        act(() => {
+            onMessage({
+                friendly_games: [{ id: 2 }],
+            });
+        });
+
+        expect(capturedContext.messages).toEqual({
+            friendly_games: [{ id: 2 }],
+            leagues: [{ league_id: 10, name: "Liga A" }],
+        });
     });
 });

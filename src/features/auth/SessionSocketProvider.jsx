@@ -28,7 +28,10 @@ export const SessionSocketProvider = ({ children }) => {
     onClose: () => setIsConnected(false),
     onMessage: (data) => {
       //console.log("Datos:", data);
-      setMessages(data)
+      setMessages((prev) => ({
+        ...prev,
+        ...data,
+      }));
     }
   });
 
