@@ -1,38 +1,33 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { getPlayerById } from "../../player/api.js"
 
-export function MatchPlayerOut({ players, playerNumbers }) {
+export function MatchPlayerOut({ players, playerNumbers, onSelectStarter }) {
   const [playersInfo, setPlayersInfo] = useState({})
+  const requestedIdsRef = useRef(new Set())
 
   useEffect(function () {
     players.forEach(function (player) {
       const id = player.player_id
 
-      if (playersInfo[id]) {
+      if (playersInfo[id] || requestedIdsRef.current.has(id)) {
         return
       }
 
-      // Rival: no se llama a la API
-      if (player.team !== "A") {
-        setPlayersInfo(function (previous) {
-          return { ...previous, [id]: { name: "Rival" } }
-        })
-        return
-      }
+      requestedIdsRef.current.add(id)
 
       getPlayerById(id)
         .then(function (data) {
           setPlayersInfo(function (previous) {
-            return { ...previous, [id]: data }
+            return { ...previous, [id]: { ...data, isOwn: true } }
           })
         })
         .catch(function () {
           setPlayersInfo(function (previous) {
-            return { ...previous, [id]: { name: "Jugador" } }
+            return { ...previous, [id]: { name: "Rival", isOwn: false } }
           })
         })
     })
-  }, [players])
+  }, [players, playersInfo])
 
   return (
     <>
@@ -41,6 +36,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         x={40}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
+        onSelectStarter={onSelectStarter}
       />
 
       <StarterColumn
@@ -48,6 +44,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
         x={1790}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
+        onSelectStarter={onSelectStarter}
       />
 
       <BenchRow
@@ -68,7 +65,7 @@ export function MatchPlayerOut({ players, playerNumbers }) {
 }
 
 // Componente para mostrar los jugadores titulares en la cancha
-function StarterColumn({ players, x, playerNumbers, playersInfo }) {
+function StarterColumn({ players, x, playerNumbers, playersInfo, onSelectStarter }) {
   return (
     <>
       {players.map(function (player, index) {
@@ -81,6 +78,7 @@ function StarterColumn({ players, x, playerNumbers, playersInfo }) {
             y={150 + index * 100}
             size={90}
             number={playerNumbers[player.player_id]}
+            onSelectStarter={onSelectStarter}
           />
         )
       })}
@@ -109,16 +107,39 @@ function BenchRow({ players, startX, direction, playersInfo }) {
 }
 
 // Componente para mostrar un jugador en la cancha
-function PlayerSquare({ player, playerInfo, x, y, size, number }) {
+function PlayerSquare({ player, playerInfo, x, y, size, number, onSelectStarter }) {
+  const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
+
+  function handleClick() {
+    if (!isClickable) {
+      return
+    }
+    onSelectStarter({
+      player_id: player.player_id,
+      name: playerInfo?.name,
+      number,
+      team: player.team,
+    })
+  }
+
   return (
-    <g>
+    <g
+      data-testid={`starter-card-${player.player_id}`}
+      onClick={isClickable ? handleClick : undefined}
+      style={isClickable ? { cursor: "pointer" } : undefined}
+    >
       <rect x={x} y={y} width={size} height={size} fill={player.team === "A" ? "blue" : "red"} stroke="white" strokeWidth="2" />
-      <text x={x + size / 2} y={y + size / 2 - 8} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="14" fontWeight="bold">
+      <text x={x + size / 2} y={y + size / 2 - (isClickable ? 16 : 8)} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="14" fontWeight="bold">
         {playerInfo?.name}
       </text>
-      <text x={x + size / 2} y={y + size / 2 + 12} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13">
+      <text x={x + size / 2} y={y + size / 2 + (isClickable ? 2 : 12)} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="13">
         Number: {number}
       </text>
+      {isClickable && (
+        <text x={x + size / 2} y={y + size / 2 + 24} textAnchor="middle" dominantBaseline="middle" fill="#bfdbfe" fontSize="11">
+          Cambiar comp.
+        </text>
+      )}
     </g>
   )
 }

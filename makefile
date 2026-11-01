@@ -2,7 +2,7 @@
 .PHONY: help install env dev test reinstall clean
 
 help:
-	@echo "make install          Instala dependencias, aplica audit fix y crea .env"
+	@echo "make install          Instala dependencias y crea .env"
 	@echo "make run              Levanta el frontend (Vite)"
 	@echo "make test             Corre todos los tests"
 	@echo "make test FILE=x      Corre un test puntual (ej: FILE=Login.test.jsx)"
@@ -11,7 +11,6 @@ help:
 
 install: env
 	npm install
-	npm audit fix --force
 
 env:
 	@if [ ! -f .env ]; then \
