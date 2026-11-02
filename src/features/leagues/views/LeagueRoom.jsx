@@ -441,7 +441,7 @@ export function LeagueLobby() {
         <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
           {activeTab === "usuarios" && <LobbyUsers users={lobby.users} />}
           {activeTab === "fixture" && <FixtureTab rawFixture={lobby.fixture} actualRound={lobby.round} />}
-          {/* {activeTab === "tabla" && <TablaTab />} */}
+          {activeTab === "tabla" && <TablaTab />}
         </div>
 
       </div>
