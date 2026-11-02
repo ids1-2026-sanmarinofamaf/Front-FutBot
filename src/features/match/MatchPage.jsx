@@ -11,10 +11,34 @@ export function MatchPage() {
   const { matchId } = useParams();
 
   const [estadoPartido, setEstadoPartido] = useState(null);
+  const [pausa, setPausa] = useState(null);
+  const [ventanaSustitucionesAbierta, setVentanaSustitucionesAbierta] =
+    useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const handleMessage = useCallback(function (data) {
-    setEstadoPartido(data);
+    switch (data.event) {
+      case "estado_partido":
+        setEstadoPartido(data);
+        break;
+
+      case "pause_started":
+        setPausa(data);
+        setVentanaSustitucionesAbierta(true);
+        break;
+
+      case "substitution_window_closed":
+        setVentanaSustitucionesAbierta(false);
+        break;
+
+      case "pause_finished":
+        setPausa(null);
+        setVentanaSustitucionesAbierta(false);
+        break;
+
+      default:
+        console.warn("Evento WebSocket desconocido:", data);
+    }
   }, []);
 
   const handleClose = useCallback(function (event) {
@@ -62,6 +86,8 @@ export function MatchPage() {
     <Match
       matchId={matchId}
       estado_partido={estadoAnimado}
+      pausa={pausa}
+      ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
     />
   );
 }
