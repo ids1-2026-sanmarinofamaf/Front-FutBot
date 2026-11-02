@@ -48,7 +48,7 @@ export function MatchPause({ pausa }) {
           {showVideo && (
             <video
               ref={videoRef}
-              src="../../../../public/assets/propaganda_san_marino.mp4"
+              src="/assets/propaganda_san_marino.mp4"
               autoPlay
               muted
               playsInline

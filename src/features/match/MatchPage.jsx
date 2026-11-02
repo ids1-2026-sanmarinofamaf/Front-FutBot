@@ -18,26 +18,29 @@ export function MatchPage() {
 
   const handleMessage = useCallback(function (data) {
     switch (data.event) {
-      case "estado_partido":
-        setEstadoPartido(data);
-        break;
-
       case "pause_started":
         setPausa(data);
-        setVentanaSustitucionesAbierta(true);
-        break;
-
-      case "substitution_window_closed":
-        setVentanaSustitucionesAbierta(false);
         break;
 
       case "pause_finished":
         setPausa(null);
-        setVentanaSustitucionesAbierta(false);
+        break;
+
+      case "substitution_window_closed":
+        // Este evento no corresponde a este ticket.
+        break;
+
+      case "estado_partido":
+        setEstadoPartido(data);
         break;
 
       default:
-        console.warn("Evento WebSocket desconocido:", data);
+        // Compatibilidad con estados que llegan sin campo event.
+        if (data.actual_tic !== undefined) {
+          setEstadoPartido(data);
+        } else {
+          console.warn("Evento WebSocket desconocido:", data);
+        }
     }
   }, []);
 
