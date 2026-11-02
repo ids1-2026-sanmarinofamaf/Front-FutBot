@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getUserSessionInfo, startLeague } from "../api";
+import { getUserSessionInfo, startLeague, leaveLeagueAsPlayer } from "../api";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -239,8 +239,46 @@ export function LeagueLobby() {
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleLeave = async () => {
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      setAlert("El ID de la liga no es válido.");
+      showToast();
+      return;
+    }
 
-  }
+    if (isCreator) {
+      setAlert("El creador no puede abandonar su propia liga.");
+      showToast();
+      return;
+    }
+
+    try {
+      await leaveLeagueAsPlayer(numericId);
+
+      leaveL(numericId);
+      navigate("/league", { replace: true });
+    } catch (err) {
+      console.error("Error al abandonar la liga:", err);
+
+      switch (err?.code) {
+        case "CREATOR_CANNOT_LEAVE":
+          setAlert("El creador no puede abandonar su propia liga.");
+          break;
+        case "LEAGUE_ALREADY_STARTED":
+          setAlert("No podés abandonar una liga que ya comenzó.");
+          break;
+        case "LEAGUE_NOT_FOUND":
+          setAlert("La liga no existe.");
+          break;
+        case "NOT_PARTICIPATING":
+          setAlert("No participás en esta liga.");
+          break;
+        default:
+          setAlert(err?.message || "Ocurrió un error al abandonar la liga.");
+      }
+
+      showToast();
+    }
+  };
 
   return(
     
@@ -280,6 +318,11 @@ export function LeagueLobby() {
         {/** Alerta: Error al usar apiClient */}
         {alert === "Error desconocido." && toast && (
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {alert === "El creador no puede abandonar su propia liga." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
           />
         )}
 

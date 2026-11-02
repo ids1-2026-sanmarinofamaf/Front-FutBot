@@ -42,10 +42,12 @@ vi.mock("../../friendlyGames/api", () => ({
 
 const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
+const mockLeaveLeagueAsPlayer = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
   startLeague: (...args) => mockStartLeague(...args),
+  leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
 }));
 
 // Mock del componente de usuarios para aislar la vista
@@ -156,6 +158,7 @@ describe("LeagueLobby Component", () => {
       user_email: "club_a@test.com",
     });
     mockStartLeague.mockResolvedValue();
+    mockLeaveLeagueAsPlayer.mockResolvedValue();
   });
 
   describe("Control de acceso temprano y conexión", () => {
@@ -656,6 +659,123 @@ describe("LeagueLobby Component", () => {
         expect(screen.queryByText(/Esperando que el creador inicie la liga/i)).not.toBeInTheDocument();
       }
     );
+  });
+
+   describe("Abandonar liga", () => {
+    beforeEach(() => {
+      setEvents([lobbyConCreador(3)]);
+      comoParticipante();
+      mockToastState = { id: 1 };
+    });
+
+    it("abandona la liga correctamente y vuelve a /league", async () => {
+      await renderLobby();
+
+      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+      await waitFor(() => {
+        expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+        expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+        expect(mockNavigate).toHaveBeenCalledWith("/league", { replace: true });
+      });
+
+      expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledTimes(1);
+    });
+
+    it("no desconecta ni navega antes de que el servicio confirme el abandono", async () => {
+      let confirmarAbandono;
+
+      mockLeaveLeagueAsPlayer.mockImplementationOnce(
+        () => new Promise((resolve) => {
+          confirmarAbandono = resolve;
+        })
+      );
+
+      await renderLobby();
+
+      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+      await waitFor(() => {
+        expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+      });
+
+      expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+
+      await act(async () => {
+        confirmarAbandono();
+      });
+
+      await waitFor(() => {
+        expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+        expect(mockNavigate).toHaveBeenCalledWith("/league", { replace: true });
+      });
+    });
+
+    it("no permite abandonar al creador de la liga", async () => {
+      comoCreador();
+
+      await renderLobby();
+
+      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalled();
+      });
+
+      expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+    });
+
+    it("redirige si el ID de liga es inválido", async () => {
+      mockParams = { id: "abc", leagueName: "Liga Master" };
+      mockSocketState.joinedLIds = [];
+
+      render(<LeagueLobby />);
+
+      expect(mockNavigate).toHaveBeenCalledWith("/league", { replace: true });
+      expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["CREATOR_CANNOT_LEAVE", "El creador no puede abandonar su propia liga."],
+      ["LEAGUE_ALREADY_STARTED", "No podés abandonar una liga que ya comenzó."],
+      ["LEAGUE_NOT_FOUND", "La liga no existe."],
+      ["NOT_PARTICIPATING", "No participás en esta liga."],
+    ])("maneja el error %s", async (code, mensaje) => {
+      mockLeaveLeagueAsPlayer.mockRejectedValueOnce({ code });
+
+      await renderLobby();
+
+      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalled();
+      });
+
+      expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+      expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+    });
+
+    it("maneja un error genérico del servicio", async () => {
+      mockLeaveLeagueAsPlayer.mockRejectedValueOnce(
+        new Error("Error de conexión")
+      );
+
+      await renderLobby();
+
+      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalled();
+      });
+
+      expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
+    });
   });
 
   describe("Botón Volver", () => {

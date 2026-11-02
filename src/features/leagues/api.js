@@ -36,6 +36,27 @@ export const joinLeagueAsPlayer = async (idLiga, { roster, password } = {}) => {
   }
 };
 
+export const leaveLeagueAsPlayer = async (leagueId) => {
+  try {
+    return await apiClient(`/leagues/${leagueId}/users/me`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    const message = error?.message ?? "";
+
+    if (/creator cannot leave the league/i.test(message)) {
+      error.code = "CREATOR_CANNOT_LEAVE";
+    } else if (/league has already started/i.test(message)) {
+      error.code = "LEAGUE_ALREADY_STARTED";
+    } else if (/league does not exist/i.test(message)) {
+      error.code = "LEAGUE_NOT_FOUND";
+    } else if (/user is not participating in this league/i.test(message)) {
+      error.code = "NOT_PARTICIPATING";
+    }
+
+    throw error;
+  }
+};
 /**
  * Solicita al backend el inicio de la liga
  */
