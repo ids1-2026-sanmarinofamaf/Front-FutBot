@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { SoccerField } from "./SoccerField"
@@ -7,6 +8,7 @@ import { MatchPlayerOut } from "../components/MatchPlayerOut"
 import { Ball } from "../components/Ball"
 import { ExitMatchButton } from "../components/ExitMatchButton"
 import { ChangeBehaviorMenu } from "../components/ChangeBehaviorMenu"
+import { MatchPause } from "../components/MatchPause"
 import { getBehaviors } from "../../behaviors/api.js"
 import { changeBehavior } from "../api.js"
 
@@ -34,7 +36,7 @@ function buildPlayerNumbers(players) {
   return playerNumbers
 }
 
-export function Match({ estado_partido, matchId }) {
+export function Match({ estado_partido, matchId, pausa }) {
   const params = useParams()
   const effectiveMatchId = matchId ?? params?.matchId
 
@@ -107,33 +109,46 @@ export function Match({ estado_partido, matchId }) {
   }
 
   return (
-    <div className="relative">
-      <svg
-        viewBox="0 0 1920 1080"
-        style={{
-          width: "100%",
-          maxWidth: 1920,
-          height: "auto",
-          backgroundColor: "#063343"
-        }}
-      >
-        <SoccerField />
+    <div>
+      <div className="relative w-full max-w-[1920px] aspect-[16/9]">
+        <svg
+          viewBox="0 0 1920 1080"
+          className="absolute inset-0 w-full h-full"
+          style={{
+            backgroundColor: "#063343"
+          }}
+        >
+          <SoccerField />
 
-        <MatchPlayerInMatch
-          players={estado_partido.players}
-          playerNumbers={playerNumbers}
-        />
+          <MatchPlayerInMatch
+            players={estado_partido.players}
+            playerNumbers={playerNumbers}
+          />
 
-        <Scoreboard estado_partido={estado_partido} />
+          <Scoreboard estado_partido={estado_partido} />
 
-        <MatchPlayerOut
-          players={estado_partido.players}
-          playerNumbers={playerNumbers}
-          onSelectStarter={handleSelectStarter}
-        />
+          <MatchPlayerOut
+            players={estado_partido.players}
+            playerNumbers={playerNumbers}
+            onSelectStarter={handleSelectStarter}
+          />
 
-        <Ball ball={estado_partido.ball} />
-      </svg>
+          <Ball ball={estado_partido.ball} />
+        </svg>
+
+        {/* La pausa cubre únicamente el rectángulo de juego */}
+        <div
+          className="absolute"
+          style={{
+            left: "15.625%",
+            top: "13.8889%",
+            width: "68.75%",
+            height: "74.0741%"
+          }}
+        >
+          <MatchPause pausa={pausa} />
+        </div>
+      </div>
 
       <ChangeBehaviorMenu
         player={selectedStarter}
