@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
 import { getUserSessionInfo, startLeague } from "../api";
+import FixtureTab from "../components/FixtureTab";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -425,8 +426,8 @@ export function LeagueLobby() {
         {/* Contenido */}
         <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
           {activeTab === "usuarios" && <LobbyUsers users={lobby.users} />}
-          {/* {activeTab === "fixture" && <FixtureTab />}
-          {activeTab === "tabla" && <TablaTab />} */}
+          {activeTab === "fixture" && <FixtureTab rawFixture={lobby.fixture} actualRound={lobby.round} />}
+          {/* {activeTab === "tabla" && <TablaTab />} */}
         </div>
 
       </div>
