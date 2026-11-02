@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { Match } from './Match'
@@ -18,10 +19,14 @@ vi.mock('../api.js', () => ({
   changeBehavior: vi.fn()
 }))
 
-function renderMatch(estado_partido, matchId = '42') {
+function renderMatch(estado_partido, matchId = '42', pausa = null) {
   return render(
     <MemoryRouter>
-      <Match estado_partido={estado_partido} matchId={matchId} />
+      <Match
+        estado_partido={estado_partido}
+        matchId={matchId}
+        pausa={pausa}
+      />
     </MemoryRouter>
   )
 }
@@ -284,6 +289,95 @@ describe('Match', () => {
       screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
     ).not.toBeInTheDocument()
     expect(getBehaviors).not.toHaveBeenCalled()
+  })
+
+  // Tests de pausas
+
+  it('no muestra ningún cartel cuando no hay una pausa activa', () => {
+    renderMatch(estado_partido)
+
+    expect(screen.queryByText('COOLING BREAK')).not.toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('muestra el cartel COOLING BREAK durante la pausa de hidratación', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'hydration',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(screen.getByText('COOLING BREAK')).toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('muestra ENTRETIEMPO y reproduce el video durante el entretiempo', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'halftime',
+      duration: 20,
+      planning_duration: 15,
+    })
+
+    expect(screen.getByText('ENTRETIEMPO')).toBeInTheDocument()
+
+    const video = document.querySelector('video')
+
+    expect(video).toBeInTheDocument()
+    expect(video).toHaveAttribute(
+      'src',
+      '/assets/propaganda_san_marino.mp4'
+    )
+    expect(video).toHaveAttribute('autoplay')
+    expect(video.muted).toBe(true)
+  })
+
+  it('oculta el video después de 5 segundos pero mantiene ENTRETIEMPO', () => {
+    vi.useFakeTimers()
+
+    try {
+      renderMatch(estado_partido, '42', {
+        pause_type: 'halftime',
+        duration: 20,
+        planning_duration: 15,
+      })
+
+      expect(document.querySelector('video')).toBeInTheDocument()
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      expect(document.querySelector('video')).not.toBeInTheDocument()
+      expect(screen.getByText('ENTRETIEMPO')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('no muestra carteles para un tipo de pausa desconocido', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'unknown',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(screen.queryByText('COOLING BREAK')).not.toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('mantiene disponible el botón para salir durante una pausa', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'hydration',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Salir del partido' })
+    ).toBeInTheDocument()
   })
 
 })
