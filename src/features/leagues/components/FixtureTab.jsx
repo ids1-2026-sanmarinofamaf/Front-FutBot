@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom"
  * @param matchsInGame: Lista de partidos jugandose, si no lo recibe se utiliza una lista vacía []
  * @returns 
  */
-function FixtureCard({ match , matchsInGame = []}) {
+function FixtureCard({ match, matchsInGame = [] }) {
 
   //Constantes para definir goles de cada equipo
   const localGoals = 0
@@ -26,9 +26,15 @@ function FixtureCard({ match , matchsInGame = []}) {
         <span className="text-lg font-bold text-slate-100">({visitorGoals})</span>
         <span className="text-lg font-bold text-slate-100">{match.visitante.name}</span>
 
-        <button 
-          disabled={!inGame && match.state !== "JUGANDO"} 
-          onClick={() => {navigate(`/matches/${match.match_id}`, {state: { from: `/league/${id}/${leagueName}` } })}} 
+        {inGame && (
+          <span className="px-2 py-0.5 text-sm font-medium bg-emerald-600 text-white rounded">
+            JUGANDO
+          </span>
+        )}
+
+        <button
+          disabled={!inGame}
+          onClick={() => { navigate(`/matches/${match.match_id}`, { state: { from: `/league/${id}/${leagueName}` } }) }}
           className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
                     disabled:border-gray-500
                     disabled:text-gray-300
@@ -79,11 +85,10 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
         return (
           <section
             key={block.round}
-            className={`p-4 rounded-xl flex flex-col gap-3 border ${
-              isCurrent
+            className={`p-4 rounded-xl flex flex-col gap-3 border ${isCurrent
                 ? "bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/40"
                 : "bg-slate-900 border-slate-700"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-slate-100">Ronda {block.round}</h2>
@@ -96,7 +101,7 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
 
             <div className="flex flex-col gap-3">
               {block.matches.map((match) => (
-                <FixtureCard key={match.match_id} match={match} matchsInGame={matchIDs}/>
+                <FixtureCard key={match.match_id} match={match} matchsInGame={matchIDs} />
               ))}
             </div>
           </section>
@@ -112,7 +117,7 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
  * @param actualRound: round actual en ejecución 
  * @returns Componente FixtureTab para lobby de liga
  */
-export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs}) {
+export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs }) {
 
   return (<>
     <FixtureRounds fixture={rawFixture} actualRound={actualRound} matchIDs={roundMatchIDs} />
