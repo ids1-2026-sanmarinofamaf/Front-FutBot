@@ -11,7 +11,7 @@ import FixtureTab from "../components/FixtureTab";
  * Integración de componenetes:
  * - Información de liga
  * - Lista de participantes
- * - Mock de fixture
+ * - Fixture en formato lista
  * - Mock de tabla de puntaje 
  */
 export function LeagueLobby() {
@@ -82,7 +82,8 @@ export function LeagueLobby() {
                 fixture: null,   // se completa con league_started o con GET /leagues/{id}
                 standings: null,
                 round: 0,
-                matchIDs: [] //Lista de matchs ejecutados en la ronda actual
+                matchIDs: [], //Lista de matchs ejecutados en la ronda actual
+                results: [] // resultados de partidos finalizados
               };
 
       case "user_joined": // cambio: se aplica sobre lo anterior
@@ -111,9 +112,13 @@ export function LeagueLobby() {
       case "league_round_started":{
         // Verifica que el evento pertenezca a esta liga 
         if(id == msg.league_id){
-          // Actualizar round en juego
-          // Actualizar partidos en juego (estado -> "JUGANDO" y habilitar opción de ver partido)
-          return {...lobby, round: msg.round, matchIDs: msg.match_ids}
+          return {...lobby, 
+            round: msg.round, 
+            matchIDs: msg.match_ids,
+            fixture: lobby.fixture?.map((match) =>
+              msg.match_ids.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            ),
+          }
 
         } else {
           console.log("Se esta recibiendo información de otra liga")
@@ -124,10 +129,19 @@ export function LeagueLobby() {
       case "league_round_finished":{
         // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
         if(id == msg.league_id && lobby.round == msg.round){
-          //(LISTO) Actualizar la tabla de puntos
-          //Actualizar resultados de partidos en fixture (agregar puntos y cambiar estado a "Finalizado")
-          //Marcar round como terminado
-          return {...lobby, standings: msg.standings, matchIDs: msg.match_ids}
+          return {...lobby, 
+            standings: msg.standings, 
+            matchIDs: [],
+            results: [ //result acumula los mensajes recibidos y reemplaza duplicados
+              ...lobby.results.filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
+              ...msg.results,
+            ],
+            fixture: lobby.fixture?.map((match) =>
+              msg.results.some((r) => r.match_id === match.match_id)
+                ? { ...match, state: "FINALIZADO" }
+                : match
+            ),
+          }
 
         } else {
           console.log("Se esta recibiendo información de otra liga")
@@ -136,7 +150,7 @@ export function LeagueLobby() {
       }
 
       case "league_finished":{
-        if(id == msg.league_id && lobby.round == msg.round){
+        if(id == msg.league_id){
           return {...lobby, state: "FINALIZADA"}
         } else {
           console.log("Se esta recibiendo información de otra liga")

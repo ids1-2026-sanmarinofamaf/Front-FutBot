@@ -5,15 +5,17 @@ import { useNavigate, useParams } from "react-router-dom"
  * Crea la tarjeta de un partido perteneciente al fixture. Si el partido se está jugando habilita botón para unirse a verlo.
  * @param {*} match: datos partido en juego 
  * @param matchsInGame: Lista de partidos jugandose, si no lo recibe se utiliza una lista vacía []
+ * @param resultMatch: datos del partido si fue finalizado, sino se recibe {}
  * @returns 
  */
-function FixtureCard({ match, matchsInGame = [] }) {
+function FixtureCard({ match, matchsInGame = [], resultMatch }) {
 
   //Constantes para definir goles de cada equipo
   const localGoals = 0
   const visitorGoals = 0
   //Constante para definir si el match está en juego
   const inGame = matchsInGame.includes(match.match_id)
+  //Constante y Hook para navegación
   const { id, leagueName } = useParams();
   const navigate = useNavigate()
 
@@ -21,9 +23,9 @@ function FixtureCard({ match, matchsInGame = [] }) {
     <div className="h-full p-4 bg-slate-800 border border-slate-700 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <span className="text-lg font-bold text-slate-100">{match.local.name}</span>
-        <span className="text-lg font-bold text-slate-100">({localGoals})</span>
+        <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.local ?? 0})</span>
         <span className="text-lg font-medium text-slate-400">vs</span>
-        <span className="text-lg font-bold text-slate-100">({visitorGoals})</span>
+        <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.visitante ?? 0})</span>
         <span className="text-lg font-bold text-slate-100">{match.visitante.name}</span>
 
         {inGame && (
@@ -31,6 +33,14 @@ function FixtureCard({ match, matchsInGame = [] }) {
             JUGANDO
           </span>
         )}
+
+        {match.state === "FINALIZADO" && (
+          <span className="px-2 py-0.5 text-sm font-medium bg-emerald-600 text-white rounded">
+            FINALIZADO
+          </span>
+        )
+
+        }
 
         <button
           disabled={!inGame}
@@ -71,9 +81,12 @@ function groupByRound(fixture) {
 /**
  * Forma los bloques con sus respectivos partidos dentro, agrega etiqueta "en juego" al round actual en ejecución
  * @param {*} fixture: datos de todos los partidos a jugar en la liga actual ya iniciada 
+ * @param actualRound: entero que indica round en juego actualmente
+ * @param matchIDs: lista de IDs de matchs en juego
+ * @param resultsMatchs: lista de partidos finalizados, mas su resultado
  * @returns Fixture divido en bloques
  */
-function FixtureRounds({ fixture, actualRound, matchIDs }) {
+function FixtureRounds({ fixture, actualRound, matchIDs, resultsMatchs = [] }) {
   // Hook para almacenar lista de partidos agrupados por round
   const blocks = useMemo(() => groupByRound(fixture), [fixture])
 
@@ -86,8 +99,8 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
           <section
             key={block.round}
             className={`p-4 rounded-xl flex flex-col gap-3 border ${isCurrent
-                ? "bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/40"
-                : "bg-slate-900 border-slate-700"
+              ? "bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/40"
+              : "bg-slate-900 border-slate-700"
               }`}
           >
             <div className="flex items-center gap-3">
@@ -100,9 +113,12 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
             </div>
 
             <div className="flex flex-col gap-3">
-              {block.matches.map((match) => (
-                <FixtureCard key={match.match_id} match={match} matchsInGame={matchIDs} />
-              ))}
+              {block.matches.map((match) => {
+
+                const result = resultsMatchs.find((r) => r.match_id === match.match_id) ?? {}
+
+                return <FixtureCard key={match.match_id} match={match} matchsInGame={matchIDs} resultMatch={result} />
+              })}
             </div>
           </section>
         )
@@ -117,9 +133,9 @@ function FixtureRounds({ fixture, actualRound, matchIDs }) {
  * @param actualRound: round actual en ejecución 
  * @returns Componente FixtureTab para lobby de liga
  */
-export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs }) {
+export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs, resultsMatchs }) {
 
   return (<>
-    <FixtureRounds fixture={rawFixture} actualRound={actualRound} matchIDs={roundMatchIDs} />
+    <FixtureRounds fixture={rawFixture} actualRound={actualRound} matchIDs={roundMatchIDs} resultsMatchs={resultsMatchs} />
   </>)
 }
