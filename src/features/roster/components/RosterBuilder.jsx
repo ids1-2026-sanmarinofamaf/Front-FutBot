@@ -30,8 +30,7 @@ export function RosterBuilder({ onSubmit, onCancel }) {
           getBehaviors()
         ]);
         setPlayersList(playersData);
-        // Filtramos solo los comportamientos válidos.
-        setBehaviorsList(behaviorsData.filter(b => b.is_valid !== false));
+        setBehaviorsList(behaviorsData);
       } catch (err) {
         setError('Error al cargar datos del club. ' + err.message);
       } finally {

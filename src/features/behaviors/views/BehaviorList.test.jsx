@@ -11,9 +11,9 @@ vi.mock("../api", () => ({
   getBehaviors: vi.fn(),
 }));
 
-// Mock del subcomponente para aislar la prueba y facilitar la interacción con onView
+// Mock del subcomponente para aislar la prueba y facilitar la interacción con onView y onEdit
 vi.mock("../components/BehaviorCard", () => ({
-  BehaviorCard: ({ behavior, onView }) => (
+  BehaviorCard: ({ behavior, onView, onEdit }) => (
     <div data-testid={`behavior-card-${behavior.behavior_id}`}>
       <span>{behavior.name}</span>
       <button 
@@ -21,6 +21,12 @@ vi.mock("../components/BehaviorCard", () => ({
         data-testid={`view-btn-${behavior.behavior_id}`}
       >
         Ver
+      </button>
+      <button 
+        onClick={() => onEdit(behavior.behavior_id)}
+        data-testid={`edit-btn-${behavior.behavior_id}`}
+      >
+        Editar
       </button>
     </div>
   ),
@@ -129,5 +135,33 @@ describe("BehaviorList Component", () => {
     fireEvent.click(screen.getByTestId("view-btn-1"));
     
     expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/1");
+  });
+
+  it("Navega a la edición del comportamiento al desencadenar onEdit en la tarjeta", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
+    
+    render(<BehaviorList />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId("edit-btn-2")).toBeInTheDocument();
+    });
+    
+    fireEvent.click(screen.getByTestId("edit-btn-2"));
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/2/edit");
+  });
+
+  it("Navega a la creación de un comportamiento al hacer clic en 'Crear Nuevo'", async () => {
+    getBehaviors.mockResolvedValueOnce([]);
+    
+    render(<BehaviorList />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Crear Nuevo/i })).toBeInTheDocument();
+    });
+    
+    fireEvent.click(screen.getByRole("button", { name: /Crear Nuevo/i }));
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/new");
   });
 });

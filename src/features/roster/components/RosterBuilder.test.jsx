@@ -25,8 +25,8 @@ describe('RosterBuilder', () => {
   ];
 
   const mockBehaviors = [
-    { behavior_id: 10, name: 'Ofensivo', is_valid: true },
-    { behavior_id: 20, name: 'Defensivo', is_valid: true },
+    { behavior_id: 10, name: 'Ofensivo' },
+    { behavior_id: 20, name: 'Defensivo' },
   ];
 
   beforeEach(() => {

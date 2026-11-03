@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewL, joinLeagueAsPlayer, startLeague } from "./api";
+import { sendNewL, joinLeagueAsPlayer, startLeague, leaveLeagueAsPlayer } from "./api";
 import { apiClient } from "../../shared/api/client";
+
 
 // Se mockea apiClient: se prueba que sendNewL arme y despache correctamente la solicitud HTTP.
 vi.mock("../../shared/api/client", () => ({ apiClient: vi.fn() }));
@@ -195,5 +196,59 @@ describe("startLeague", () => {
     apiClient.mockRejectedValue(networkError);
 
     await expect(startLeague(10)).rejects.toBe(networkError);
+  });
+});
+
+describe("leaveLeagueAsPlayer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("hace DELETE a /leagues/{id}/users/me con el id recibido", async () => {
+    apiClient.mockResolvedValue(undefined);
+
+    await leaveLeagueAsPlayer(10);
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+    const [endpoint, options] = apiClient.mock.calls[0];
+
+    expect(endpoint).toBe("/leagues/10/users/me");
+    expect(options).toEqual({ method: "DELETE" });
+  });
+
+  it("devuelve la respuesta de apiClient", async () => {
+    const response = { detail: "ok" };
+    apiClient.mockResolvedValue(response);
+
+    await expect(leaveLeagueAsPlayer(10)).resolves.toBe(response);
+  });
+
+  it.each([
+    ["creator cannot leave the league", "CREATOR_CANNOT_LEAVE"],
+    ["League has already started", "LEAGUE_ALREADY_STARTED"],
+    ["League does not exist", "LEAGUE_NOT_FOUND"],
+    ["User is not participating in this league", "NOT_PARTICIPATING"],
+  ])("mapea el error '%s' al código %s", async (message, code) => {
+    const error = new Error(message);
+    apiClient.mockRejectedValue(error);
+
+    await expect(leaveLeagueAsPlayer(10))
+      .rejects.toMatchObject({ code });
+  });
+
+  it("propaga errores desconocidos sin asignarles un código", async () => {
+    const error = new Error("Network Error");
+    apiClient.mockRejectedValue(error);
+
+    await expect(leaveLeagueAsPlayer(10)).rejects.toBe(error);
+    expect(error.code).toBeUndefined();
+  });
+
+  it("propaga errores sin message sin asignarles un código", async () => {
+    const error = {};
+    apiClient.mockRejectedValue(error);
+
+    await expect(leaveLeagueAsPlayer(10)).rejects.toBe(error);
+    expect(error.code).toBeUndefined();
   });
 });

@@ -1,91 +1,155 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBehaviors, getBehaviorById } from './api';
+import { getBehaviors, getBehaviorById, createBehavior, updateBehavior } from './api';
 import { apiClient } from '../../shared/api/client';
 
 vi.mock('../../shared/api/client', () => ({
   apiClient: vi.fn(),
 }));
 
-describe('getBehaviors API', () => {
+describe('Behaviors API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('debe invocar apiClient con la ruta y el método correctos', async () => {
-    apiClient.mockResolvedValue({ behaviors_list: [] });
+  describe('getBehaviors', () => {
+    it('debe invocar apiClient con la ruta y el método correctos', async () => {
+      apiClient.mockResolvedValue([]);
 
-    await getBehaviors();
+      await getBehaviors();
 
-    expect(apiClient).toHaveBeenCalledTimes(1);
-    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors', {
-      method: 'GET',
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors', {
+        method: 'GET',
+      });
+    });
+
+    it('debe retornar la lista cuando la respuesta es exitosa', async () => {
+      const mockData = [
+        { behavior_id: 1, name: 'Ofensivo', code: 'kick()' },
+      ];
+      apiClient.mockResolvedValue(mockData);
+
+      const result = await getBehaviors();
+
+      expect(result).toEqual(mockData);
+    });
+
+    it('debe retornar un arreglo vacío si apiClient retorna null', async () => {
+      apiClient.mockResolvedValue(null);
+
+      const result = await getBehaviors();
+
+      expect(result).toEqual([]);
+    });
+
+    it('debe propagar la excepción si apiClient falla', async () => {
+      const networkError = new Error('Unauthorized');
+      apiClient.mockRejectedValue(networkError);
+
+      await expect(getBehaviors()).rejects.toThrow('Unauthorized');
     });
   });
 
-  it('debe retornar la respuesta cuando es exitosa', async () => {
-    const mockData = {
-      behaviors_list: [
-        { behavior_id: 1, name: 'Ofensivo', code: 'kick()', is_valid: true }
-      ]
+  describe('getBehaviorById', () => {
+    it('debe invocar apiClient con el parámetro de ruta correcto', async () => {
+      apiClient.mockResolvedValue({ code: 'defend()' });
+      const behaviorId = 1;
+
+      await getBehaviorById(behaviorId);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/1', {
+        method: 'GET',
+      });
+    });
+
+    it('debe retornar el objeto del comportamiento', async () => {
+      const mockResponse = { behavior_id: 2, name: 'Pasivo', code: 'wait()' };
+      apiClient.mockResolvedValue(mockResponse);
+
+      const result = await getBehaviorById(2);
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('debe lanzar un error si no se provee el ID', async () => {
+      await expect(getBehaviorById()).rejects.toThrow('El ID del comportamiento es requerido');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
+
+    it('debe propagar errores de red', async () => {
+      apiClient.mockRejectedValue(new Error('Not Found'));
+
+      await expect(getBehaviorById(99)).rejects.toThrow('Not Found');
+    });
+  });
+
+  describe('createBehavior', () => {
+    const validPayload = {
+      name: 'Nuevo Comportamiento',
+      code: 'def play():\n    return wait()',
     };
-    apiClient.mockResolvedValue(mockData);
 
-    const result = await getBehaviors();
+    it('debe invocar apiClient con POST y solo name y code en el body', async () => {
+      const mockResponse = { behavior_id: 5 };
+      apiClient.mockResolvedValue(mockResponse);
 
-    expect(result).toEqual(mockData);
-  });
+      const result = await createBehavior(validPayload);
 
-  it('debe retornar un objeto vacío si el payload no contiene behaviors_list', async () => {
-    apiClient.mockResolvedValue({});
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+      });
+      expect(result).toEqual(mockResponse);
+    });
 
-    const result = await getBehaviors();
+    it('debe lanzar un error si faltan datos requeridos', async () => {
+      await expect(createBehavior(null)).rejects.toThrow('Datos de comportamiento inválidos o incompletos');
+      await expect(createBehavior({ name: 'Solo nombre' })).rejects.toThrow('Datos de comportamiento inválidos o incompletos');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
 
-    expect(result).toEqual({});
-  });
+    it('debe propagar errores de apiClient', async () => {
+      apiClient.mockRejectedValue(new Error('Bad Request'));
 
-  it('debe propagar la excepción si apiClient falla', async () => {
-    const networkError = new Error('Unauthorized');
-    apiClient.mockRejectedValue(networkError);
-
-    await expect(getBehaviors()).rejects.toThrow('Unauthorized');
-  });
-});
-
-
-describe('getBehaviorById API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('debe invocar apiClient con el parámetro de ruta correcto', async () => {
-    apiClient.mockResolvedValue({ code: 'defend()' });
-    const behaviorId = 1;
-
-    await getBehaviorById(behaviorId);
-
-    expect(apiClient).toHaveBeenCalledTimes(1);
-    expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/1', {
-      method: 'GET',
+      await expect(createBehavior(validPayload)).rejects.toThrow('Bad Request');
     });
   });
 
-  it('debe retornar el objeto del comportamiento', async () => {
-    const mockResponse = { behavior_id: 2, name: 'Pasivo', code: 'wait()', is_valid: true };
-    apiClient.mockResolvedValue(mockResponse);
+  describe('updateBehavior', () => {
+    const validPayload = {
+      name: 'Comportamiento Editado',
+      code: 'def play():\n    return wait()',
+    };
 
-    const result = await getBehaviorById(2);
+    it('debe invocar apiClient con PUT, el ID en la ruta y el body serializado', async () => {
+      apiClient.mockResolvedValue(null);
 
-    expect(result).toEqual(mockResponse);
-  });
+      const result = await updateBehavior(3, validPayload);
 
-  it('debe lanzar un error si no se provee el ID', async () => {
-    await expect(getBehaviorById()).rejects.toThrow('El ID del comportamiento es requerido');
-    expect(apiClient).not.toHaveBeenCalled();
-  });
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/3', {
+        method: 'PUT',
+        body: JSON.stringify(validPayload),
+      });
+      expect(result).toBeNull();
+    });
 
-  it('debe propagar errores de red', async () => {
-    apiClient.mockRejectedValue(new Error('Not Found'));
+    it('debe lanzar un error si no se provee el ID', async () => {
+      await expect(updateBehavior(undefined, validPayload)).rejects.toThrow('El ID del comportamiento es requerido');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
 
-    await expect(getBehaviorById(99)).rejects.toThrow('Not Found');
+    it('debe lanzar un error si faltan datos requeridos', async () => {
+      await expect(updateBehavior(3, { name: '', code: 'wait()' })).rejects.toThrow('Datos de comportamiento inválidos o incompletos');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
+
+    it('debe propagar errores de apiClient', async () => {
+      apiClient.mockRejectedValue(new Error('Not Found'));
+
+      await expect(updateBehavior(99, validPayload)).rejects.toThrow('Not Found');
+    });
   });
 });

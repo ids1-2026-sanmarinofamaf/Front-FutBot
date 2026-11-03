@@ -1,17 +1,32 @@
-import { render, screen } from '@testing-library/react'
+
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { Match } from './Match'
 import { getPlayerById } from '../../player/api.js'
+import { getBehaviors } from '../../behaviors/api.js'
+import { changeBehavior } from '../api.js'
 
 vi.mock('../../player/api.js', () => ({
   getPlayerById: vi.fn()
 }))
 
-function renderMatch(estado_partido) {
+vi.mock('../../behaviors/api.js', () => ({
+  getBehaviors: vi.fn()
+}))
+
+vi.mock('../api.js', () => ({
+  changeBehavior: vi.fn()
+}))
+
+function renderMatch(estado_partido, matchId = '42', pausa = null) {
   return render(
     <MemoryRouter>
-      <Match estado_partido={estado_partido} />
+      <Match
+        estado_partido={estado_partido}
+        matchId={matchId}
+        pausa={pausa}
+      />
     </MemoryRouter>
   )
 }
@@ -98,21 +113,10 @@ describe('Match', () => {
 
     expect(await screen.findAllByText('Rival')).toHaveLength(6)
 
-    const myPlayers = estado_partido.players.filter(function (player) {
-      return player.team === "A"
-    })
-    const rivals = estado_partido.players.filter(function (player) {
-      return player.team !== "A"
-    })
+    expect(getPlayerById).toHaveBeenCalledTimes(estado_partido.players.length)
 
-    expect(getPlayerById).toHaveBeenCalledTimes(myPlayers.length)
-
-    myPlayers.forEach(function (player) {
+    estado_partido.players.forEach(function (player) {
       expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
-    })
-
-    rivals.forEach(function (player) {
-      expect(getPlayerById).not.toHaveBeenCalledWith(player.player_id)
     })
   })
 
@@ -201,6 +205,179 @@ describe('Match', () => {
 
     expect(screen.getAllByText('Number: 1')).toHaveLength(2)
     expect(screen.getAllByText('Number: 2')).toHaveLength(2)
+  })
+
+  it('abre el menú de cambio de comportamiento al clickear un titular propio, lista comportamientos y envía PUT al confirmar', async () => {
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Default', is_default: true },
+      { behavior_id: 5, name: 'Ataque Total', is_default: false }
+    ])
+    changeBehavior.mockResolvedValue(null)
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
+    ).toBeInTheDocument()
+
+    expect(await screen.findByText('Default')).toBeInTheDocument()
+    expect(screen.getByText('Ataque Total')).toBeInTheDocument()
+    expect(getBehaviors).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('option', { name: /Ataque Total/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    await waitFor(function () {
+      expect(changeBehavior).toHaveBeenCalledTimes(1)
+      expect(changeBehavior).toHaveBeenCalledWith('77', 1, 5)
+    })
+
+    await waitFor(function () {
+      expect(
+        screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
+      ).not.toBeInTheDocument()
+    })
+
+    // Al volver a abrir otro titular, reutiliza la lista cacheada sin volver a llamar a getBehaviors
+    fireEvent.click(screen.getByTestId('starter-card-2'))
+    expect(
+      await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
+    ).toBeInTheDocument()
+    expect(getBehaviors).toHaveBeenCalledTimes(1)
+  })
+
+  it('cierra el menú sin llamar a changeBehavior cuando el usuario cancela', async () => {
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Default', is_default: true }
+    ])
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    expect(
+      screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
+    ).not.toBeInTheDocument()
+    expect(changeBehavior).not.toHaveBeenCalled()
+  })
+
+  it('impide abrir el menú de comportamientos a un espectador o sobre jugadores rivales', async () => {
+    getPlayerById.mockRejectedValue(new Error('Not found'))
+
+    renderMatch(estado_partido, '77')
+
+    await waitFor(function () {
+      expect(screen.getAllByText('Rival')).toHaveLength(12)
+    })
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+    fireEvent.click(screen.getByTestId('starter-card-7'))
+
+    expect(
+      screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
+    ).not.toBeInTheDocument()
+    expect(getBehaviors).not.toHaveBeenCalled()
+  })
+
+  // Tests de pausas
+
+  it('no muestra ningún cartel cuando no hay una pausa activa', () => {
+    renderMatch(estado_partido)
+
+    expect(screen.queryByText('COOLING BREAK')).not.toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('muestra el cartel COOLING BREAK durante la pausa de hidratación', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'hydration',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(screen.getByText('COOLING BREAK')).toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('muestra ENTRETIEMPO y reproduce el video durante el entretiempo', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'halftime',
+      duration: 20,
+      planning_duration: 15,
+    })
+
+    expect(screen.getByText('ENTRETIEMPO')).toBeInTheDocument()
+
+    const video = document.querySelector('video')
+
+    expect(video).toBeInTheDocument()
+    expect(video).toHaveAttribute(
+      'src',
+      '/assets/propaganda_san_marino.mp4'
+    )
+    expect(video).toHaveAttribute('autoplay')
+    expect(video.muted).toBe(true)
+  })
+
+  it('oculta el video después de 5 segundos pero mantiene ENTRETIEMPO', () => {
+    vi.useFakeTimers()
+
+    try {
+      renderMatch(estado_partido, '42', {
+        pause_type: 'halftime',
+        duration: 20,
+        planning_duration: 15,
+      })
+
+      expect(document.querySelector('video')).toBeInTheDocument()
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      expect(document.querySelector('video')).not.toBeInTheDocument()
+      expect(screen.getByText('ENTRETIEMPO')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('no muestra carteles para un tipo de pausa desconocido', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'unknown',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(screen.queryByText('COOLING BREAK')).not.toBeInTheDocument()
+    expect(screen.queryByText('ENTRETIEMPO')).not.toBeInTheDocument()
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('mantiene disponible el botón para salir durante una pausa', () => {
+    renderMatch(estado_partido, '42', {
+      pause_type: 'hydration',
+      duration: 10,
+      planning_duration: 5,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Salir del partido' })
+    ).toBeInTheDocument()
   })
 
 })

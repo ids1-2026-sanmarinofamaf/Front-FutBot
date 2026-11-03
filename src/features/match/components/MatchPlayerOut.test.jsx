@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MatchPlayerOut } from './MatchPlayerOut'
 import { getPlayerById } from '../../player/api.js'
@@ -110,25 +110,14 @@ describe('MatchPlayerOut', () => {
     expect(benchRects).toHaveLength(6)
   })
 
-  it('obtiene los datos solo de los jugadores de mi equipo por su ID', async () => {
+  it('consulta los datos de los jugadores por su ID para determinar cuáles pertenecen al club', async () => {
     render(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
 
-    const myPlayers = players.filter(function (player) {
-      return player.team === "A"
-    })
-    const rivals = players.filter(function (player) {
-      return player.team !== "A"
-    })
-
     await waitFor(function () {
-      expect(getPlayerById).toHaveBeenCalledTimes(myPlayers.length)
+      expect(getPlayerById).toHaveBeenCalledTimes(players.length)
 
-      myPlayers.forEach(function (player) {
+      players.forEach(function (player) {
         expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
-      })
-
-      rivals.forEach(function (player) {
-        expect(getPlayerById).not.toHaveBeenCalledWith(player.player_id)
       })
     })
   })
@@ -162,11 +151,74 @@ describe('MatchPlayerOut', () => {
   it('no vuelve a pedir un jugador que ya fue cargado, ante un rerender', async () => {
     const { rerender } = render(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
     await waitFor(function () {
-      expect(getPlayerById).toHaveBeenCalledTimes(6)
+      expect(getPlayerById).toHaveBeenCalledTimes(12)
     })
     rerender(<svg><MatchPlayerOut players={players} playerNumbers={playerNumbers} /></svg>)
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(getPlayerById).toHaveBeenCalledTimes(6)
+    expect(getPlayerById).toHaveBeenCalledTimes(12)
+  })
+
+  it('permite seleccionar un titular propio al hacer click y bloquea los titulares rivales', async () => {
+    const onSelectStarter = vi.fn()
+
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          onSelectStarter={onSelectStarter}
+        />
+      </svg>
+    )
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('starter-card-7'))
+    expect(onSelectStarter).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+    expect(onSelectStarter).toHaveBeenCalledTimes(1)
+    expect(onSelectStarter).toHaveBeenCalledWith({
+      player_id: 1,
+      name: 'Player 1',
+      number: 1,
+      team: 'A'
+    })
+  })
+
+  it('soporta que el usuario pertenezca al equipo B y bloquee a un espectador', async () => {
+    const onSelectStarter = vi.fn()
+
+    getPlayerById.mockImplementation(function (id) {
+      const player = players.find(function (p) { return p.player_id === id })
+      if (player.team === 'B') {
+        return Promise.resolve({ player_id: id, name: 'PlayerB ' + id })
+      }
+      return Promise.reject(new Error('Not found'))
+    })
+
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          onSelectStarter={onSelectStarter}
+        />
+      </svg>
+    )
+
+    await screen.findByText('PlayerB 7')
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+    expect(onSelectStarter).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByTestId('starter-card-7'))
+    expect(onSelectStarter).toHaveBeenCalledWith({
+      player_id: 7,
+      name: 'PlayerB 7',
+      number: 1,
+      team: 'B'
+    })
   })
 
 })
