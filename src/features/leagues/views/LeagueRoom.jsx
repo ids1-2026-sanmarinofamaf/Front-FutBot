@@ -83,17 +83,18 @@ export function LeagueLobby() {
   function applyLeagueEvent(lobby, msg, data) {
     switch (msg.type) {
       case "lobby_state": // foto completa: reemplaza todo
-        return {ready: true, 
-                leagueID: msg.league_id, 
-                currentUsers: msg.current_users, 
-                state: msg.state, 
-                users: msg.users,
-                fixture: data?.fixture ?? [],   // se completa con league_started o con GET /leagues/{id}
-                standings: data?.standings ?? [],
-                round: 0,
-                matchIDs: [], //Lista de matchs ejecutados en la ronda actual
-                results: [] // resultados de partidos finalizados
-              };
+        return {
+          ready: true,
+          leagueID: msg.league_id,
+          currentUsers: msg.current_users,
+          state: msg.state,
+          users: msg.users,
+          fixture: data?.fixture ?? [],   // se completa con league_started o con GET /leagues/{id}
+          standings: data?.standings ?? [],
+          round: 0,
+          matchIDs: [], //Lista de matchs ejecutados en la ronda actual
+          results: [] // resultados de partidos finalizados
+        };
 
       case "user_joined": // cambio: se aplica sobre lo anterior
         if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
@@ -118,11 +119,12 @@ export function LeagueLobby() {
           standings: msg.standings,
         };
 
-      case "league_round_started":{
+      case "league_round_started": {
         // Verifica que el evento pertenezca a esta liga 
-        if(id == msg.league_id){
-          return {...lobby, 
-            round: msg.round, 
+        if (id == msg.league_id) {
+          return {
+            ...lobby,
+            round: msg.round,
             matchIDs: msg.match_ids,
             fixture: lobby.fixture?.map((match) =>
               msg.match_ids.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
@@ -135,11 +137,12 @@ export function LeagueLobby() {
         }
       }
 
-      case "league_round_finished":{
+      case "league_round_finished": {
         // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
-        if(id == msg.league_id && lobby.round == msg.round){
-          return {...lobby, 
-            standings: msg.standings, 
+        if (id == msg.league_id && lobby.round == msg.round) {
+          return {
+            ...lobby,
+            standings: msg.standings,
             matchIDs: [],
             results: [ //result acumula los mensajes recibidos y reemplaza duplicados
               ...lobby.results.filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
@@ -158,9 +161,9 @@ export function LeagueLobby() {
         }
       }
 
-      case "league_finished":{
-        if(id == msg.league_id){
-          return {...lobby, state: "FINALIZADA"}
+      case "league_finished": {
+        if (id == msg.league_id) {
+          return { ...lobby, state: "FINALIZADA" }
         } else {
           console.log("Se esta recibiendo información de otra liga")
           return lobby
@@ -214,7 +217,7 @@ export function LeagueLobby() {
     if (!creator || !session) {
       return false;
     } else {
-      return Number(creator.club_id) === Number(session.user_id); 
+      return Number(creator.club_id) === Number(session.user_id);
     }
   }, [lobby?.users, session]); //todo lo que la funcion lee debe estar en las dependencias
 
@@ -225,7 +228,7 @@ export function LeagueLobby() {
    */
   const TABS = [
     { id: "usuarios", label: "Usuarios", disabled: false },
-    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR"},
+    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR" },
     { id: "tabla", label: "Tabla de posiciones", disabled: lobby.state === "POR_COMENZAR" },
   ];
   const [activeTab, setActiveTab] = useState("usuarios");
@@ -235,12 +238,12 @@ export function LeagueLobby() {
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleStartLeague = async () => {
-    if(lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR"){
+    if (lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR") {
       setStarting(true)
-      try{
+      try {
         await startLeague(numericId)
       } catch (err) {
-        switch(err.detail) {
+        switch (err.detail) {
 
           case "Only the league creator can start the league": {
             setAlert("No eres el creador.")
@@ -272,16 +275,16 @@ export function LeagueLobby() {
             break
           }
 
-          default: 
+          default:
             setAlert("Error desconocido.")
             showToast()
             break
-          
-          } 
-          
-          setStarting(false)
-        
-      } 
+
+        }
+
+        setStarting(false)
+
+      }
     }
   }
 
@@ -348,35 +351,35 @@ export function LeagueLobby() {
     if (lobby.state === "FINALIZADA") setShowFinished(true)
   }, [lobby.state])
 
-  return(
-    
-    lobby.ready ?  
-    <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+  return (
 
-      {showFinished && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="finished-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-        >
-          <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
-            <h2 id="finished-title" className="text-2xl font-bold text-slate-100">
-              Liga finalizada
-            </h2>
-            <p className="text-slate-300">
-              La liga ha finalizado, una vez que salga no podrá volver a ver los resultados
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowFinished(false)}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-            >
-              Cerrar
-            </button>
+    lobby.ready ?
+      <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+
+        {showFinished && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finished-title"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          >
+            <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
+              <h2 id="finished-title" className="text-2xl font-bold text-slate-100">
+                Liga finalizada
+              </h2>
+              <p className="text-slate-300">
+                La liga ha finalizado, una vez que salga no podrá volver a ver los resultados. Si recargas la página no podrás acceder nuevamente a la información de la liga finalizada
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowFinished(false)}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/** Alerta: Error al usar apiClient */}
         {alert === "No eres el creador." && toast && (
@@ -407,7 +410,7 @@ export function LeagueLobby() {
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
           />
         )}
-    
+
         {/** Alerta: Error al usar apiClient */}
         {alert === "Error desconocido." && toast && (
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
@@ -437,13 +440,13 @@ export function LeagueLobby() {
             {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
             {lobby.state === "POR_COMENZAR" && (
               isCreator ? (
-              /* Boton para iniciar liga, solo visible para el creador */
-              <> {/* En JSX, una expresión solo puede devolver un único elemento */}
-                <button
-                  type="button"
-                  disabled={lobby.currentUsers < 3 || starting}
-                  onClick={handleStartLeague}
-                  className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                /* Boton para iniciar liga, solo visible para el creador */
+                <> {/* En JSX, una expresión solo puede devolver un único elemento */}
+                  <button
+                    type="button"
+                    disabled={lobby.currentUsers < 3 || starting}
+                    onClick={handleStartLeague}
+                    className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
                     disabled:border-gray-500
                     disabled:text-gray-300
                     disabled:hover:bg-gray-500
@@ -451,24 +454,24 @@ export function LeagueLobby() {
                     disabled:active:text-gray-300
                     disabled:focus:ring-0
                     disabled:cursor-not-allowed"
-                >
-                  {starting ? "Iniciando..." : "Iniciar liga"}
-                </button>
+                  >
+                    {starting ? "Iniciando..." : "Iniciar liga"}
+                  </button>
 
-                {lobby.currentUsers < 3 && (
-                  <p className="px-4 py-2 text-slate-400">
-                    Se necesitan al menos 3 integrantes
-                  </p>
-                )}
-              </>
-              ) 
-              : 
-              (
-                /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
-                <p className="px-4 py-2 text-slate-400">
-                  Esperando que el creador inicie la liga
-                </p>
+                  {lobby.currentUsers < 3 && (
+                    <p className="px-4 py-2 text-slate-400">
+                      Se necesitan al menos 3 integrantes
+                    </p>
+                  )}
+                </>
               )
+                :
+                (
+                  /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
+                  <p className="px-4 py-2 text-slate-400">
+                    Esperando que el creador inicie la liga
+                  </p>
+                )
             )}
 
             {/* Boton para cancelar liga */}
@@ -501,13 +504,12 @@ export function LeagueLobby() {
                     disabled={tab.disabled}
                     onClick={() => setActiveTab(tab.id)}
                     aria-current={activeTab === tab.id ? "page" : undefined}
-                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${
-                      tab.disabled
+                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${tab.disabled
                         ? "border-transparent text-slate-600 cursor-not-allowed"
                         : activeTab === tab.id
-                        ? "text-emerald-400 border-emerald-400"
-                        : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
-                    }`}
+                          ? "text-emerald-400 border-emerald-400"
+                          : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -527,15 +529,15 @@ export function LeagueLobby() {
         </div>
 
       </div>
-    :        
+      :
       <div className="min-h-screen mi-fuente bg-slate-900 flex flex-col items-center justify-center gap-5">
         {/* Boton para volver */}
-          <button
-            type="button"
-            onClick={() => navigate("/league")}
-            className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-          >
-            Volver
+        <button
+          type="button"
+          onClick={() => navigate("/league")}
+          className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+        >
+          Volver
         </button>
         <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
         <span className="text-slate-400 text-4xl">
