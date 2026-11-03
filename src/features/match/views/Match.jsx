@@ -130,6 +130,7 @@ export function Match({ estado_partido, matchId, pausa }) {
           <MatchPlayerOut
             players={estado_partido.players}
             playerNumbers={playerNumbers}
+            matchId={effectiveMatchId}
             onSelectStarter={handleSelectStarter}
           />
 

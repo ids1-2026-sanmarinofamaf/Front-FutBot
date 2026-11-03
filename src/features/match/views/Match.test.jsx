@@ -1,11 +1,10 @@
-
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { Match } from './Match'
 import { getPlayerById } from '../../player/api.js'
 import { getBehaviors } from '../../behaviors/api.js'
-import { changeBehavior } from '../api.js'
+import { changeBehavior, makeSubstitution } from '../api.js'
 
 vi.mock('../../player/api.js', () => ({
   getPlayerById: vi.fn()
@@ -16,7 +15,8 @@ vi.mock('../../behaviors/api.js', () => ({
 }))
 
 vi.mock('../api.js', () => ({
-  changeBehavior: vi.fn()
+  changeBehavior: vi.fn(),
+  makeSubstitution: vi.fn()
 }))
 
 function renderMatch(estado_partido, matchId = '42', pausa = null) {
@@ -62,8 +62,6 @@ describe('Match', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // El backend solo devuelve jugadores del propio club.
-    // Los del equipo rival (team "B") responden 404 → se muestran como "Rival".
     getPlayerById.mockImplementation(function (id) {
       const player = estado_partido.players.find(function (p) {
         return p.player_id === id
@@ -242,8 +240,8 @@ describe('Match', () => {
       ).not.toBeInTheDocument()
     })
 
-    // Al volver a abrir otro titular, reutiliza la lista cacheada sin volver a llamar a getBehaviors
     fireEvent.click(screen.getByTestId('starter-card-2'))
+
     expect(
       await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
     ).toBeInTheDocument()
@@ -289,6 +287,140 @@ describe('Match', () => {
       screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
     ).not.toBeInTheDocument()
     expect(getBehaviors).not.toHaveBeenCalled()
+  })
+
+  // Tests de sustituciones
+
+  it('abre el menú de suplentes al pulsar el botón Cambiar jugador', async () => {
+    renderMatch(estado_partido)
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    expect(
+      await screen.findByTestId('substitute-option-4')
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByTestId('cancel-substitution-A')
+    ).toBeInTheDocument()
+  })
+
+  it('envía la solicitud de sustitución con el titular y el suplente seleccionados', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(makeSubstitution).toHaveBeenCalledTimes(1)
+      expect(makeSubstitution).toHaveBeenCalledWith('77', 1, 4)
+    })
+  })
+
+  it('cambia el texto del botón del titular por el nombre del suplente seleccionado', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(
+        screen.getByTestId('substitution-button-1')
+      ).toHaveTextContent('Player 4')
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-2')
+    ).toHaveTextContent('Cambiar jugador')
+  })
+
+  it('mantiene el nombre pendiente hasta que el WebSocket informa que se concretó la sustitución', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    const result = renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(
+        screen.getByTestId('substitution-button-1')
+      ).toHaveTextContent('Player 4')
+    })
+
+    const updatedState = {
+      ...estado_partido,
+      actual_tic: 500,
+      players: estado_partido.players.map(function (player) {
+        if (player.player_id === 1) {
+          return { ...player, is_on_field: false }
+        }
+
+        if (player.player_id === 4) {
+          return { ...player, is_on_field: true }
+        }
+
+        return player
+      })
+    }
+
+    result.rerender(
+      <MemoryRouter>
+        <Match
+          estado_partido={updatedState}
+          matchId="77"
+        />
+      </MemoryRouter>
+    )
+
+    await waitFor(function () {
+      expect(
+        screen.queryByTestId('substitution-button-1')
+      ).not.toBeInTheDocument()
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-4')
+    ).toHaveTextContent('Cambiar jugador')
+  })
+
+  it('no cambia el texto del botón cuando falla la solicitud de sustitución', async () => {
+    makeSubstitution.mockRejectedValue(
+      new Error('Substitution limit reached')
+    )
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(makeSubstitution).toHaveBeenCalledTimes(1)
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-1')
+    ).toHaveTextContent('Cambiar jugador')
+
+    expect(
+      screen.getByTestId('substitution-button-1')
+    ).not.toHaveTextContent('Player 4')
   })
 
   // Tests de pausas
