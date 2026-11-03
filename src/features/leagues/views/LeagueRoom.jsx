@@ -5,8 +5,9 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getUserSessionInfo, startLeague } from "../api";
+import { getLeagueInfo, getUserSessionInfo, startLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
+import { apiClient } from "../../../shared/api/client";
 /**
  * Integración de componenetes:
  * - Información de liga
@@ -66,12 +67,20 @@ export function LeagueLobby() {
   }, [numericId, joinL]);
 
   /**
+   * Obtener datos de la liga mediante endpoint REST, se usa useEffect para evitar nuevos renders
+   */
+  const [dataREST, setDataREST] = useState(null)
+  useEffect(() => {
+    getLeagueInfo({ id }).then(setDataREST)
+  }, [id])
+
+  /**
    * 2. Procesamiento de un evento
    * @param {*} lobby : información previa del lobby
    * @param {*} msg : mensaje a procesar
    * @returns Lista actualizada de acuerdo al evento procesado
    */
-  function applyLeagueEvent(lobby, msg) {
+  function applyLeagueEvent(lobby, msg, data) {
     switch (msg.type) {
       case "lobby_state": // foto completa: reemplaza todo
         return {ready: true, 
@@ -79,8 +88,8 @@ export function LeagueLobby() {
                 currentUsers: msg.current_users, 
                 state: msg.state, 
                 users: msg.users,
-                fixture: null,   // se completa con league_started o con GET /leagues/{id}
-                standings: null,
+                fixture: data?.fixture ?? [],   // se completa con league_started o con GET /leagues/{id}
+                standings: data?.standings ?? [],
                 round: 0,
                 matchIDs: [], //Lista de matchs ejecutados en la ronda actual
                 results: [] // resultados de partidos finalizados
@@ -177,14 +186,11 @@ export function LeagueLobby() {
    */
   const lobby = useMemo(() => {
     const events = messages[numericId] || [];
-    return events.reduce(applyLeagueEvent, { 
-      ready: false, 
-      leagueID : id, 
-      currentUsers : 0 , 
-      state: null, 
-      users: [] 
-    }); // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
-  }, [messages, numericId]);
+    return events.reduce( // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
+      (lobby, msg) => applyLeagueEvent(lobby, msg, dataREST),
+      { ready: false, leagueID: id, currentUsers: 0, state: null, users: [] }
+    );
+  }, [messages, numericId, dataREST]);
 
   /**
    * Logica para identificar si el usuario de la sesion actual es el creador de la liga

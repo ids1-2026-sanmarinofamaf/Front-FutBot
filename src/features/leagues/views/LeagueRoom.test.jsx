@@ -42,10 +42,12 @@ vi.mock("../../friendlyGames/api", () => ({
 
 const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
+const mockGetLeagueInfo = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
   startLeague: (...args) => mockStartLeague(...args),
+  getLeagueInfo: (...args) => mockGetLeagueInfo(...args),
 }));
 
 // Mock del componente de usuarios para aislar la vista
@@ -150,6 +152,7 @@ describe("LeagueLobby Component", () => {
     };
     mockToastState = null;
     mockGetCurrentUser.mockResolvedValue({ user_name: "MiClub" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
     mockGetUserSessionInfo.mockResolvedValue({
       user_id: 1,
       user_name: "Club A",
