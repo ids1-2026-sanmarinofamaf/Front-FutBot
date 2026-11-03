@@ -5,9 +5,9 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getLeagueInfo, getUserSessionInfo, startLeague } from "../api";
+import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
-import { apiClient } from "../../../shared/api/client";
+
 /**
  * Integración de componenetes:
  * - Información de liga

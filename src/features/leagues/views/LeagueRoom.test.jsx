@@ -755,10 +755,9 @@ describe("LeagueLobby Component", () => {
       fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalled();
+        expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
       });
-
-      expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+      expect(mockShowToast).toHaveBeenCalled();
       expect(mockSocketState.leaveL).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
     });
