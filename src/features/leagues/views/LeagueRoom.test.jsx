@@ -43,11 +43,13 @@ vi.mock("../../friendlyGames/api", () => ({
 const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
 const mockGetLeagueInfo = vi.fn();
+const mockLeaveLeagueAsPlayer = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
   startLeague: (...args) => mockStartLeague(...args),
   getLeagueInfo: (...args) => mockGetLeagueInfo(...args),
+  leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
 }));
 
 // Mock del componente de usuarios para aislar la vista
