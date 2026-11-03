@@ -88,7 +88,7 @@ export const getUserSessionInfo = async () => {
 export const getLeagueInfo = async ({league_id}) => {
   let dataREST
   try{
-    dataREST = await apiClient(`/league/${league_id}`, {method :"GET"})
+    dataREST = await apiClient(`/leagues/${league_id}`, {method :"GET"})
   } catch {
     dataREST = {fixture: [], standings: []}
   }

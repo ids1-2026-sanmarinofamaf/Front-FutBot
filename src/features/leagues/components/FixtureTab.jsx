@@ -22,12 +22,12 @@ function FixtureCard({ match, matchsInGame = [], resultMatch }) {
 
   return (
     <div className="h-full p-4 bg-slate-800 border border-slate-700 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <span className="text-lg font-bold text-slate-100">{match.local.name}</span>
+      <div className="flex flex-1 flex-wrap items-center justify-left gap-x-6 gap-y-2">
+        <span className="text-6xl font-bold text-slate-100">{match.local.name}</span>
         {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.local ?? 0})</span>}
-        <span className="text-lg font-medium text-slate-400">vs</span>
+        <span className="text-4xl font-medium text-slate-400">vs</span>
         {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.visitante ?? 0})</span>}
-        <span className="text-lg font-bold FictureTab.testtext-slate-100">{match.visitante.name}</span>
+        <span className="text-6xl font-bold FictureTab.testtext-slate-100">{match.visitante.name}</span>
 
         {inGame && (
           <span className="px-2 py-0.5 text-sm font-medium bg-emerald-600 text-white rounded">
@@ -43,20 +43,21 @@ function FixtureCard({ match, matchsInGame = [], resultMatch }) {
 
         }
 
-        <button
-          disabled={!inGame}
-          onClick={() => { navigate(`/matches/${match.match_id}`, { state: { from: `/league/${id}/${leagueName}` } }) }}
-          className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
-                    disabled:border-gray-500
-                    disabled:text-gray-300
-                    disabled:hover:bg-gray-500
-                    disabled:hover:text-gray-300
-                    disabled:active:text-gray-300
-                    disabled:focus:ring-0
-                    disabled:cursor-not-allowed">
-          Ver partido
-        </button>
       </div>
+      
+      <button
+        disabled={!inGame}
+        onClick={() => { navigate(`/matches/${match.match_id}`, { state: { from: `/league/${id}/${leagueName}` } }) }}
+        className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                  disabled:border-gray-500
+                  disabled:text-gray-300
+                  disabled:hover:bg-gray-500
+                  disabled:hover:text-gray-300
+                  disabled:active:text-gray-300
+                  disabled:focus:ring-0
+                  disabled:cursor-not-allowed">
+        Ver partido
+      </button>
     </div>
   )
 }

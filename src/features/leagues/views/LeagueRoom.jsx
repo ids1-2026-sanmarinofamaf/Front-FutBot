@@ -7,6 +7,7 @@ import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
 import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
+import TablaTab from "../components/TablaTab";
 
 /**
  * Integración de componenetes:
@@ -71,7 +72,7 @@ export function LeagueLobby() {
    */
   const [dataREST, setDataREST] = useState(null)
   useEffect(() => {
-    getLeagueInfo({ id }).then(setDataREST)
+    getLeagueInfo({ league_id:id }).then(setDataREST)
   }, [id])
 
   /**
@@ -547,6 +548,5 @@ export function LeagueLobby() {
           La reconexión automática está desactivada hasta nuevo aviso. Si recargaste la página volvé a unirte desde la lista de liga.
         </span>
       </div>
-
   )
 }
