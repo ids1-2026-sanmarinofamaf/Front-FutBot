@@ -340,10 +340,43 @@ export function LeagueLobby() {
     }
   };
 
+  /**
+   * Lógica para ventana de notificación de final de liga
+   */
+  const [showFinished, setShowFinished] = useState(false)
+  useEffect(() => {
+    if (lobby.state === "FINALIZADA") setShowFinished(true)
+  }, [lobby.state])
+
   return(
     
     lobby.ready ?  
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+
+      {showFinished && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finished-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        >
+          <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
+            <h2 id="finished-title" className="text-2xl font-bold text-slate-100">
+              Liga finalizada
+            </h2>
+            <p className="text-slate-300">
+              La liga ha finalizado, una vez que salga no podrá volver a ver los resultados
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowFinished(false)}
+              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
         {/** Alerta: Error al usar apiClient */}
         {alert === "No eres el creador." && toast && (
