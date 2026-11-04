@@ -1,22 +1,36 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getRankingREST } from '../api';
 import { getCurrentUser } from '../../friendlyGames/api';
+import { useToast } from '../../../shared/hooks';
+import RightDownAlert from '../../../shared/components/RightDownAlert';
 
 export default function Ranking({ onClose }) {
-  const navigate = useNavigate();
 
   const [rawRanking,setRawRanking] = useState([])
   const [loading, setLoading] = useState(true)
   const [sessionData, setSessionData] = useState(null)
 
+  // Hooks para manejo de notificación de errores
+  const [alert, setAlert] = useState(null);
+  const {toast,showToast,hideToast} = useToast()
+
+
   useEffect(() => {
+    hideToast()
 
     const loadRanking = (async () => {
       try {
         setRawRanking(await getRankingREST())
       } catch (err) {
         // MANEJO DE ERRORES
+        switch(err.detail) {
+
+          default: 
+            setAlert("Error desconocido al cargar ranking.")
+            showToast()
+            break
+          
+        } 
       } finally {
         setLoading(false)
       }
@@ -25,10 +39,16 @@ export default function Ranking({ onClose }) {
     const loadSessionData = async () => {
       try {
         const data = await getCurrentUser();
-        console.log(data);        // el valor real
         setSessionData(data);
       } catch (err) {
-        console.error(err);
+        switch(err.detail) {
+
+          default: 
+            setAlert("Error desconocido al obtener datos de usuario.")
+            showToast()
+            break
+          
+        } 
       }
     };
 
@@ -39,9 +59,32 @@ export default function Ranking({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-800 border border-slate-700 p-8 rounded-xl shadow-2xl max-w-md w-full mx-4">
+
+      {/** Alerta: Error al usar apiClient */}
+      {alert === "Error desconocido al cargar ranking." && toast && (
+          <RightDownAlert
+              key={toast.id}
+              toast={toast}
+              errorTitle="No se pudo cargar liga"
+              errorDescription={alert}
+              color="red"
+          />
+      )}
+
+      {/** Alerta: Error al usar apiClient */}
+      {alert === "Error desconocido al obtener datos de usuario." && toast && (
+          <RightDownAlert
+              key={toast.id}
+              toast={toast}
+              errorTitle="No se pudo cargar liga"
+              errorDescription={alert}
+              color="red"
+          />
+      )}
+
+      <div className="bg-slate-800 border border-slate-700 p-8 rounded-xl shadow-2xl max-w-4xl w-full mx-4">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-100 uppercase tracking-wider">
+          <h2 className="text-4xl font-bold text-slate-100 uppercase tracking-wider">
             Ranking global
           </h2>
           <button
@@ -53,19 +96,20 @@ export default function Ranking({ onClose }) {
           </button>
         </div>
 
-        {loading && <p className="text-slate-400 text-center">Cargando...</p>}
+        {loading && <>
+          <p className="text-slate-400 text-center">Cargando...</p>
+          <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin mx-auto" />
+        </>}
 
-        {/* {!loading && error && (
-          <p className="text-red-400 text-center">No se pudo cargar el ranking.</p>
-        )} */}
-
-        {/* {!loading && !error && rawRanking.length === 0 && (
-          <p className="text-slate-400 text-center">Aún no hay clubes en el ranking</p>
-        )} */}
+        {!loading && rawRanking.length === 0 && (
+          <p className="text-4xl text-slate-400 text-center">
+            Aún no hay clubes en el ranking
+          </p>
+        )}
 
         {!loading  && rawRanking.length > 0 && ( // && !error
           <div className="max-h-96 overflow-y-auto">
-            <table className="w-full text-left text-slate-100">
+            <table className="w-full text-left text-6xl text-slate-100">
               <thead className="sticky top-0 bg-slate-800 text-sm text-slate-400">
                 <tr>
                   <th className="px-4 py-3">Posición</th>
