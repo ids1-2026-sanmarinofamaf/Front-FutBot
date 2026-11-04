@@ -1,8 +1,7 @@
 import { apiClient } from "../../shared/api/client";
 
-export const getRankingREST = async (newLData) => {
-  return apiClient("/ranking", {
+export const getRankingREST = async () => {
+  return await apiClient("/ranking", {
     method: "GET",
-    body: JSON.stringify(newLData)
   });
 };

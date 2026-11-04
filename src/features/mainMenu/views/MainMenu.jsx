@@ -44,7 +44,7 @@ export function MainMenu() {
           onClick={() => setIsRankingOpen(true)}
           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-xl transition-colors shadow-lg"
         >
-          Ranking
+          RANKING
         </button>
 
       </div>
@@ -54,7 +54,7 @@ export function MainMenu() {
       )}
 
       {isRankingOpen && ( 
-        <Ranking onClose={() => setIsPlayOptionOpen(false)} />
+        <Ranking onClose={() => setIsRankingOpen(false)} />
       )}
       
     </div>
