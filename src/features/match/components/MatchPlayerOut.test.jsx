@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MatchPlayerOut } from './MatchPlayerOut'
 import { getPlayerById } from '../../player/api.js'
@@ -392,6 +392,67 @@ describe('MatchPlayerOut', () => {
     expect(
       screen.getByTestId('substitution-button-4')
     ).toHaveTextContent('Cambiar jugador')
+  })
+
+  it('oculta automáticamente el mensaje de sustitución luego de unos segundos', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    try {
+      const { rerender } = render(
+        <svg>
+          <MatchPlayerOut
+            players={players}
+            playerNumbers={playerNumbers}
+            matchId="77"
+          />
+        </svg>
+      )
+
+      await screen.findByText('Player 1')
+
+      fireEvent.click(screen.getByTestId('substitution-button-1'))
+      fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('substitution-button-1')).toHaveTextContent(
+          'Player 4'
+        )
+      })
+
+      const updatedPlayers = players.map(function (player) {
+        if (player.player_id === 1) {
+          return { ...player, is_on_field: false }
+        }
+
+        if (player.player_id === 4) {
+          return { ...player, is_on_field: true }
+        }
+
+        return player
+      })
+
+      rerender(
+        <svg>
+          <MatchPlayerOut
+            players={updatedPlayers}
+            playerNumbers={{ ...playerNumbers, 4: 1 }}
+            matchId="77"
+          />
+        </svg>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('substitution-message')).toBeInTheDocument()
+      })
+
+      act(() => {
+        vi.advanceTimersByTime(4000)
+      })
+
+      expect(screen.queryByTestId('substitution-message')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('no muestra el mensaje ni cambia el botón si la API rechaza la sustitución', async () => {

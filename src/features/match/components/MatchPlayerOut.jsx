@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { getPlayerById } from "../../player/api.js"
 import { makeSubstitution } from "../api.js"
 
+const SUBSTITUTION_MESSAGE_DURATION = 4000
+
 export function MatchPlayerOut({
   players,
   playerNumbers,
@@ -80,6 +82,18 @@ export function MatchPlayerOut({
       setPendingSubstitution(null)
     }
   }, [players, pendingSubstitution])
+
+  useEffect(function () {
+    if (!substitutionMessage) return
+
+    const timeout = setTimeout(function () {
+      setSubstitutionMessage(null)
+    }, SUBSTITUTION_MESSAGE_DURATION)
+
+    return function () {
+      clearTimeout(timeout)
+    }
+  }, [substitutionMessage])
 
   function handleToggleSubstitutes(player) {
     if (isSubmitting) return
