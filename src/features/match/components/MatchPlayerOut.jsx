@@ -150,7 +150,7 @@ export function MatchPlayerOut({
         error.statusCode ||
         error.response?.status
 
-      if (status === 401) {
+      if (status === 401 || status === 403) {
         setSubstitutionError(
           "No estás autorizado para realizar esta sustitución."
         )

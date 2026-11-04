@@ -39,7 +39,9 @@ export const apiClient = async (endpoint, options = {}) => {
         
             // Intenta parsear el mensaje de error del backend, si existe
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || errorData.response || `Error HTTP: ${response.status}`);
+            const error = new Error(errorData.detail || errorData.response || `Error HTTP: ${response.status}`);
+            error.status = response.status;
+            throw error;
         }
 
         // Manejo de respuestas 204 No Content
