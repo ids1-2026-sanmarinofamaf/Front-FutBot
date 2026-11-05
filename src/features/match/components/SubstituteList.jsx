@@ -9,144 +9,76 @@ export function SubstituteList({
   onSelect,
   onCancel,
 }) {
-  const width = 230
-  const rowHeight = 44
-  const cancelHeight = 40
-  const errorHeight = error ? 48 : 0
-  const listHeight = Math.max(substitutes.length, 1) * rowHeight
-  const height = listHeight + cancelHeight + 15 + errorHeight
-
   return (
-    <g data-testid={`substitute-list-${team}`}>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={6}
-        fill="#1e293b"
-        stroke="white"
-        strokeWidth="2"
-      />
-
-      {substitutes.length === 0 && (
-        <text
-          x={x + width / 2}
-          y={y + 29}
-          textAnchor="middle"
-          fill="white"
-          fontSize="14"
-        >
-          Sin suplentes
-        </text>
-      )}
-
-      {substitutes.map(function (substitute, index) {
-        const info = playersInfo[String(substitute.player_id)]
-        const name =
-          info?.Name ||
-          info?.name ||
-          "Cargando..."
-
-        const rowY = y + 5 + index * rowHeight
-
-        return (
-          <g
-            key={substitute.player_id}
-            data-testid={`substitute-option-${substitute.player_id}`}
-            onClick={function (event) {
-              event.stopPropagation()
-
-              if (!isSubmitting) {
-                onSelect(substitute)
-              }
-            }}
-            style={{
-              cursor: isSubmitting ? "default" : "pointer",
-              opacity: isSubmitting ? 0.5 : 1,
-            }}
-          >
-            <rect
-              x={x + 5}
-              y={rowY}
-              width={width - 10}
-              height={39}
-              rx={4}
-              fill="#334155"
-            />
-
-            <text
-              x={x + width / 2}
-              y={rowY + 25}
-              textAnchor="middle"
-              fill="white"
-              fontSize="15"
-            >
-              {name}
-            </text>
-          </g>
-        )
-      })}
-
-      {isSubmitting && (
-        <text
-          x={x + width / 2}
-          y={y + listHeight + 5}
-          textAnchor="middle"
-          fill="white"
-          fontSize="13"
-        >
-          Realizando sustitución...
-        </text>
-      )}
-
-      {error && (
-        <text
-          x={x + width / 2}
-          y={y + listHeight + 5}
-          textAnchor="middle"
-          fill="#fca5a5"
-          fontSize="12"
-        >
-          {error}
-        </text>
-      )}
-
-      <g
-        data-testid={`cancel-substitution-${team}`}
+    <foreignObject
+      x={x}
+      y={y}
+      width={230}
+      height={1}
+      className="overflow-visible"
+    >
+      <div
+        data-testid={`substitute-list-${team}`}
         onClick={function (event) {
           event.stopPropagation()
-
-          if (!isSubmitting) {
-            onCancel()
-          }
         }}
-        style={{
-          cursor: isSubmitting ? "default" : "pointer",
-          opacity: isSubmitting ? 0.5 : 1,
-        }}
+        className="w-[230px] rounded-md border-2 border-white bg-slate-800 p-1.5 text-white shadow-lg flex flex-col gap-1.5"
       >
-        <rect
-          x={x + 5}
-          y={y + height - cancelHeight - 5}
-          width={width - 10}
-          height={34}
-          rx={4}
-          fill="#991b1b"
-        />
+        {substitutes.length === 0 && (
+          <p className="py-2 text-center text-sm text-white">
+            Sin suplentes
+          </p>
+        )}
 
-        <text
-          x={x + width / 2}
-          y={y + height - 13}
-          textAnchor="middle"
-          fill="white"
-          fontSize="14"
-          fontWeight="bold"
+        {substitutes.map(function (substitute) {
+          const info = playersInfo[String(substitute.player_id)]
+          const name =
+            info?.Name ||
+            info?.name ||
+            "Cargando..."
+
+          return (
+            <button
+              key={substitute.player_id}
+              type="button"
+              data-testid={`substitute-option-${substitute.player_id}`}
+              disabled={isSubmitting}
+              onClick={function (event) {
+                event.stopPropagation()
+                onSelect(substitute)
+              }}
+              className="w-full rounded bg-slate-700 py-2 px-2 text-center text-[15px] text-white hover:bg-slate-600 disabled:cursor-default disabled:opacity-50 truncate"
+            >
+              {name}
+            </button>
+          )
+        })}
+
+        {isSubmitting && (
+          <p className="px-1 text-center text-[13px] text-white">
+            Realizando sustitución...
+          </p>
+        )}
+
+        {error && (
+          <p className="px-1 text-center text-xs text-red-300 break-words">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          data-testid={`cancel-substitution-${team}`}
+          disabled={isSubmitting}
+          onClick={function (event) {
+            event.stopPropagation()
+            onCancel()
+          }}
+          className="w-full rounded bg-red-800 py-1.5 px-2 text-center text-sm font-bold text-white hover:bg-red-700 disabled:cursor-default disabled:opacity-50"
         >
           Cancelar
-        </text>
-      </g>
-    </g>
+        </button>
+      </div>
+    </foreignObject>
   )
 }
-
