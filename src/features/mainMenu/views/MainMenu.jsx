@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { PlayOption } from '../components/PlayOption';
 // Se asume la existencia del recurso estático en la capa compartida
 import defaultAvatar from '../../../shared/assets/default-avatar.png';
+import Ranking from '../components/Ranking';
 
 export function MainMenu() {
   const [isPlayOptionOpen, setIsPlayOptionOpen] = useState(false);
+  const [isRankingOpen, setIsRankingOpen] = useState(false)
   const navigate = useNavigate();
 
   return (
@@ -37,11 +39,24 @@ export function MainMenu() {
         >
           JUGAR
         </button>
+
+        <button 
+          onClick={() => setIsRankingOpen(true)}
+          className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-xl transition-colors shadow-lg"
+        >
+          RANKING
+        </button>
+
       </div>
 
       {isPlayOptionOpen && (
         <PlayOption onClose={() => setIsPlayOptionOpen(false)} />
       )}
+
+      {isRankingOpen && ( 
+        <Ranking onClose={() => setIsRankingOpen(false)} />
+      )}
+      
     </div>
   );
 }
