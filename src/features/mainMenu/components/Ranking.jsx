@@ -101,13 +101,13 @@ export default function Ranking({ onClose }) {
           <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin mx-auto" />
         </>}
 
-        {!loading && rawRanking.length === 0 && (
+        {!loading && !alert && rawRanking.length === 0 && (
           <p className="text-4xl text-slate-400 text-center">
             Aún no hay clubes en el ranking
           </p>
         )}
 
-        {!loading  && rawRanking.length > 0 && ( // && !error
+        {!loading && rawRanking.length > 0 && (
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-left text-6xl text-slate-100">
               <thead className="sticky top-0 bg-slate-800 text-sm text-slate-400">
