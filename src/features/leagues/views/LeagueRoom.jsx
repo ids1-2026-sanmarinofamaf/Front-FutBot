@@ -380,10 +380,13 @@ export function LeagueLobby() {
   /**
    * Lógica para ventana de notificación de final de liga
    */
-  const [showFinished, setShowFinished] = useState(false)
+  const [showFinished, setShowFinished] = useState(false);
   useEffect(() => {
-    if (lobby.state === "FINALIZADA") setShowFinished(true)
-  }, [lobby.state])
+    if (lobby.state === "FINALIZADA") {
+      setShowFinished(true);
+      leaveL(numericId);
+    }
+  }, [lobby.state, numericId, leaveL]);
 
   return (
 
@@ -402,7 +405,10 @@ export function LeagueLobby() {
                 Liga finalizada
               </h2>
               <p className="text-slate-300">
-                La liga ha finalizado, una vez que salga no podrá volver a ver los resultados. Si recargas la página no podrás acceder nuevamente a la información de la liga finalizada
+                La liga ha finalizado, gracias por jugar.
+              </p>
+              <p className="text-slate-300">
+                Revisa los resultados antes de salir (una vez cerrada la conexión con el servidor no podrás acceder nuevamente a ellos)
               </p>
               <button
                 type="button"

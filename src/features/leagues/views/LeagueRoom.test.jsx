@@ -662,6 +662,20 @@ describe("LeagueLobby Component", () => {
         expect(screen.queryByText(/Esperando que el creador inicie la liga/i)).not.toBeInTheDocument();
       }
     );
+
+    it("cuando la liga pasa a FINALIZADA muestra el diálogo y llama a leaveL para cerrar el socket", async () => {
+      setEvents([
+        lobbyConCreador(3),
+        leagueStarted(),
+        { type: "league_finished", league_id: 10 },
+      ]);
+
+      await renderLobby();
+
+      expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Liga finalizada")).toBeInTheDocument();
+    });
   });
 
    describe("Abandonar liga", () => {
