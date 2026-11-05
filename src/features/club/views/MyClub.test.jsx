@@ -25,6 +25,7 @@ describe('MyClub UI', () => {
     expect(screen.getByRole('heading', { name: /Mi Club/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Gestión de Jugadores/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Gestión de Comportamientos/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Gestión de Directores Técnicos/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Volver al Menú Principal/i })).toBeInTheDocument();
 
     // Verificamos que los botones de features futuras no se rendericen
@@ -58,6 +59,20 @@ describe('MyClub UI', () => {
     // 3. Assert
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/club/behaviors');
+  });
+
+  it('navega a "/club/coach-behaviors" al hacer clic en "Gestión de Directores Técnicos"', async () => {
+    // 1. Arrange
+    const user = userEvent.setup();
+    render(<MyClub />);
+
+    // 2. Act
+    const coachBehaviorsButton = screen.getByRole('button', { name: /Gestión de Directores Técnicos/i });
+    await user.click(coachBehaviorsButton);
+
+    // 3. Assert
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/club/coach-behaviors');
   });
 
   it('navega a "/" al hacer clic en "Volver al Menú Principal"', async () => {
