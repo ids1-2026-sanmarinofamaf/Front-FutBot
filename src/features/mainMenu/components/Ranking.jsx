@@ -65,7 +65,7 @@ export default function Ranking({ onClose }) {
           <RightDownAlert
               key={toast.id}
               toast={toast}
-              errorTitle="No se pudo cargar liga"
+              errorTitle="No se pudo cargar ranking"
               errorDescription={alert}
               color="red"
           />
@@ -76,7 +76,7 @@ export default function Ranking({ onClose }) {
           <RightDownAlert
               key={toast.id}
               toast={toast}
-              errorTitle="No se pudo cargar liga"
+              errorTitle="No se pudo cargar ranking"
               errorDescription={alert}
               color="red"
           />
