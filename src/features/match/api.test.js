@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { changeBehavior } from "./api";
+import { changeBehavior, makeSubstitution } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 vi.mock("../../shared/api/client", () => ({
@@ -50,3 +50,48 @@ describe("Match API - changeBehavior", () => {
   });
 });
 
+describe("Match API - makeSubstitution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("debe invocar apiClient con PUT, la ruta correcta y new_player numérico en el body", async () => {
+    apiClient.mockResolvedValue(null);
+
+    const result = await makeSubstitution(10, 4, "7");
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+    expect(apiClient).toHaveBeenCalledWith("/live_match/10/me/4", {
+      method: "PUT",
+      body: JSON.stringify({ new_player: 7 }),
+    });
+    expect(result).toBeNull();
+  });
+
+  it("debe lanzar un error si falta matchId, playerId o newPlayerId sin llamar a apiClient", async () => {
+    const expectedMessage =
+      "Se requieren matchId, playerId y newPlayerId para realizar una sustitución";
+
+    await expect(makeSubstitution(undefined, 4, 7)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution(null, 4, 7)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution("", 4, 7)).rejects.toThrow(expectedMessage);
+
+    await expect(makeSubstitution(10, undefined, 7)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution(10, null, 7)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution(10, "", 7)).rejects.toThrow(expectedMessage);
+
+    await expect(makeSubstitution(10, 4, undefined)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution(10, 4, null)).rejects.toThrow(expectedMessage);
+    await expect(makeSubstitution(10, 4, "")).rejects.toThrow(expectedMessage);
+
+    expect(apiClient).not.toHaveBeenCalled();
+  });
+
+  it("debe propagar los errores devueltos por apiClient", async () => {
+    apiClient.mockRejectedValueOnce(new Error("Substitution limit reached"));
+
+    await expect(makeSubstitution(10, 4, 7)).rejects.toThrow(
+      "Substitution limit reached"
+    );
+  });
+});

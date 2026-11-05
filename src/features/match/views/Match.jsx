@@ -130,6 +130,7 @@ export function Match({ estado_partido, matchId, pausa }) {
           <MatchPlayerOut
             players={estado_partido.players}
             playerNumbers={playerNumbers}
+            matchId={effectiveMatchId}
             onSelectStarter={handleSelectStarter}
           />
 
@@ -138,7 +139,7 @@ export function Match({ estado_partido, matchId, pausa }) {
 
         {/* La pausa cubre únicamente el rectángulo de juego */}
         <div
-          className="absolute"
+          className="absolute pointer-events-none"
           style={{
             left: "15.625%",
             top: "13.8889%",
