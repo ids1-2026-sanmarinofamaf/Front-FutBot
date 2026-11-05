@@ -83,19 +83,41 @@ export function LeagueLobby() {
    */
   function applyLeagueEvent(lobby, msg, data) {
     switch (msg.type) {
-      case "lobby_state": // foto completa: reemplaza todo
+      case "lobby_state": { // foto completa: reemplaza todo
+        const activeRound = data?.active_round ?? (
+          data?.fixture ? (data.fixture.find((m) => m.state === "JUGANDO")?.round ?? 0) : 0
+        );
+        const activeMatchIds = Array.isArray(data?.active_match_ids)
+          ? data.active_match_ids
+          : (data?.fixture ? data.fixture.filter((m) => m.state === "JUGANDO").map((m) => m.match_id) : []);
+
+        const initialResults = data?.fixture
+          ? data.fixture.filter((m) => m.state === "FINALIZADO" || m.score != null).map((m) => ({
+              match_id: m.match_id,
+              score: m.score,
+              state: m.state,
+            }))
+          : [];
+
+        const fixture = data?.fixture
+          ? data.fixture.map((match) =>
+              activeMatchIds.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            )
+          : [];
+
         return {
           ready: true,
           leagueID: msg.league_id,
           currentUsers: msg.current_users,
-          state: msg.state,
+          state: data?.state ?? msg.state,
           users: msg.users,
-          fixture: data?.fixture ?? [],   // se completa con league_started o con GET /leagues/{id}
+          fixture,
           standings: data?.standings ?? [],
-          round: 0,
-          matchIDs: [], //Lista de matchs ejecutados en la ronda actual
-          results: [] // resultados de partidos finalizados
+          round: activeRound,
+          matchIDs: activeMatchIds, //Lista de matchs ejecutados en la ronda actual
+          results: initialResults // resultados de partidos finalizados
         };
+      }
 
       case "user_joined": // cambio: se aplica sobre lo anterior
         if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
@@ -140,20 +162,20 @@ export function LeagueLobby() {
 
       case "league_round_finished": {
         // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
-        if (id == msg.league_id && lobby.round == msg.round) {
+        if (id == msg.league_id && (lobby.round == msg.round || lobby.round === 0)) {
           return {
             ...lobby,
+            round: 0,
             standings: msg.standings,
             matchIDs: [],
             results: [ //result acumula los mensajes recibidos y reemplaza duplicados
-              ...lobby.results.filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
+              ...(lobby.results ?? []).filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
               ...msg.results,
             ],
-            fixture: lobby.fixture?.map((match) =>
-              msg.results.some((r) => r.match_id === match.match_id)
-                ? { ...match, state: "FINALIZADO" }
-                : match
-            ),
+            fixture: lobby.fixture?.map((match) => {
+              const res = msg.results?.find((r) => r.match_id === match.match_id);
+              return res ? { ...match, state: "FINALIZADO", score: res.score ?? match.score } : match;
+            }),
           }
 
         } else {
@@ -192,7 +214,18 @@ export function LeagueLobby() {
     const events = messages[numericId] || [];
     return events.reduce( // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
       (lobby, msg) => applyLeagueEvent(lobby, msg, dataREST),
-      { ready: false, leagueID: id, currentUsers: 0, state: null, users: [] }
+      {
+        ready: false,
+        leagueID: id,
+        currentUsers: 0,
+        state: null,
+        users: [],
+        fixture: [],
+        standings: [],
+        round: 0,
+        matchIDs: [],
+        results: [],
+      }
     );
   }, [messages, numericId, dataREST]);
 
@@ -525,8 +558,15 @@ export function LeagueLobby() {
         {/* Contenido */}
         <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
           {activeTab === "usuarios" && <LobbyUsers users={lobby.users} />}
-          {activeTab === "fixture" && <FixtureTab rawFixture={lobby.fixture} actualRound={lobby.round} />}
-          {activeTab === "tabla" && <TablaTab />}
+          {activeTab === "fixture" && (
+            <FixtureTab
+              rawFixture={lobby.fixture}
+              actualRound={lobby.round}
+              roundMatchIDs={lobby.matchIDs}
+              resultsMatchs={lobby.results}
+            />
+          )}
+          {activeTab === "tabla" && <TablaTab standings={lobby.standings} />}
         </div>
 
       </div>

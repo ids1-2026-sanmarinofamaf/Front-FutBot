@@ -14,8 +14,8 @@ function FixtureCard({ match, matchsInGame = [], resultMatch }) {
   const localGoals = 0
   const visitorGoals = 0
   //Constante para definir si el match está en juego
-  const inGame = matchsInGame.includes(match.match_id)
   const isFinished = match.state === "FINALIZADO"
+  const inGame = !isFinished && (matchsInGame.includes(match.match_id) || match.state === "JUGANDO")
   //Constante y Hook para navegación
   const { id, leagueName } = useParams();
   const navigate = useNavigate()
@@ -24,10 +24,10 @@ function FixtureCard({ match, matchsInGame = [], resultMatch }) {
     <div className="h-full p-4 bg-slate-800 border border-slate-700 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shadow-sm">
       <div className="flex flex-1 flex-wrap items-center justify-left gap-x-6 gap-y-2">
         <span className="text-6xl font-bold text-slate-100">{match.local.name}</span>
-        {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.local ?? 0})</span>}
+        {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.local ?? match?.score?.local ?? 0})</span>}
         <span className="text-4xl font-medium text-slate-400">vs</span>
-        {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.visitante ?? 0})</span>}
-        <span className="text-6xl font-bold FictureTab.testtext-slate-100">{match.visitante.name}</span>
+        {isFinished && <span className="text-lg font-bold text-slate-100">({resultMatch?.score?.visitante ?? match?.score?.visitante ?? 0})</span>}
+        <span className="text-6xl font-bold text-slate-100">{match.visitante.name}</span>
 
         {inGame && (
           <span className="px-2 py-0.5 text-sm font-medium bg-emerald-600 text-white rounded">
@@ -135,7 +135,7 @@ function FixtureRounds({ fixture, actualRound, matchIDs, resultsMatchs = [] }) {
  * @param actualRound: round actual en ejecución 
  * @returns Componente FixtureTab para lobby de liga
  */
-export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs, resultsMatchs }) {
+export default function FixtureTab({ rawFixture, actualRound, roundMatchIDs = [], resultsMatchs = [] }) {
 
   return (<>
     <FixtureRounds fixture={rawFixture} actualRound={actualRound} matchIDs={roundMatchIDs} resultsMatchs={resultsMatchs} />
