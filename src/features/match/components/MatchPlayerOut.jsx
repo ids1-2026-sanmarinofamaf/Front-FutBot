@@ -434,7 +434,10 @@ function PlayerSquare({
   onSelectStarter,
 }) {
   const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
-  const behaviorName = player.current_behavior_name || "Default"
+  const isOwn = Boolean(playerInfo?.isOwn)
+  const behaviorName = isOwn
+    ? (player.current_behavior_name || "Default")
+    : null
 
   function handleClick() {
     if (!isClickable) return
@@ -465,7 +468,7 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 20 : y + 26}
+        y={isClickable ? y + 20 : y + 36}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
@@ -477,7 +480,7 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 37 : y + 46}
+        y={isClickable ? y + 37 : y + 54}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
@@ -486,17 +489,19 @@ function PlayerSquare({
         Number: {number}
       </text>
 
-      <text
-        data-testid={`starter-behavior-${player.player_id}`}
-        x={x + size / 2}
-        y={isClickable ? y + 54 : y + 66}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="#e2e8f0"
-        fontSize={isClickable ? "11" : "12"}
-      >
-        {behaviorName}
-      </text>
+      {behaviorName && (
+        <text
+          data-testid={`starter-behavior-${player.player_id}`}
+          x={x + size / 2}
+          y={y + 54}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#e2e8f0"
+          fontSize="11"
+        >
+          {behaviorName}
+        </text>
+      )}
 
       {isClickable && (
         <text

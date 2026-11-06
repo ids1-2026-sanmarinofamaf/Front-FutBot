@@ -546,6 +546,7 @@ describe('MatchPlayerOut', () => {
 
     expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Rápido')
     expect(screen.getByTestId('starter-behavior-2')).toHaveTextContent('Default')
+    expect(screen.queryByTestId('starter-behavior-7')).not.toBeInTheDocument()
   })
 
   it('deshabilita el botón de sustitución cuando la ventana de sustituciones está cerrada', () => {
