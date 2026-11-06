@@ -149,4 +149,48 @@ describe('Scoreboard', () => {
     expect(blackRects).toHaveLength(2);
   });
 
+  it('muestra los nombres reales de los clubes cuando matchInfo está presente', () => {
+    const matchInfo = {
+      team_a: { club_name: 'Boca Juniors' },
+      team_b: { club_name: 'River Plate' },
+    };
+
+    render(
+      <svg>
+        <Scoreboard
+          estado_partido={{
+            user1_goals: 2,
+            user2_goals: 1,
+            actual_tic: "450",
+            total_tic: "900"
+          }}
+          matchInfo={matchInfo}
+        />
+      </svg>
+    );
+
+    expect(screen.getByText('Boca Juniors')).toBeInTheDocument();
+    expect(screen.getByText('River Plate')).toBeInTheDocument();
+    expect(screen.queryByText('team 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('team 2')).not.toBeInTheDocument();
+  });
+
+  it('muestra el período actual cuando current_period está presente en estado_partido', () => {
+    render(
+      <svg>
+        <Scoreboard
+          estado_partido={{
+            user1_goals: 0,
+            user2_goals: 0,
+            actual_tic: "150",
+            total_tic: "600",
+            current_period: 2
+          }}
+        />
+      </svg>
+    );
+
+    expect(screen.getByText('Q2')).toBeInTheDocument();
+  });
+
 });
