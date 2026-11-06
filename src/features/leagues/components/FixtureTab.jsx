@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 
 /**
@@ -10,9 +10,6 @@ import { useNavigate, useParams } from "react-router-dom"
  */
 function FixtureCard({ match, matchsInGame = [], resultMatch }) {
 
-  //Constantes para definir goles de cada equipo
-  const localGoals = 0
-  const visitorGoals = 0
   //Constante para definir si el match está en juego
   const isFinished = match.state === "FINALIZADO"
   const inGame = !isFinished && (matchsInGame.includes(match.match_id) || match.state === "JUGANDO")
@@ -47,7 +44,7 @@ function FixtureCard({ match, matchsInGame = [], resultMatch }) {
       
       <button
         disabled={!inGame}
-        onClick={() => { navigate(`/matches/${match.match_id}`, { state: { from: `/league/${id}/${leagueName}` } }) }}
+        onClick={() => { navigate(`/matches/${match.match_id}`, { state: { from: `/league/lobby/${id}/${encodeURIComponent(leagueName)}` } }) }}
         className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
                   disabled:border-gray-500
                   disabled:text-gray-300
@@ -92,10 +89,23 @@ function FixtureRounds({ fixture, actualRound, matchIDs, resultsMatchs = [] }) {
   // Hook para almacenar lista de partidos agrupados por round
   const blocks = useMemo(() => groupByRound(fixture ?? []), [fixture])
 
+  const isPlaying = (match) => match.state !== "FINALIZADO" && (
+    matchIDs.includes(match.match_id) || match.state === "JUGANDO"
+  )
+  const hasActiveMatches = blocks.some((block) => block.matches.some(isPlaying))
+  const nextRound = blocks.find((block) => block.matches.some((match) => match.state !== "FINALIZADO"))
+
   return (
     <div className="flex flex-col gap-6 overflow-y-auto">
+      {!hasActiveMatches && nextRound && (
+        <p role="status" className="text-slate-300">
+          Esperando el inicio de la ronda {nextRound.round}.
+        </p>
+      )}
       {blocks.map((block) => {
-        const isCurrent = block.round === actualRound
+        const isFinished = block.matches.every((match) => match.state === "FINALIZADO")
+        const isCurrent = !isFinished && block.round === actualRound && block.matches.some(isPlaying)
+        const roundStatus = isFinished ? "Finalizada" : isCurrent ? "En juego" : "Pendiente"
 
         return (
           <section
@@ -107,11 +117,9 @@ function FixtureRounds({ fixture, actualRound, matchIDs, resultsMatchs = [] }) {
           >
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-slate-100">Ronda {block.round}</h2>
-              {isCurrent && (
-                <span className="px-2 py-0.5 text-sm font-medium bg-emerald-600 text-white rounded">
-                  En juego
-                </span>
-              )}
+              <span className={`px-2 py-0.5 text-sm font-medium text-white rounded ${isCurrent ? "bg-emerald-600" : "bg-slate-700"}`}>
+                {roundStatus}
+              </span>
             </div>
 
             <div className="flex flex-col gap-3">

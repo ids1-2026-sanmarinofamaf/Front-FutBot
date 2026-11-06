@@ -685,6 +685,16 @@ describe("LeagueLobby Component", () => {
       mockToastState = { id: 1 };
     });
 
+    it.each(["INICIADA", "FINALIZADA"])("deshabilita Abandonar en una liga %s", async (state) => {
+      setEvents([lobbyConCreador(3, state)]);
+      await renderLobby();
+      const button = screen.getByRole("button", { name: /abandonar/i });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it("abandona la liga correctamente y vuelve a /league", async () => {
       await renderLobby();
 
@@ -890,7 +900,7 @@ describe("LeagueLobby Component", () => {
       // Al tocar Ver partido, navega al match
       fireEvent.click(buttons[0]);
       expect(mockNavigate).toHaveBeenCalledWith("/matches/75", {
-        state: { from: "/league/5/saresr" },
+        state: { from: "/league/lobby/5/saresr" },
       });
     });
 

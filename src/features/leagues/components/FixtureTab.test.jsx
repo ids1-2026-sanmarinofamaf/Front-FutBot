@@ -81,10 +81,10 @@ function renderFixture(props = {}) {
   }
 
   const ui = (p) => (
-    <MemoryRouter initialEntries={["/league/10/Liga"]}>
+    <MemoryRouter initialEntries={["/league/lobby/10/Liga"]}>
       <Routes>
         <Route
-          path="/league/:id/:leagueName"
+          path="/league/lobby/:id/:leagueName"
           element={<FixtureTab {...defaults} {...p} />}
         />
       </Routes>
@@ -310,7 +310,7 @@ describe("FixtureTab - navegación", () => {
 
     expect(navigateMock).toHaveBeenCalledTimes(1)
     expect(navigateMock).toHaveBeenCalledWith("/matches/102", {
-      state: { from: "/league/10/Liga" },
+      state: { from: "/league/lobby/10/Liga" },
     })
   })
 
@@ -368,5 +368,34 @@ describe("FixtureTab - robustez (eventos inconsistentes y reconexión)", () => {
     expect(screen.getAllByRole("button", { name: /ver partido/i })).toHaveLength(3)
     expect(screen.getAllByText("FINALIZADO")).toHaveLength(1)
     expect(screen.getAllByText("(2)")).toHaveLength(1)
+  })
+})
+ describe("FixtureTab - espera entre rondas", () => {
+  it("identifica las rondas pendientes antes de la primera ronda", () => {
+    renderFixture()
+    expect(screen.getAllByText("Pendiente")).toHaveLength(3)
+    expect(screen.getByRole("status")).toHaveTextContent("Esperando el inicio de la ronda 1.")
+  })
+
+  it("al terminar una ronda muestra la siguiente pendiente aunque actualRound conserve la anterior", () => {
+    const { update } = renderFixture({ actualRound: 1, roundMatchIDs: [101] })
+    expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    update({
+      rawFixture: [
+        buildMatch(101, 1, "Los Pibes FC", "Atlético Sur", "FINALIZADO"),
+        buildMatch(102, 2, "Atlético Sur", "Deportivo Norte"),
+      ],
+      roundMatchIDs: [],
+    })
+    expect(within(roundSection(1)).getByText("Finalizada")).toBeInTheDocument()
+    expect(within(roundSection(2)).getByText("Pendiente")).toBeInTheDocument()
+    expect(screen.queryByText("En juego")).not.toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent("Esperando el inicio de la ronda 2.")
+  })
+
+  it("no anuncia otra ronda cuando todos los partidos finalizaron", () => {
+    renderFixture({ rawFixture: [buildMatch(101, 1, "A", "B", "FINALIZADO")] })
+    expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    expect(screen.queryByText("Pendiente")).not.toBeInTheDocument()
   })
 })

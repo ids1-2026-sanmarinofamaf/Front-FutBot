@@ -332,10 +332,11 @@ export function LeagueLobby() {
   }, [lobby.state])
 
   /**
-   * Handle para abandonar liga. Si el usuario es el creador de la liga abandona su liga esta se cancela
+   * Handle para abandonar una liga pendiente como participante.
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleLeave = async () => {
+    if (lobby.state !== "POR_COMENZAR") return;
     if (!Number.isInteger(numericId) || numericId <= 0) {
       setAlert("El ID de la liga no es válido.");
       showToast();
@@ -416,6 +417,13 @@ export function LeagueLobby() {
                 className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
               >
                 Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/league")}
+                className="px-10 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Volver a ligas
               </button>
             </div>
           </div>
@@ -518,7 +526,8 @@ export function LeagueLobby() {
             <button
               type="button"
               onClick={handleLeave}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              disabled={lobby.state !== "POR_COMENZAR"}
+              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
             >
               Abandonar
             </button>
