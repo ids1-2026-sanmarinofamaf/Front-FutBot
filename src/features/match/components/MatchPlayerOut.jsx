@@ -1,55 +1,70 @@
-import { useEffect, useRef, useState } from "react"
-import { getPlayerById } from "../../player/api.js"
+import { useEffect, useState } from "react"
 import { makeSubstitution } from "../api.js"
 import { SubstituteList } from "./SubstituteList.jsx"
 
 const SUBSTITUTION_MESSAGE_DURATION = 4000
 
+/**
+ * Construye la información de cada jugador a partir de `matchInfo`.
+ * Determina si el jugador pertenece al club del usuario mediante `matchInfo.my_club_id`.
+ *
+ * @param {Object} matchInfo - Información estática del partido.
+ * @returns {Object} Mapa de información de jugadores por player_id.
+ */
+function getPlayersInfo(matchInfo) {
+  const info = {}
+
+  if (!matchInfo?.players) {
+    return info
+  }
+
+  matchInfo.players.forEach(function (player) {
+    const isOwn = Boolean(
+      matchInfo.my_club_id !== null &&
+      matchInfo.my_club_id !== undefined &&
+      player.club_id === matchInfo.my_club_id
+    )
+
+    info[String(player.player_id)] = {
+      player_id: player.player_id,
+      name: player.name,
+      Name: player.name,
+      shirt_number: player.shirt_number,
+      club_id: player.club_id,
+      team: player.team,
+      isOwn: isOwn,
+    }
+  })
+
+  return info
+}
+
+/**
+ * Componente que renderiza los jugadores fuera del campo de juego (titulares en los laterales
+ * y suplentes en el banco), permitiendo solicitar sustituciones entre ellos.
+ *
+ * @param {Object} props
+ * @param {Array<Object>} props.players - Jugadores en el estado dinámico del partido.
+ * @param {Object} props.playerNumbers - Mapeo de player_id a número de dorsal.
+ * @param {string|number} [props.matchId] - ID del partido.
+ * @param {Object} props.matchInfo - Información estática recibida por WebSocket.
+ * @param {Function} [props.onSelectStarter] - Callback al hacer click en un titular propio.
+ * @returns {JSX.Element}
+ */
 export function MatchPlayerOut({
   players,
   playerNumbers,
   matchId,
+  matchInfo,
   onSelectStarter,
 }) {
-  const [playersInfo, setPlayersInfo] = useState({})
   const [selectedStarterId, setSelectedStarterId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [substitutionError, setSubstitutionError] = useState(null)
   const [pendingSubstitution, setPendingSubstitution] = useState(null)
   const [substitutionMessage, setSubstitutionMessage] = useState(null)
 
-  const requestedIdsRef = useRef(new Set())
-
-  useEffect(function () {
-    players.forEach(function (player) {
-      const id = player.player_id
-      const key = String(id)
-
-      if (playersInfo[key] || requestedIdsRef.current.has(key)) {
-        return
-      }
-
-      requestedIdsRef.current.add(key)
-
-      getPlayerById(id)
-        .then(function (data) {
-          setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [key]: { ...data, isOwn: true },
-            }
-          })
-        })
-        .catch(function () {
-          setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [key]: { name: "Rival", isOwn: false },
-            }
-          })
-        })
-    })
-  }, [players, playersInfo])
+  const playersInfo = getPlayersInfo(matchInfo)
 
   // Confirma la sustitución únicamente cuando el WebSocket
   // informa que el titular salió y el suplente ingresó.

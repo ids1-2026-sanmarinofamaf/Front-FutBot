@@ -19,13 +19,43 @@ vi.mock('../api.js', () => ({
   makeSubstitution: vi.fn()
 }))
 
-function renderMatch(estado_partido, matchId = '42', pausa = null) {
+const defaultMatchInfo = {
+  match_id: 42,
+  my_club_id: 1,
+  team_a: {
+    club_id: 1,
+    club_name: 'team 1',
+    coach_behavior_name: 'Coach A',
+  },
+  team_b: {
+    club_id: 2,
+    club_name: 'team 2',
+    coach_behavior_name: 'Coach B',
+  },
+  players: [
+    { player_id: 1, name: 'Player 1', shirt_number: 1, club_id: 1, team: 'A' },
+    { player_id: 2, name: 'Player 2', shirt_number: 2, club_id: 1, team: 'A' },
+    { player_id: 3, name: 'Player 3', shirt_number: 3, club_id: 1, team: 'A' },
+    { player_id: 4, name: 'Player 4', shirt_number: 4, club_id: 1, team: 'A' },
+    { player_id: 5, name: 'Player 5', shirt_number: 5, club_id: 1, team: 'A' },
+    { player_id: 6, name: 'Player 6', shirt_number: 6, club_id: 1, team: 'A' },
+    { player_id: 7, name: 'Rival', shirt_number: 1, club_id: 2, team: 'B' },
+    { player_id: 8, name: 'Rival', shirt_number: 2, club_id: 2, team: 'B' },
+    { player_id: 9, name: 'Rival', shirt_number: 3, club_id: 2, team: 'B' },
+    { player_id: 10, name: 'Rival', shirt_number: 4, club_id: 2, team: 'B' },
+    { player_id: 11, name: 'Rival', shirt_number: 5, club_id: 2, team: 'B' },
+    { player_id: 12, name: 'Rival', shirt_number: 6, club_id: 2, team: 'B' },
+  ],
+}
+
+function renderMatch(estado_partido, matchId = '42', pausa = null, matchInfo = defaultMatchInfo) {
   return render(
     <MemoryRouter>
       <Match
         estado_partido={estado_partido}
         matchId={matchId}
         pausa={pausa}
+        matchInfo={matchInfo}
       />
     </MemoryRouter>
   )
@@ -61,21 +91,6 @@ describe('Match', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    getPlayerById.mockImplementation(function (id) {
-      const player = estado_partido.players.find(function (p) {
-        return p.player_id === id
-      })
-
-      if (player.team === 'B') {
-        return Promise.reject(new Error('Not found'))
-      }
-
-      return Promise.resolve({
-        player_id: id,
-        name: 'Player ' + id
-      })
-    })
   })
 
   it('dibuja un círculo por cada jugador en cancha de ambos equipos, más la pelota, mas el circulo central de la cancha', () => {
@@ -111,11 +126,7 @@ describe('Match', () => {
 
     expect(await screen.findAllByText('Rival')).toHaveLength(6)
 
-    expect(getPlayerById).toHaveBeenCalledTimes(estado_partido.players.length)
-
-    estado_partido.players.forEach(function (player) {
-      expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
-    })
+    expect(getPlayerById).not.toHaveBeenCalled()
   })
 
   it('dibuja la cancha junto con el resto de los elementos del partido', () => {
@@ -163,7 +174,10 @@ describe('Match', () => {
 
     result.rerender(
       <MemoryRouter>
-        <Match estado_partido={updatedState} />
+        <Match
+          estado_partido={updatedState}
+          matchInfo={defaultMatchInfo}
+        />
       </MemoryRouter>
     )
 
@@ -272,13 +286,20 @@ describe('Match', () => {
   })
 
   it('impide abrir el menú de comportamientos a un espectador o sobre jugadores rivales', async () => {
-    getPlayerById.mockRejectedValue(new Error('Not found'))
+    const matchInfoSpectator = {
+      my_club_id: null,
+      players: estado_partido.players.map(p => ({
+        player_id: p.player_id,
+        name: 'Rival',
+        club_id: p.team === 'A' ? 1 : 2,
+        shirt_number: 1,
+        team: p.team,
+      })),
+    }
 
-    renderMatch(estado_partido, '77')
+    renderMatch(estado_partido, '77', null, matchInfoSpectator)
 
-    await waitFor(function () {
-      expect(screen.getAllByText('Rival')).toHaveLength(12)
-    })
+    expect(screen.getAllByText('Rival')).toHaveLength(12)
 
     fireEvent.click(screen.getByTestId('starter-card-1'))
     fireEvent.click(screen.getByTestId('starter-card-7'))
@@ -383,6 +404,7 @@ describe('Match', () => {
         <Match
           estado_partido={updatedState}
           matchId="77"
+          matchInfo={defaultMatchInfo}
         />
       </MemoryRouter>
     )

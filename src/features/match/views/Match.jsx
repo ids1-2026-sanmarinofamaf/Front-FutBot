@@ -12,42 +12,22 @@ import { MatchPause } from "../components/MatchPause"
 import { getBehaviors } from "../../behaviors/api.js"
 import { changeBehavior } from "../api.js"
 
-// Para identificar a cada jugador en la cancha
-function buildPlayerNumbers(players) {
-  const playerNumbers = {}
+/**
+ * Obtiene el mapa de dorsales fijos (shirt_number) para cada jugador a partir de `matchInfo`.
+ *
+ * @param {Object} matchInfo - Información estática del partido.
+ * @returns {Object} Mapeo { [player_id]: shirt_number }.
+ */
+function getPlayerNumbers(matchInfo) {
+  const numbers = {}
 
-  let countA = 0
-  let countB = 0
-
-  players.forEach(function (player) {
-    if (!player.is_on_field) {
-      return
-    }
-
-    if (player.team === "A") {
-      countA = countA + 1
-      playerNumbers[player.player_id] = countA
-    } else {
-      countB = countB + 1
-      playerNumbers[player.player_id] = countB
-    }
-  })
-
-  return playerNumbers
-}
-
-// Determina los dorsales fijos a partir de matchInfo si está disponible,
-// o genera números correlativos como alternativa de compatibilidad.
-function getPlayerNumbers(matchInfo, players) {
-  if (matchInfo?.players && matchInfo.players.length > 0) {
-    const numbers = {}
+  if (matchInfo?.players) {
     matchInfo.players.forEach(function (player) {
       numbers[player.player_id] = player.shirt_number
     })
-    return numbers
   }
 
-  return buildPlayerNumbers(players)
+  return numbers
 }
 
 /**
@@ -57,11 +37,11 @@ function getPlayerNumbers(matchInfo, players) {
  * @param {Object} props
  * @param {Object} props.estado_partido - Estado dinámico animado del partido.
  * @param {string|number} [props.matchId] - Identificador del partido.
- * @param {Object|null} [props.matchInfo] - Metadatos iniciales del partido (clubes, dorsales, DT).
+ * @param {Object} props.matchInfo - Metadatos iniciales del partido (clubes, dorsales, DT).
  * @param {Object|null} [props.pausa] - Datos de pausa activa si el partido está pausado.
  * @returns {JSX.Element}
  */
-export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
+export function Match({ estado_partido, matchId, matchInfo, pausa }) {
   const params = useParams()
   const effectiveMatchId = matchId ?? params?.matchId
 
@@ -72,7 +52,7 @@ export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
   const [menuError, setMenuError] = useState(null)
   const [assignedBehaviorsByPlayer, setAssignedBehaviorsByPlayer] = useState({})
 
-  const playerNumbers = getPlayerNumbers(matchInfo, estado_partido.players)
+  const playerNumbers = getPlayerNumbers(matchInfo)
 
   async function handleSelectStarter(starter) {
     setMenuError(null)
@@ -159,6 +139,7 @@ export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
             players={estado_partido.players}
             playerNumbers={playerNumbers}
             matchId={effectiveMatchId}
+            matchInfo={matchInfo}
             onSelectStarter={handleSelectStarter}
           />
 
