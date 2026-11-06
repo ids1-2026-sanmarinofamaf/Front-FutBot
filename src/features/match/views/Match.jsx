@@ -39,9 +39,16 @@ function getPlayerNumbers(matchInfo) {
  * @param {string|number} [props.matchId] - Identificador del partido.
  * @param {Object} props.matchInfo - Metadatos iniciales del partido (clubes, dorsales, DT).
  * @param {Object|null} [props.pausa] - Datos de pausa activa si el partido está pausado.
+ * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana para realizar sustituciones está abierta.
  * @returns {JSX.Element}
  */
-export function Match({ estado_partido, matchId, matchInfo, pausa }) {
+export function Match({
+  estado_partido,
+  matchId,
+  matchInfo,
+  pausa,
+  ventanaSustitucionesAbierta = true,
+}) {
   const params = useParams()
   const effectiveMatchId = matchId ?? params?.matchId
 
@@ -51,6 +58,7 @@ export function Match({ estado_partido, matchId, matchInfo, pausa }) {
   const [isSubmittingBehavior, setIsSubmittingBehavior] = useState(false)
   const [menuError, setMenuError] = useState(null)
   const [assignedBehaviorsByPlayer, setAssignedBehaviorsByPlayer] = useState({})
+  const [assignedBehaviorNames, setAssignedBehaviorNames] = useState({})
 
   const playerNumbers = getPlayerNumbers(matchInfo)
 
@@ -92,12 +100,26 @@ export function Match({ estado_partido, matchId, matchInfo, pausa }) {
         behaviorId
       )
 
+      const chosenBehavior = behaviors?.find(function (b) {
+        return Number(b.behavior_id) === Number(behaviorId)
+      })
+
       setAssignedBehaviorsByPlayer(function (previous) {
         return {
           ...previous,
           [selectedStarter.player_id]: behaviorId,
         }
       })
+
+      if (chosenBehavior?.name) {
+        setAssignedBehaviorNames(function (previous) {
+          return {
+            ...previous,
+            [selectedStarter.player_id]: chosenBehavior.name,
+          }
+        })
+      }
+
       setSelectedStarter(null)
     } catch (err) {
       setMenuError(
@@ -135,12 +157,68 @@ export function Match({ estado_partido, matchId, matchInfo, pausa }) {
             matchInfo={matchInfo}
           />
 
+          {/* Insignia DT Equipo A */}
+          <g data-testid="coach-badge-A">
+            <rect
+              x={40}
+              y={90}
+              width={205}
+              height={36}
+              rx={6}
+              fill="#1e293b"
+              stroke="#3b82f6"
+              strokeWidth="1.5"
+              opacity="0.95"
+            />
+            <text
+              x={142}
+              y={113}
+              textAnchor="middle"
+              fill="white"
+              fontSize="13"
+              fontWeight="bold"
+            >
+              {`DT: ${matchInfo?.team_a?.coach_behavior_name || "Sin DT"}`}
+            </text>
+          </g>
+
+          {/* Insignia DT Equipo B */}
+          <g data-testid="coach-badge-B">
+            <rect
+              x={1675}
+              y={90}
+              width={205}
+              height={36}
+              rx={6}
+              fill="#1e293b"
+              stroke="#ef4444"
+              strokeWidth="1.5"
+              opacity="0.95"
+            />
+            <text
+              x={1777}
+              y={113}
+              textAnchor="middle"
+              fill="white"
+              fontSize="13"
+              fontWeight="bold"
+            >
+              {`DT: ${matchInfo?.team_b?.coach_behavior_name || "Sin DT"}`}
+            </text>
+          </g>
+
           <MatchPlayerOut
-            players={estado_partido.players}
+            players={estado_partido.players.map(function (player) {
+              const assignedName = assignedBehaviorNames[player.player_id]
+              return assignedName
+                ? { ...player, current_behavior_name: assignedName }
+                : player
+            })}
             playerNumbers={playerNumbers}
             matchId={effectiveMatchId}
             matchInfo={matchInfo}
             onSelectStarter={handleSelectStarter}
+            ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
           />
 
           <Ball ball={estado_partido.ball} />

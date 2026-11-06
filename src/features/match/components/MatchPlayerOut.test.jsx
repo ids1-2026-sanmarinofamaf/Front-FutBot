@@ -527,4 +527,47 @@ describe('MatchPlayerOut', () => {
 
     expect(screen.queryByTestId('substitution-message')).not.toBeInTheDocument()
   })
+
+  it('muestra el comportamiento asignado en la tarjeta del titular', () => {
+    const playersWithBehavior = players.map(p => ({
+      ...p,
+      current_behavior_name: p.player_id === 1 ? 'Ataque Rápido' : 'Default'
+    }))
+
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={playersWithBehavior}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Rápido')
+    expect(screen.getByTestId('starter-behavior-2')).toHaveTextContent('Default')
+  })
+
+  it('deshabilita el botón de sustitución cuando la ventana de sustituciones está cerrada', () => {
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={false}
+        />
+      </svg>
+    )
+
+    const button = screen.getByTestId('substitution-button-1')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveStyle({ cursor: 'not-allowed' })
+
+    fireEvent.click(button)
+
+    expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-substitution-A')).not.toBeInTheDocument()
+  })
 })

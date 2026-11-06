@@ -34,18 +34,41 @@ export function MatchPage() {
 
       case "pause_started":
         setPausa(data);
+        setVentanaSustitucionesAbierta(true);
+        break;
+
+      case "substitution_window_closed":
+        setVentanaSustitucionesAbierta(false);
         break;
 
       case "pause_finished":
         setPausa(null);
+        setVentanaSustitucionesAbierta(false);
         break;
 
-      case "substitution_window_closed":
-        // Este evento no corresponde a este ticket.
+      case "coach_changes":
+      case "coach_change":
+        if (data.changes && Array.isArray(data.changes)) {
+          setEstadoPartido(function (previous) {
+            if (!previous) return previous;
+            const updatedPlayers = previous.players.map(function (player) {
+              const change = data.changes.find(
+                (c) => String(c.player_id) === String(player.player_id)
+              );
+              return change
+                ? { ...player, current_behavior_name: change.behavior_name }
+                : player;
+            });
+            return { ...previous, players: updatedPlayers };
+          });
+        }
         break;
 
       case "estado_partido":
         setEstadoPartido(data);
+        if (data.substitution_window_open !== undefined) {
+          setVentanaSustitucionesAbierta(Boolean(data.substitution_window_open));
+        }
         break;
 
       default:

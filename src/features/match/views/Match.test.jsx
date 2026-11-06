@@ -236,8 +236,8 @@ describe('Match', () => {
       await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
     ).toBeInTheDocument()
 
-    expect(await screen.findByText('Default')).toBeInTheDocument()
-    expect(screen.getByText('Ataque Total')).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /Default/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Ataque Total/i })).toBeInTheDocument()
     expect(getBehaviors).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('option', { name: /Ataque Total/i }))
@@ -247,6 +247,8 @@ describe('Match', () => {
       expect(changeBehavior).toHaveBeenCalledTimes(1)
       expect(changeBehavior).toHaveBeenCalledWith('77', 1, 5)
     })
+
+    expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Total')
 
     await waitFor(function () {
       expect(
@@ -532,6 +534,46 @@ describe('Match', () => {
     expect(
       screen.getByRole('button', { name: 'Salir del partido' })
     ).toBeInTheDocument()
+  })
+
+  // Tests de visualización de DT y ventana de sustituciones
+
+  it('muestra el nombre del DT en las insignias de cada equipo', () => {
+    renderMatch(estado_partido)
+
+    expect(screen.getByTestId('coach-badge-A')).toHaveTextContent('DT: Coach A')
+    expect(screen.getByTestId('coach-badge-B')).toHaveTextContent('DT: Coach B')
+  })
+
+  it('muestra Sin DT cuando el club no tiene DT asignado', () => {
+    const matchInfoWithoutCoach = {
+      ...defaultMatchInfo,
+      team_a: { club_id: 1, club_name: 'Club A', coach_behavior_name: null },
+      team_b: { club_id: 2, club_name: 'Club B', coach_behavior_name: undefined },
+    }
+
+    renderMatch(estado_partido, '42', null, matchInfoWithoutCoach)
+
+    expect(screen.getByTestId('coach-badge-A')).toHaveTextContent('DT: Sin DT')
+    expect(screen.getByTestId('coach-badge-B')).toHaveTextContent('DT: Sin DT')
+  })
+
+  it('deshabilita el botón de cambios cuando ventanaSustitucionesAbierta es false', () => {
+    render(
+      <MemoryRouter>
+        <Match
+          estado_partido={estado_partido}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={false}
+        />
+      </MemoryRouter>
+    )
+
+    const subButton = screen.getByTestId('substitution-button-1')
+    expect(subButton).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(subButton)
+    expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
   })
 
 })

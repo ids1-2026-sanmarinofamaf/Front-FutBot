@@ -36,12 +36,13 @@ vi.mock("./useAnimatedMatchState.js", () => ({
 }));
 
 vi.mock("./views/Match", () => ({
-  Match: ({ estado_partido, matchId, matchInfo, pausa }) => (
+  Match: ({ estado_partido, matchId, matchInfo, pausa, ventanaSustitucionesAbierta }) => (
     <div
       data-testid="match"
       data-match-id={matchId}
       data-pause-type={pausa?.pause_type ?? ""}
       data-my-club-id={matchInfo?.my_club_id ?? ""}
+      data-substitutions-open={String(ventanaSustitucionesAbierta)}
     >
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
@@ -436,5 +437,44 @@ describe("MatchPage", () => {
 
     expect(screen.getByTestId("match"))
       .toHaveTextContent("150/600 - 1-0");
+  });
+
+  it("abre la ventana de sustituciones en pause_started y la cierra en substitution_window_closed", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "hydration",
+        duration: 10,
+        planning_duration: 5,
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-substitutions-open", "true");
+
+    act(() => {
+      options.onMessage({
+        event: "substitution_window_closed",
+        pause_type: "hydration",
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-substitutions-open", "false");
   });
 });
