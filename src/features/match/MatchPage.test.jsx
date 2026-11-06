@@ -36,11 +36,12 @@ vi.mock("./useAnimatedMatchState.js", () => ({
 }));
 
 vi.mock("./views/Match", () => ({
-  Match: ({ estado_partido, matchId, pausa }) => (
+  Match: ({ estado_partido, matchId, matchInfo, pausa }) => (
     <div
       data-testid="match"
       data-match-id={matchId}
       data-pause-type={pausa?.pause_type ?? ""}
+      data-my-club-id={matchInfo?.my_club_id ?? ""}
     >
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
@@ -52,6 +53,7 @@ vi.mock("./views/Match", () => ({
 describe("MatchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
 
     vi.stubEnv(
       "VITE_WS_SESSION_URL",
@@ -71,7 +73,7 @@ describe("MatchPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("crea la conexión WebSocket con el matchId", () => {
+  it("crea la conexión WebSocket con el matchId sin token en modo espectador", () => {
     render(<MatchPage />);
 
     expect(mockUseWebSocket).toHaveBeenCalledTimes(1);
@@ -81,6 +83,51 @@ describe("MatchPage", () => {
     expect(url).toBe(
       "wss://test-server:8000/ws/matches/123"
     );
+  });
+
+  it("crea la conexión WebSocket con el token cuando el usuario está autenticado", () => {
+    localStorage.setItem("token", "mi-token-secreto");
+
+    render(<MatchPage />);
+
+    expect(mockUseWebSocket).toHaveBeenCalledTimes(1);
+
+    const [url] = mockUseWebSocket.mock.calls[0];
+
+    expect(url).toBe(
+      "wss://test-server:8000/ws/matches/123?token=mi-token-secreto"
+    );
+  });
+
+  it("recibe match_info y pasa los datos estáticos al componente Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "match_info",
+        match_id: 123,
+        my_club_id: 7,
+        team_a: { club_id: 7, club_name: "Mi Club" },
+        team_b: { club_id: 8, club_name: "Rival" },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 0,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute("data-my-club-id", "7");
   });
 
   it("recibe un estado y muestra el partido", () => {

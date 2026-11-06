@@ -36,7 +36,18 @@ function buildPlayerNumbers(players) {
   return playerNumbers
 }
 
-export function Match({ estado_partido, matchId, pausa }) {
+/**
+ * Componente de vista para el partido en juego.
+ * Renderiza la cancha, jugadores, pelota, marcador y paneles laterales.
+ *
+ * @param {Object} props
+ * @param {Object} props.estado_partido - Estado dinámico animado del partido.
+ * @param {string|number} [props.matchId] - Identificador del partido.
+ * @param {Object|null} [props.matchInfo] - Metadatos iniciales del partido (clubes, dorsales, DT).
+ * @param {Object|null} [props.pausa] - Datos de pausa activa si el partido está pausado.
+ * @returns {JSX.Element}
+ */
+export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
   const params = useParams()
   const effectiveMatchId = matchId ?? params?.matchId
 
