@@ -36,6 +36,20 @@ function buildPlayerNumbers(players) {
   return playerNumbers
 }
 
+// Determina los dorsales fijos a partir de matchInfo si está disponible,
+// o genera números correlativos como alternativa de compatibilidad.
+function getPlayerNumbers(matchInfo, players) {
+  if (matchInfo?.players && matchInfo.players.length > 0) {
+    const numbers = {}
+    matchInfo.players.forEach(function (player) {
+      numbers[player.player_id] = player.shirt_number
+    })
+    return numbers
+  }
+
+  return buildPlayerNumbers(players)
+}
+
 /**
  * Componente de vista para el partido en juego.
  * Renderiza la cancha, jugadores, pelota, marcador y paneles laterales.
@@ -58,7 +72,7 @@ export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
   const [menuError, setMenuError] = useState(null)
   const [assignedBehaviorsByPlayer, setAssignedBehaviorsByPlayer] = useState({})
 
-  const playerNumbers = buildPlayerNumbers(estado_partido.players)
+  const playerNumbers = getPlayerNumbers(matchInfo, estado_partido.players)
 
   async function handleSelectStarter(starter) {
     setMenuError(null)
@@ -136,7 +150,10 @@ export function Match({ estado_partido, matchId, matchInfo = null, pausa }) {
             playerNumbers={playerNumbers}
           />
 
-          <Scoreboard estado_partido={estado_partido} />
+          <Scoreboard
+            estado_partido={estado_partido}
+            matchInfo={matchInfo}
+          />
 
           <MatchPlayerOut
             players={estado_partido.players}

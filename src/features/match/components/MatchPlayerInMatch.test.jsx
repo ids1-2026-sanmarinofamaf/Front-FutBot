@@ -250,4 +250,54 @@ describe('MatchPlayerInMatch', () => {
 
     expect(container.querySelectorAll('circle')).toHaveLength(0)
   })
+
+  it('utiliza shirt_number directamente cuando está definido en el jugador', () => {
+    const players = [
+      {
+        player_id: 1,
+        x: 5,
+        y: 10,
+        team: 'A',
+        is_on_field: true,
+        shirt_number: 10
+      }
+    ]
+
+    render(
+      <svg>
+        <MatchPlayerInMatch
+          players={players}
+        />
+      </svg>
+    )
+
+    expect(screen.getByText('10')).toBeInTheDocument()
+  })
+
+  it('mantiene el número del jugador fijo a través de playerNumbers', () => {
+    const players = [
+      {
+        player_id: 42,
+        x: 10,
+        y: 10,
+        team: 'B',
+        is_on_field: true
+      }
+    ]
+
+    const playerNumbers = {
+      42: 9
+    }
+
+    render(
+      <svg>
+        <MatchPlayerInMatch
+          players={players}
+          playerNumbers={playerNumbers}
+        />
+      </svg>
+    )
+
+    expect(screen.getByText('9')).toBeInTheDocument()
+  })
 })

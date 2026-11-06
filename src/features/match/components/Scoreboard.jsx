@@ -1,8 +1,21 @@
-export function Scoreboard({ estado_partido }) {
+/**
+ * Componente de marcador del partido (Scoreboard).
+ * Renderiza en SVG los nombres reales de los clubes, los goles, el tiempo y el período actual.
+ *
+ * @param {Object} props
+ * @param {Object} props.estado_partido - Estado dinámico del partido (goles, tics, current_period).
+ * @param {Object|null} [props.matchInfo] - Información estática con nombres de clubes y metadatos.
+ * @returns {JSX.Element}
+ */
+export function Scoreboard({ estado_partido, matchInfo = null }) {
   const user1_goals = estado_partido.user1_goals
   const user2_goals = estado_partido.user2_goals
   const actual_tic = estado_partido.actual_tic
   const total_tic = estado_partido.total_tic
+  const current_period = estado_partido.current_period
+
+  const team1Name = matchInfo?.team_a?.club_name || "team 1"
+  const team2Name = matchInfo?.team_b?.club_name || "team 2"
 
   function toPixels(x, y) {
     return {
@@ -56,8 +69,10 @@ export function Scoreboard({ estado_partido }) {
 
       {createText(20, -2.5, "Score", "Black", 60)}
 
-      {createText(15.8, -1.5, "team 1", "black", 25)}
-      {createText(24.3, -1.5, "team 2", "black", 25)}
+      {current_period ? createText(20, -1.8, `Q${current_period}`, "Black", 22) : null}
+
+      {createText(15.8, -1.5, team1Name, "black", 25)}
+      {createText(24.3, -1.5, team2Name, "black", 25)}
 
       {createText(15.8, -0.3, user1_goals, "White", 40)}
       {createText(24.3, -0.3, user2_goals, "White", 40)}
