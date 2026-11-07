@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBehaviors, getBehaviorById, createBehavior, updateBehavior } from './api';
+import { getBehaviors, getBehaviorById, createBehavior, updateBehavior, deleteBehavior } from './api';
 import { apiClient } from '../../shared/api/client';
 
 vi.mock('../../shared/api/client', () => ({
@@ -152,4 +152,35 @@ describe('Behaviors API', () => {
       await expect(updateBehavior(99, validPayload)).rejects.toThrow('Not Found');
     });
   });
+
+  describe('deleteBehavior', () => {
+    it('debe invocar apiClient con DELETE y el ID en la ruta', async () => {
+      apiClient.mockResolvedValue(null);
+
+      const result = await deleteBehavior(3);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/3', {
+        method: 'DELETE',
+      });
+      expect(result).toBeNull();
+    });
+
+    it('debe lanzar un error si no se provee el ID', async () => {
+      await expect(deleteBehavior()).rejects.toThrow('El ID del comportamiento es requerido');
+      await expect(deleteBehavior(null)).rejects.toThrow('El ID del comportamiento es requerido');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
+
+    it('debe propagar errores de apiClient', async () => {
+      apiClient.mockRejectedValue(
+        new Error('No se puede realizar esta acción mientras se participe en un partido o competencia activa.')
+      );
+
+      await expect(deleteBehavior(3)).rejects.toThrow(
+        'No se puede realizar esta acción mientras se participe en un partido o competencia activa.'
+      );
+    });
+  });
 });
+
