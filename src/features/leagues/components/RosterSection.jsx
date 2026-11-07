@@ -5,9 +5,12 @@ import RosterPlayer from "./RosterPlayer"
  * @param title: nombre de la seleccion de jugadores
  * @param players: lista de jugadores con sus respectivos datos
  * @param behavior: lista de todos los comportamientos del usuario
+ * @param onStarterChange: lógica para cambiar titulares del roster
+ * @param onBehaviorChange: lógica para cambiar comportamientos del roster
+ * @param onSlotChange: lógica para cambiar slots del roster
  * @returns Componente con jugadores
  */
-export default function RosterSection({ title, players, behaviors }) {
+export default function RosterSection({ title, players, behaviors, onStarterChange, onBehaviorChange, onSlotChange }) {
   return (
     <section className="space-y-3">
 
@@ -21,6 +24,10 @@ export default function RosterSection({ title, players, behaviors }) {
             key={player.player_id}
             player={player}
             behaviors={behaviors}
+            onStarterChange={onStarterChange}
+            onBehaviorChange={onBehaviorChange}
+            onSlotChange={onSlotChange}
+            occupiedSlots={players.filter(item => item.is_starter && item.player_id !== player.player_id).map(item => item.slot)}
           />
         ))}
       </ul>

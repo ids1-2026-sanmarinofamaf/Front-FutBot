@@ -54,6 +54,73 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
     }
   }, [leagueId, onLoadError, onClose])
 
+  /**
+   * Lógica para modificar la formación ("defensive" u "offensive") de roster
+   * @param event: objeto que contiene la formación elegida
+   */
+  const handleFormationChange = (event) => {
+    setRoster(previous => ({ ...previous, formation: event.target.value }))
+  }
+
+  /**
+   * Lógica para modificar posición de jugador en roster
+   */
+  const handleStarterChange = (playerId) => {
+    setRoster(previous => {
+      const players = previous.players.map(player => player.player_id === playerId
+        ? { ...player, is_starter: !player.is_starter, slot: null }
+        : { ...player })
+      const availableSlots = ["left", "center", "right"].filter(slot =>
+        !players.some(player => player.is_starter && player.slot === slot)
+      )
+
+      return {
+        ...previous,
+        players: players.map(player => ({
+          ...player,
+          slot: player.is_starter ? player.slot ?? availableSlots.shift() ?? null : null,
+        })),
+      }
+    })
+  }
+
+  /**
+   * Lógica para modificar comportamiento de jugador en roster
+   */
+  const handleBehaviorChange = (playerId, behaviorId) => {
+    setRoster(previous => ({
+      ...previous,
+      players: previous.players.map(player => player.player_id === playerId
+        ? { ...player, initial_behavior_id: behaviorId === "" ? null : Number(behaviorId) }
+        : player),
+    }))
+  }
+
+  /**
+   * Lógica para modificar slot de jugador titular en roster
+   */
+  const handleSlotChange = (playerId, value) => {
+    const slot = value === "" ? null : value
+
+    setRoster(previous => {
+
+      // Guarda para evitar cambio de Slot: Si el slot no es valido el jugador titular ya lo posee
+      if (slot !== null && 
+        (!["left", "center", "right"].includes(slot)) || 
+        previous.players.some(player => player.player_id !== playerId && player.is_starter && player.slot === slot))
+      {
+        return previous
+      }
+
+      return {
+        ...previous,
+        players: previous.players.map(player => player.player_id === playerId && player.is_starter
+          ? { ...player, slot }
+          : player),
+      }
+    })
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4"
@@ -79,9 +146,18 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
         {!loading && roster && (
           <div className="space-y-4 text-slate-300">
 
-            <p>
-              Formación actual: {roster.formation}
-            </p>
+            {/* Formulario de formación */}
+            <label className="flex items-center gap-3">
+              Formación:
+              <select
+                value={roster.formation}
+                onChange={handleFormationChange}
+                className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-slate-100"
+              >
+                <option value="defensive">defensive</option>
+                <option value="offensive">offensive</option>
+              </select>
+            </label>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
@@ -90,6 +166,9 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
                 title="Titulares"
                 players={roster.players.filter(player => player.is_starter)}
                 behaviors={behaviors}
+                onStarterChange={handleStarterChange}
+                onBehaviorChange={handleBehaviorChange}
+                onSlotChange={handleSlotChange}
               />
 
               {/* Suplentes */}
@@ -97,6 +176,9 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
                 title="Suplentes"
                 players={roster.players.filter(player => !player.is_starter)}
                 behaviors={behaviors}
+                onStarterChange={handleStarterChange}
+                onBehaviorChange={handleBehaviorChange}
+                onSlotChange={handleSlotChange}
               />
 
             </div>
