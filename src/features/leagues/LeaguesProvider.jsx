@@ -90,11 +90,16 @@ export function LeaguesSocketProvider({ children }) {
     }, [leaveAll]);
 
     {/** Agrega el mensaje al array de la liga correspondiente,
-        sin tocar los de otras ligas. */}
+        sin tocar los de otras ligas. Si la liga finalizó, se cierra la conexión
+        y se quita el ID de sessionStorage. */}
     const handleMessage = useCallback(
-        (id, msg) =>
-        setMessages((m) => ({ ...m, [id]: [...(m[id] ?? []), msg] })),
-        []
+        (id, msg) => {
+            setMessages((m) => ({ ...m, [id]: [...(m[id] ?? []), msg] }));
+            if (msg?.type === "league_finished") {
+                leaveL(id);
+            }
+        },
+        [leaveL]
     );
 
     /** El map crea los websockets viendo los ids guardados */

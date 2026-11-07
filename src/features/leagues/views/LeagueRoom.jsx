@@ -5,12 +5,15 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getUserSessionInfo, startLeague, leaveLeagueAsPlayer } from "../api";
+import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
+import FixtureTab from "../components/FixtureTab";
+import TablaTab from "../components/TablaTab";
+
 /**
  * Integración de componenetes:
  * - Información de liga
  * - Lista de participantes
- * - Mock de fixture
+ * - Fixture en formato lista
  * - Mock de tabla de puntaje 
  */
 export function LeagueLobby() {
@@ -65,22 +68,56 @@ export function LeagueLobby() {
   }, [numericId, joinL]);
 
   /**
+   * Obtener datos de la liga mediante endpoint REST, se usa useEffect para evitar nuevos renders
+   */
+  const [dataREST, setDataREST] = useState(null)
+  useEffect(() => {
+    getLeagueInfo({ league_id:id }).then(setDataREST)
+  }, [id])
+
+  /**
    * 2. Procesamiento de un evento
    * @param {*} lobby : información previa del lobby
    * @param {*} msg : mensaje a procesar
    * @returns Lista actualizada de acuerdo al evento procesado
    */
-  function applyLeagueEvent(lobby, msg) {
+  function applyLeagueEvent(lobby, msg, data) {
     switch (msg.type) {
-      case "lobby_state": // foto completa: reemplaza todo
-        return {ready: true, 
-                leagueID: msg.league_id, 
-                currentUsers: msg.current_users, 
-                state: msg.state, 
-                users: msg.users,
-                fixture: null,   // se completa con league_started o con GET /leagues/{id}
-                standings: null,
-              };
+      case "lobby_state": { // foto completa: reemplaza todo
+        const activeRound = data?.active_round ?? (
+          data?.fixture ? (data.fixture.find((m) => m.state === "JUGANDO")?.round ?? 0) : 0
+        );
+        const activeMatchIds = Array.isArray(data?.active_match_ids)
+          ? data.active_match_ids
+          : (data?.fixture ? data.fixture.filter((m) => m.state === "JUGANDO").map((m) => m.match_id) : []);
+
+        const initialResults = data?.fixture
+          ? data.fixture.filter((m) => m.state === "FINALIZADO" || m.score != null).map((m) => ({
+              match_id: m.match_id,
+              score: m.score,
+              state: m.state,
+            }))
+          : [];
+
+        const fixture = data?.fixture
+          ? data.fixture.map((match) =>
+              activeMatchIds.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            )
+          : [];
+
+        return {
+          ready: true,
+          leagueID: msg.league_id,
+          currentUsers: msg.current_users,
+          state: data?.state ?? msg.state,
+          users: msg.users,
+          fixture,
+          standings: data?.standings ?? [],
+          round: activeRound,
+          matchIDs: activeMatchIds, //Lista de matchs ejecutados en la ronda actual
+          results: initialResults // resultados de partidos finalizados
+        };
+      }
 
       case "user_joined": // cambio: se aplica sobre lo anterior
         if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
@@ -105,7 +142,59 @@ export function LeagueLobby() {
           standings: msg.standings,
         };
 
+      case "league_round_started": {
+        // Verifica que el evento pertenezca a esta liga 
+        if (id == msg.league_id) {
+          return {
+            ...lobby,
+            round: msg.round,
+            matchIDs: msg.match_ids,
+            fixture: lobby.fixture?.map((match) =>
+              msg.match_ids.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            ),
+          }
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_round_finished": {
+        // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
+        if (id == msg.league_id && (lobby.round == msg.round || lobby.round === 0)) {
+          return {
+            ...lobby,
+            round: 0,
+            standings: msg.standings,
+            matchIDs: [],
+            results: [ //result acumula los mensajes recibidos y reemplaza duplicados
+              ...(lobby.results ?? []).filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
+              ...msg.results,
+            ],
+            fixture: lobby.fixture?.map((match) => {
+              const res = msg.results?.find((r) => r.match_id === match.match_id);
+              return res ? { ...match, state: "FINALIZADO", score: res.score ?? match.score } : match;
+            }),
+          }
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_finished": {
+        if (id == msg.league_id) {
+          return { ...lobby, state: "FINALIZADA" }
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
       default:
+        console.log("Se intentó procesar un evento no reconocido")
         return lobby;
     }
   }
@@ -123,14 +212,22 @@ export function LeagueLobby() {
    */
   const lobby = useMemo(() => {
     const events = messages[numericId] || [];
-    return events.reduce(applyLeagueEvent, { 
-      ready: false, 
-      leagueID : id, 
-      currentUsers : 0 , 
-      state: null, 
-      users: [] 
-    }); // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
-  }, [messages, numericId]);
+    return events.reduce( // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
+      (lobby, msg) => applyLeagueEvent(lobby, msg, dataREST),
+      {
+        ready: false,
+        leagueID: id,
+        currentUsers: 0,
+        state: null,
+        users: [],
+        fixture: [],
+        standings: [],
+        round: 0,
+        matchIDs: [],
+        results: [],
+      }
+    );
+  }, [messages, numericId, dataREST]);
 
   /**
    * Logica para identificar si el usuario de la sesion actual es el creador de la liga
@@ -154,7 +251,7 @@ export function LeagueLobby() {
     if (!creator || !session) {
       return false;
     } else {
-      return Number(creator.club_id) === Number(session.user_id); 
+      return Number(creator.club_id) === Number(session.user_id);
     }
   }, [lobby?.users, session]); //todo lo que la funcion lee debe estar en las dependencias
 
@@ -165,7 +262,7 @@ export function LeagueLobby() {
    */
   const TABS = [
     { id: "usuarios", label: "Usuarios", disabled: false },
-    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR"},
+    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR" },
     { id: "tabla", label: "Tabla de posiciones", disabled: lobby.state === "POR_COMENZAR" },
   ];
   const [activeTab, setActiveTab] = useState("usuarios");
@@ -175,12 +272,12 @@ export function LeagueLobby() {
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleStartLeague = async () => {
-    if(lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR"){
+    if (lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR") {
       setStarting(true)
-      try{
+      try {
         await startLeague(numericId)
       } catch (err) {
-        switch(err.detail) {
+        switch (err.detail) {
 
           case "Only the league creator can start the league": {
             setAlert("No eres el creador.")
@@ -212,16 +309,16 @@ export function LeagueLobby() {
             break
           }
 
-          default: 
+          default:
             setAlert("Error desconocido.")
             showToast()
             break
-          
-          } 
-          
-          setStarting(false)
-        
-      } 
+
+        }
+
+        setStarting(false)
+
+      }
     }
   }
 
@@ -235,10 +332,11 @@ export function LeagueLobby() {
   }, [lobby.state])
 
   /**
-   * Handle para abandonar liga. Si el usuario es el creador de la liga abandona su liga esta se cancela
+   * Handle para abandonar una liga pendiente como participante.
    * @precondition league.state === "POR_COMENZAR"
    */
   const handleLeave = async () => {
+    if (lobby.state !== "POR_COMENZAR") return;
     if (!Number.isInteger(numericId) || numericId <= 0) {
       setAlert("El ID de la liga no es válido.");
       showToast();
@@ -280,10 +378,56 @@ export function LeagueLobby() {
     }
   };
 
-  return(
-    
-    lobby.ready ?  
-    <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+  /**
+   * Lógica para ventana de notificación de final de liga
+   */
+  const [showFinished, setShowFinished] = useState(false);
+  useEffect(() => {
+    if (lobby.state === "FINALIZADA") {
+      setShowFinished(true);
+      leaveL(numericId);
+    }
+  }, [lobby.state, numericId, leaveL]);
+
+  return (
+
+    lobby.ready ?
+      <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+
+        {showFinished && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finished-title"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          >
+            <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
+              <h2 id="finished-title" className="text-2xl font-bold text-slate-100">
+                Liga finalizada
+              </h2>
+              <p className="text-slate-300">
+                La liga ha finalizado, gracias por jugar.
+              </p>
+              <p className="text-slate-300">
+                Revisa los resultados antes de salir (una vez cerrada la conexión con el servidor no podrás acceder nuevamente a ellos)
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowFinished(false)}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/league")}
+                className="px-10 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Volver a ligas
+              </button>
+            </div>
+          </div>
+        )}
 
         {/** Alerta: Error al usar apiClient */}
         {alert === "No eres el creador." && toast && (
@@ -314,7 +458,7 @@ export function LeagueLobby() {
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
           />
         )}
-    
+
         {/** Alerta: Error al usar apiClient */}
         {alert === "Error desconocido." && toast && (
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
@@ -344,13 +488,13 @@ export function LeagueLobby() {
             {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
             {lobby.state === "POR_COMENZAR" && (
               isCreator ? (
-              /* Boton para iniciar liga, solo visible para el creador */
-              <> {/* En JSX, una expresión solo puede devolver un único elemento */}
-                <button
-                  type="button"
-                  disabled={lobby.currentUsers < 3 || starting}
-                  onClick={handleStartLeague}
-                  className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                /* Boton para iniciar liga, solo visible para el creador */
+                <> {/* En JSX, una expresión solo puede devolver un único elemento */}
+                  <button
+                    type="button"
+                    disabled={lobby.currentUsers < 3 || starting}
+                    onClick={handleStartLeague}
+                    className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
                     disabled:border-gray-500
                     disabled:text-gray-300
                     disabled:hover:bg-gray-500
@@ -358,31 +502,32 @@ export function LeagueLobby() {
                     disabled:active:text-gray-300
                     disabled:focus:ring-0
                     disabled:cursor-not-allowed"
-                >
-                  {starting ? "Iniciando..." : "Iniciar liga"}
-                </button>
+                  >
+                    {starting ? "Iniciando..." : "Iniciar liga"}
+                  </button>
 
-                {lobby.currentUsers < 3 && (
-                  <p className="px-4 py-2 text-slate-400">
-                    Se necesitan al menos 3 integrantes
-                  </p>
-                )}
-              </>
-              ) 
-              : 
-              (
-                /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
-                <p className="px-4 py-2 text-slate-400">
-                  Esperando que el creador inicie la liga
-                </p>
+                  {lobby.currentUsers < 3 && (
+                    <p className="px-4 py-2 text-slate-400">
+                      Se necesitan al menos 3 integrantes
+                    </p>
+                  )}
+                </>
               )
+                :
+                (
+                  /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
+                  <p className="px-4 py-2 text-slate-400">
+                    Esperando que el creador inicie la liga
+                  </p>
+                )
             )}
 
             {/* Boton para cancelar liga */}
             <button
               type="button"
               onClick={handleLeave}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              disabled={lobby.state !== "POR_COMENZAR"}
+              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
             >
               Abandonar
             </button>
@@ -408,13 +553,12 @@ export function LeagueLobby() {
                     disabled={tab.disabled}
                     onClick={() => setActiveTab(tab.id)}
                     aria-current={activeTab === tab.id ? "page" : undefined}
-                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${
-                      tab.disabled
+                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${tab.disabled
                         ? "border-transparent text-slate-600 cursor-not-allowed"
                         : activeTab === tab.id
-                        ? "text-emerald-400 border-emerald-400"
-                        : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
-                    }`}
+                          ? "text-emerald-400 border-emerald-400"
+                          : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -429,20 +573,27 @@ export function LeagueLobby() {
         {/* Contenido */}
         <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
           {activeTab === "usuarios" && <LobbyUsers users={lobby.users} />}
-          {/* {activeTab === "fixture" && <FixtureTab />}
-          {activeTab === "tabla" && <TablaTab />} */}
+          {activeTab === "fixture" && (
+            <FixtureTab
+              rawFixture={lobby.fixture}
+              actualRound={lobby.round}
+              roundMatchIDs={lobby.matchIDs}
+              resultsMatchs={lobby.results}
+            />
+          )}
+          {activeTab === "tabla" && <TablaTab standings={lobby.standings} />}
         </div>
 
       </div>
-    :        
+      :
       <div className="min-h-screen mi-fuente bg-slate-900 flex flex-col items-center justify-center gap-5">
         {/* Boton para volver */}
-          <button
-            type="button"
-            onClick={() => navigate("/league")}
-            className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-          >
-            Volver
+        <button
+          type="button"
+          onClick={() => navigate("/league")}
+          className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+        >
+          Volver
         </button>
         <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
         <span className="text-slate-400 text-4xl">
@@ -452,6 +603,5 @@ export function LeagueLobby() {
           La reconexión automática está desactivada hasta nuevo aviso. Si recargaste la página volvé a unirte desde la lista de liga.
         </span>
       </div>
-
   )
 }
