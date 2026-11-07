@@ -1,12 +1,40 @@
 import { useNavigate } from "react-router-dom";
 import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { LeagueCard } from "../components/LeagueCard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLeaguesSocket } from "../LeaguesProvider";
+import { getMyLeagueIds } from "../api";
 import CreateL from "../components/CreateL";
 import { RosterBuilder } from "../../roster/components/RosterBuilder";
 
 export default function LeagueListView() {
   const navigate = useNavigate();
+
+  // Lógica para consultar ID's al backend al ingresar a vista
+  const { replaceJoinedLIds } = useLeaguesSocket();
+  useEffect(() => {
+    let active = true;
+    const cancel = () => { active = false; };
+
+    //Se escuchan eventos para evitar cargar ID's luego de cierre de sesión
+    window.addEventListener("auth:expired", cancel);
+    window.addEventListener("auth:logout", cancel);
+
+    getMyLeagueIds()
+      .then((ids) => {
+        if (active) replaceJoinedLIds(ids);
+      })
+      .catch((error) => {
+        // Si falla la consulta o su validación, se conserva la participación local.
+        if (active) console.error("Error al recuperar las ligas del usuario:", error);
+      });
+
+    return () => {
+      cancel();
+      window.removeEventListener("auth:expired", cancel);
+      window.removeEventListener("auth:logout", cancel);
+    };
+  }, [replaceJoinedLIds]);
 
   {/* Busca mensajes de ws de sesión y filtra las ligas */}
   const { messages } = useSessionSocket();
