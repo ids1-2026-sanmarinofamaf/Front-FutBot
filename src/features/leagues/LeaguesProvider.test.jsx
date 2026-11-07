@@ -215,6 +215,24 @@ describe("LeaguesSocketProvider", () => {
             expect(within(list7).getAllByRole("listitem")).toHaveLength(1);
             expect(within(list7).getByText("de-7")).toBeInTheDocument();
         });
+
+        it("al recibir league_finished cierra la conexión websocket y elimina el id de sessionStorage", async () => {
+            const user = userEvent.setup();
+            renderProvider();
+            await user.click(screen.getByRole("button", { name: "unirse 3" }));
+
+            expect(storedIds()).toEqual([3]);
+            expect(socketFor(3)).toBeDefined();
+
+            emit(3, { type: "league_finished", league_id: 3 });
+
+            expect(socketFor(3)).toBeUndefined();
+            expect(wasClosed(3)).toBe(true);
+            expect(storedIds()).toEqual([]);
+
+            const list = screen.getByRole("list", { name: "mensajes 3" });
+            expect(within(list).getByText("league_finished")).toBeInTheDocument();
+        });
     });
 
     describe("persistencia entre vistas", () => {
