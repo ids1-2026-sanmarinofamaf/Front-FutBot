@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useBehavior } from "../useBehavior.js"
 import { useState } from "react";
 import { updateBehavior } from "../api";
@@ -6,6 +6,7 @@ import { BehaviorForm } from "../components/BehaviorForm.jsx";
 export function EditBehavior() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { behavior, isLoading, error } = useBehavior(id);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverError, setServerError] = useState(null); 
@@ -32,8 +33,8 @@ export function EditBehavior() {
         <h2 className="text-2xl font-bold text-slate-100 mb-6">Editar comportamiento</h2>
         {serverError && <p className="mb-4 text-red-400">{serverError}</p>}
         <BehaviorForm
-            initialName={behavior.name}
-            initialCode={behavior.code}
+            initialName={location?.state?.draftName ?? behavior.name}
+            initialCode={location?.state?.draftCode ?? behavior.code}
             onSubmit={handleUpdate}
             onCancel={() => navigate(`/club/behaviors/${id}`)}
             isSubmitting={isSubmitting}
