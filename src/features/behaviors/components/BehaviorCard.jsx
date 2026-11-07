@@ -1,4 +1,4 @@
-export function BehaviorCard({ behavior, onView, onEdit }) {
+export function BehaviorCard({ behavior, onView, onEdit, onDelete, isDeleting = false }) {
   const isDefault = Boolean(behavior.is_default);
 
   const handleView = () => {
@@ -15,7 +15,12 @@ export function BehaviorCard({ behavior, onView, onEdit }) {
   };
 
   const handleDelete = () => {
-    console.info('Endpoint de borrado no implementado.');
+    if (!isDefault && !isDeleting && onDelete) {
+      const confirmed = window.confirm("¿Estás seguro de que deseas eliminar este comportamiento?");
+      if (confirmed) {
+        onDelete(behavior.behavior_id);
+      }
+    }
   };
 
   return (
@@ -48,10 +53,11 @@ export function BehaviorCard({ behavior, onView, onEdit }) {
         </button>
         <button 
           onClick={handleDelete}
-          className="px-3 py-1.5 bg-slate-700 text-slate-400 text-sm font-medium rounded cursor-not-allowed opacity-70"
-          title="No disponible en este sprint"
+          disabled={isDefault || isDeleting}
+          title={isDefault ? "Los comportamientos por defecto no se pueden borrar" : undefined}
+          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Borrar
+          {isDeleting ? 'Eliminando...' : 'Eliminar'}
         </button>
       </div>
     </div>

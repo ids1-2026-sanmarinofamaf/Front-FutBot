@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBehaviors } from '../api';
+import { getBehaviors, deleteBehavior } from '../api';
 import { BehaviorCard } from '../components/BehaviorCard';
 
 export function BehaviorList() {
   const [behaviors, setBehaviors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -29,6 +30,19 @@ export function BehaviorList() {
 
   const handleCreateNew = () => {
     navigate('/club/behaviors/new');
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      setDeletingId(id);
+      setError(null);
+      await deleteBehavior(id);
+      setBehaviors((prev) => prev.filter((item) => item.behavior_id !== id));
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el comportamiento.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -75,7 +89,9 @@ export function BehaviorList() {
               key={behavior.behavior_id} 
               behavior={behavior} 
               onView={(id) => navigate(`/club/behaviors/${id}`)}
-              onEdit={(id) => navigate(`/club/behaviors/${id}/edit`)} 
+              onEdit={(id) => navigate(`/club/behaviors/${id}/edit`)}
+              onDelete={handleDelete}
+              isDeleting={deletingId === behavior.behavior_id}
             />
           ))}
         </div>
