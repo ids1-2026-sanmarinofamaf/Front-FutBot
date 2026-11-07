@@ -67,6 +67,16 @@ export function LeaguesSocketProvider({ children }) {
         []
     );
 
+    // Reemplaza la participación local con la lista confirmada por el servidor.
+    const replaceJoinedLIds = useCallback((ids) => {
+        //Se verifica que que ids sea un array y que todos los ID's sean enteros positivos
+        if (!Array.isArray(ids) || !ids.every(isValidLeagueId)) {
+            throw new Error("Respuesta de ligas del usuario inválida");
+        }
+        //Se pasan los ID's primero como Set para eliminar duplicados (medida de seguridad) y luego como arreglo formato necesario por la lógica 
+        setLIds([...new Set(ids)]);
+    }, []);
+
     {/** Quita el id y se desmonta */}
     const leaveL = useCallback(
         (id) => setLIds((ids) => ids.filter((i) => i !== id)),
@@ -107,6 +117,7 @@ export function LeaguesSocketProvider({ children }) {
         <LeaguesSocketContext.Provider value={{
             messages,
             joinedLIds: LIds,
+            replaceJoinedLIds,
             joinL,
             leaveL,
             leaveAll
