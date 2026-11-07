@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { getBehaviors } from "../../behaviors/api"
+import { getPlayers } from "../../player/api"
 import { getLeagueRoster } from "../api"
+import RosterSection from "./RosterSection"
 
 export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
   //Hooks para llamados a API
@@ -20,14 +22,22 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
 
       try {
         // Promise.all permite ejecutar varias operaciones asíncronas en paralelo y esperar a que todas terminen. La alternativa ya usada es secuencial.
-        const [rosterData, behaviorsData] = await Promise.all([
-          getLeagueRoster(leagueId),
-          getBehaviors(),
+        const [rosterData, behaviorsData, playersData] = await Promise.all([
+          getLeagueRoster(leagueId), //Roster
+          getBehaviors(), // Todos los comportamientos creados
+          getPlayers(), // Todos los jugadores creados
         ])
 
         if (!active) return
-        setRoster(rosterData)
-        setBehaviors(behaviorsData.filter((behavior) => behavior.is_valid === true))
+        // Guarda el roster recibido y a cada jugador le agrega "name" obteniendo el nombre de la lista de los jugadores obtenida
+        setRoster({
+          ...rosterData,
+          players: rosterData.players.map(player => ({
+            ...player,
+            name: playersData.find(item => item.id === player.player_id)?.name ?? "Jugador sin nombre",
+          })),
+        })
+        setBehaviors(behaviorsData)
       } catch {
         if (active) {
           onLoadError("Error al cargar la alineación y los comportamientos.")
@@ -42,24 +52,57 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
     return () => {
       active = false
     }
-  }, [leagueId, showToast, hideToast])
+  }, [leagueId, onLoadError, onClose])
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4"
     >
-      <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
-        <h2 id="change-roster-title" className="text-2xl font-bold text-slate-100">
-          Cambiar alineación
-        </h2>
-        {loading && <p role="status" className="text-slate-300">Cargando alineación...</p>}
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-        >
-          Cerrar
-        </button>
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
+
+        <div className="flex items-center justify-between">
+          <h2 id="change-roster-title" className="text-2xl font-bold text-slate-100">
+            Cambiar alineación
+          </h2>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        {loading && <p className="text-slate-300">Cargando alineación...</p>}
+
+        {!loading && roster && (
+          <div className="space-y-4 text-slate-300">
+
+            <p>
+              Formación actual: {roster.formation}
+            </p>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+              {/* Titulares */}
+              <RosterSection
+                title="Titulares"
+                players={roster.players.filter(player => player.is_starter)}
+                behaviors={behaviors}
+              />
+
+              {/* Suplentes */}
+              <RosterSection
+                title="Suplentes"
+                players={roster.players.filter(player => !player.is_starter)}
+                behaviors={behaviors}
+              />
+
+            </div>
+          </div>
+        )}
+        
       </div>
     </div>
   )
