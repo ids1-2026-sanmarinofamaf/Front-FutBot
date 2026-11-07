@@ -1,4 +1,14 @@
-export function MatchPlayerInMatch({ players, playerNumbers }) {
+/**
+ * Componente que renderiza en SVG los jugadores activos en la cancha.
+ * Dibuja cada jugador como un círculo de color (azul para equipo A, rojo para B)
+ * con su dorsal fijo (shirt_number) centrado.
+ *
+ * @param {Object} props
+ * @param {Array<Object>} props.players - Lista de jugadores con sus posiciones y estado en cancha.
+ * @param {Object} [props.playerNumbers] - Mapeo de player_id a dorsal fijo.
+ * @returns {JSX.Element}
+ */
+export function MatchPlayerInMatch({ players, playerNumbers = {} }) {
   return (
     <>
       {players
@@ -13,7 +23,7 @@ export function MatchPlayerInMatch({ players, playerNumbers }) {
           }
           //pinta cada jugador con un color según su equipo y dibuja su número en el centro del círculo
           const color = p.team === "A" ? "blue" : "red"
-          const number = playerNumbers[p.player_id]
+          const number = p.shirt_number ?? playerNumbers[p.player_id]
 
           return (
             <g key={p.player_id}>

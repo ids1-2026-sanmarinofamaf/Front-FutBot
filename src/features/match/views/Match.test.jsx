@@ -1,11 +1,10 @@
-
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { Match } from './Match'
 import { getPlayerById } from '../../player/api.js'
 import { getBehaviors } from '../../behaviors/api.js'
-import { changeBehavior } from '../api.js'
+import { changeBehavior, makeSubstitution } from '../api.js'
 
 vi.mock('../../player/api.js', () => ({
   getPlayerById: vi.fn()
@@ -16,16 +15,47 @@ vi.mock('../../behaviors/api.js', () => ({
 }))
 
 vi.mock('../api.js', () => ({
-  changeBehavior: vi.fn()
+  changeBehavior: vi.fn(),
+  makeSubstitution: vi.fn()
 }))
 
-function renderMatch(estado_partido, matchId = '42', pausa = null) {
+const defaultMatchInfo = {
+  match_id: 42,
+  my_club_id: 1,
+  team_a: {
+    club_id: 1,
+    club_name: 'team 1',
+    coach_behavior_name: 'Coach A',
+  },
+  team_b: {
+    club_id: 2,
+    club_name: 'team 2',
+    coach_behavior_name: 'Coach B',
+  },
+  players: [
+    { player_id: 1, name: 'Player 1', shirt_number: 1, club_id: 1, team: 'A' },
+    { player_id: 2, name: 'Player 2', shirt_number: 2, club_id: 1, team: 'A' },
+    { player_id: 3, name: 'Player 3', shirt_number: 3, club_id: 1, team: 'A' },
+    { player_id: 4, name: 'Player 4', shirt_number: 4, club_id: 1, team: 'A' },
+    { player_id: 5, name: 'Player 5', shirt_number: 5, club_id: 1, team: 'A' },
+    { player_id: 6, name: 'Player 6', shirt_number: 6, club_id: 1, team: 'A' },
+    { player_id: 7, name: 'Rival', shirt_number: 1, club_id: 2, team: 'B' },
+    { player_id: 8, name: 'Rival', shirt_number: 2, club_id: 2, team: 'B' },
+    { player_id: 9, name: 'Rival', shirt_number: 3, club_id: 2, team: 'B' },
+    { player_id: 10, name: 'Rival', shirt_number: 4, club_id: 2, team: 'B' },
+    { player_id: 11, name: 'Rival', shirt_number: 5, club_id: 2, team: 'B' },
+    { player_id: 12, name: 'Rival', shirt_number: 6, club_id: 2, team: 'B' },
+  ],
+}
+
+function renderMatch(estado_partido, matchId = '42', pausa = null, matchInfo = defaultMatchInfo) {
   return render(
     <MemoryRouter>
       <Match
         estado_partido={estado_partido}
         matchId={matchId}
         pausa={pausa}
+        matchInfo={matchInfo}
       />
     </MemoryRouter>
   )
@@ -61,23 +91,6 @@ describe('Match', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // El backend solo devuelve jugadores del propio club.
-    // Los del equipo rival (team "B") responden 404 → se muestran como "Rival".
-    getPlayerById.mockImplementation(function (id) {
-      const player = estado_partido.players.find(function (p) {
-        return p.player_id === id
-      })
-
-      if (player.team === 'B') {
-        return Promise.reject(new Error('Not found'))
-      }
-
-      return Promise.resolve({
-        player_id: id,
-        name: 'Player ' + id
-      })
-    })
   })
 
   it('dibuja un círculo por cada jugador en cancha de ambos equipos, más la pelota, mas el circulo central de la cancha', () => {
@@ -113,11 +126,7 @@ describe('Match', () => {
 
     expect(await screen.findAllByText('Rival')).toHaveLength(6)
 
-    expect(getPlayerById).toHaveBeenCalledTimes(estado_partido.players.length)
-
-    estado_partido.players.forEach(function (player) {
-      expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
-    })
+    expect(getPlayerById).not.toHaveBeenCalled()
   })
 
   it('dibuja la cancha junto con el resto de los elementos del partido', () => {
@@ -165,7 +174,10 @@ describe('Match', () => {
 
     result.rerender(
       <MemoryRouter>
-        <Match estado_partido={updatedState} />
+        <Match
+          estado_partido={updatedState}
+          matchInfo={defaultMatchInfo}
+        />
       </MemoryRouter>
     )
 
@@ -224,8 +236,8 @@ describe('Match', () => {
       await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
     ).toBeInTheDocument()
 
-    expect(await screen.findByText('Default')).toBeInTheDocument()
-    expect(screen.getByText('Ataque Total')).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /Default/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Ataque Total/i })).toBeInTheDocument()
     expect(getBehaviors).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('option', { name: /Ataque Total/i }))
@@ -236,14 +248,16 @@ describe('Match', () => {
       expect(changeBehavior).toHaveBeenCalledWith('77', 1, 5)
     })
 
+    expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Total')
+
     await waitFor(function () {
       expect(
         screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
       ).not.toBeInTheDocument()
     })
 
-    // Al volver a abrir otro titular, reutiliza la lista cacheada sin volver a llamar a getBehaviors
     fireEvent.click(screen.getByTestId('starter-card-2'))
+
     expect(
       await screen.findByRole('heading', { name: 'Cambiar comportamiento' })
     ).toBeInTheDocument()
@@ -274,13 +288,20 @@ describe('Match', () => {
   })
 
   it('impide abrir el menú de comportamientos a un espectador o sobre jugadores rivales', async () => {
-    getPlayerById.mockRejectedValue(new Error('Not found'))
+    const matchInfoSpectator = {
+      my_club_id: null,
+      players: estado_partido.players.map(p => ({
+        player_id: p.player_id,
+        name: 'Rival',
+        club_id: p.team === 'A' ? 1 : 2,
+        shirt_number: 1,
+        team: p.team,
+      })),
+    }
 
-    renderMatch(estado_partido, '77')
+    renderMatch(estado_partido, '77', null, matchInfoSpectator)
 
-    await waitFor(function () {
-      expect(screen.getAllByText('Rival')).toHaveLength(12)
-    })
+    expect(screen.getAllByText('Rival')).toHaveLength(12)
 
     fireEvent.click(screen.getByTestId('starter-card-1'))
     fireEvent.click(screen.getByTestId('starter-card-7'))
@@ -289,6 +310,141 @@ describe('Match', () => {
       screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
     ).not.toBeInTheDocument()
     expect(getBehaviors).not.toHaveBeenCalled()
+  })
+
+  // Tests de sustituciones
+
+  it('abre el menú de suplentes al pulsar el botón Cambiar jugador', async () => {
+    renderMatch(estado_partido)
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    expect(
+      await screen.findByTestId('substitute-option-4')
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByTestId('cancel-substitution-A')
+    ).toBeInTheDocument()
+  })
+
+  it('envía la solicitud de sustitución con el titular y el suplente seleccionados', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(makeSubstitution).toHaveBeenCalledTimes(1)
+      expect(makeSubstitution).toHaveBeenCalledWith('77', 1, 4)
+    })
+  })
+
+  it('cambia el texto del botón del titular por el nombre del suplente seleccionado', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(
+        screen.getByTestId('substitution-button-1')
+      ).toHaveTextContent('Player 4')
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-2')
+    ).toHaveTextContent('Cambiar jugador')
+  })
+
+  it('mantiene el nombre pendiente hasta que el WebSocket informa que se concretó la sustitución', async () => {
+    makeSubstitution.mockResolvedValue(null)
+
+    const result = renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(
+        screen.getByTestId('substitution-button-1')
+      ).toHaveTextContent('Player 4')
+    })
+
+    const updatedState = {
+      ...estado_partido,
+      actual_tic: 500,
+      players: estado_partido.players.map(function (player) {
+        if (player.player_id === 1) {
+          return { ...player, is_on_field: false }
+        }
+
+        if (player.player_id === 4) {
+          return { ...player, is_on_field: true }
+        }
+
+        return player
+      })
+    }
+
+    result.rerender(
+      <MemoryRouter>
+        <Match
+          estado_partido={updatedState}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+        />
+      </MemoryRouter>
+    )
+
+    await waitFor(function () {
+      expect(
+        screen.queryByTestId('substitution-button-1')
+      ).not.toBeInTheDocument()
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-4')
+    ).toHaveTextContent('Cambiar jugador')
+  })
+
+  it('no cambia el texto del botón cuando falla la solicitud de sustitución', async () => {
+    makeSubstitution.mockRejectedValue(
+      new Error('Substitution limit reached')
+    )
+
+    renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 4')
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+    fireEvent.click(await screen.findByTestId('substitute-option-4'))
+
+    await waitFor(function () {
+      expect(makeSubstitution).toHaveBeenCalledTimes(1)
+    })
+
+    expect(
+      screen.getByTestId('substitution-button-1')
+    ).toHaveTextContent('Cambiar jugador')
+
+    expect(
+      screen.getByTestId('substitution-button-1')
+    ).not.toHaveTextContent('Player 4')
   })
 
   // Tests de pausas
@@ -378,6 +534,46 @@ describe('Match', () => {
     expect(
       screen.getByRole('button', { name: 'Salir del partido' })
     ).toBeInTheDocument()
+  })
+
+  // Tests de visualización de DT y ventana de sustituciones
+
+  it('muestra el nombre del DT en las insignias de cada equipo', () => {
+    renderMatch(estado_partido)
+
+    expect(screen.getByTestId('coach-badge-A')).toHaveTextContent('DT: Coach A')
+    expect(screen.getByTestId('coach-badge-B')).toHaveTextContent('DT: Coach B')
+  })
+
+  it('muestra Sin DT cuando el club no tiene DT asignado', () => {
+    const matchInfoWithoutCoach = {
+      ...defaultMatchInfo,
+      team_a: { club_id: 1, club_name: 'Club A', coach_behavior_name: null },
+      team_b: { club_id: 2, club_name: 'Club B', coach_behavior_name: undefined },
+    }
+
+    renderMatch(estado_partido, '42', null, matchInfoWithoutCoach)
+
+    expect(screen.getByTestId('coach-badge-A')).toHaveTextContent('DT: Sin DT')
+    expect(screen.getByTestId('coach-badge-B')).toHaveTextContent('DT: Sin DT')
+  })
+
+  it('deshabilita el botón de cambios cuando ventanaSustitucionesAbierta es false', () => {
+    render(
+      <MemoryRouter>
+        <Match
+          estado_partido={estado_partido}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={false}
+        />
+      </MemoryRouter>
+    )
+
+    const subButton = screen.getByTestId('substitution-button-1')
+    expect(subButton).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(subButton)
+    expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
   })
 
 })
