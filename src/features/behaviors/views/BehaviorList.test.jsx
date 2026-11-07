@@ -9,11 +9,12 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("../api", () => ({
   getBehaviors: vi.fn(),
+  deleteBehavior: vi.fn(),
 }));
 
-// Mock del subcomponente para aislar la prueba y facilitar la interacción con onView y onEdit
+// Mock del subcomponente para aislar la prueba y facilitar la interacción con onView, onEdit y onDelete
 vi.mock("../components/BehaviorCard", () => ({
-  BehaviorCard: ({ behavior, onView, onEdit }) => (
+  BehaviorCard: ({ behavior, onView, onEdit, onDelete, isDeleting }) => (
     <div data-testid={`behavior-card-${behavior.behavior_id}`}>
       <span>{behavior.name}</span>
       <button 
@@ -28,13 +29,20 @@ vi.mock("../components/BehaviorCard", () => ({
       >
         Editar
       </button>
+      <button 
+        onClick={() => onDelete(behavior.behavior_id)}
+        disabled={isDeleting}
+        data-testid={`delete-btn-${behavior.behavior_id}`}
+      >
+        {isDeleting ? "Eliminando..." : "Eliminar"}
+      </button>
     </div>
   ),
 }));
 
 // 2. Importación de módulos mockeados para aserciones
 import { useNavigate } from "react-router-dom";
-import { getBehaviors } from "../api";
+import { getBehaviors, deleteBehavior } from "../api";
 
 describe("BehaviorList Component", () => {
   let mockNavigate;
@@ -163,5 +171,64 @@ describe("BehaviorList Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /Crear Nuevo/i }));
     
     expect(mockNavigate).toHaveBeenCalledWith("/club/behaviors/new");
+  });
+
+  it("Elimina un comportamiento de la lista cuando deleteBehavior responde con éxito", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
+    deleteBehavior.mockResolvedValueOnce(null);
+
+    render(<BehaviorList />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-btn-1")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("delete-btn-1"));
+
+    await waitFor(() => {
+      expect(deleteBehavior).toHaveBeenCalledWith(1);
+      expect(screen.queryByTestId("behavior-card-1")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("behavior-card-2")).toBeInTheDocument();
+  });
+
+  it("Muestra el error del backend y mantiene la tarjeta si falla la eliminación", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
+    deleteBehavior.mockRejectedValueOnce(
+      new Error("No se puede realizar esta acción mientras se participe en un partido o competencia activa.")
+    );
+
+    render(<BehaviorList />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-btn-1")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("delete-btn-1"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("No se puede realizar esta acción mientras se participe en un partido o competencia activa.")
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("behavior-card-1")).toBeInTheDocument();
+  });
+
+  it("Muestra error genérico si deleteBehavior falla sin mensaje específico", async () => {
+    getBehaviors.mockResolvedValueOnce(mockBehaviors);
+    deleteBehavior.mockRejectedValueOnce({});
+
+    render(<BehaviorList />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-btn-1")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("delete-btn-1"));
+
+    await waitFor(() => {
+      expect(screen.getByText("No se pudo eliminar el comportamiento.")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("behavior-card-1")).toBeInTheDocument();
   });
 });
