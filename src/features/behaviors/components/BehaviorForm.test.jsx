@@ -1,7 +1,20 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { BehaviorForm } from './BehaviorForm';
+import { getBehaviors, createBehaviorPreview } from '../api';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(),
+  useLocation: vi.fn(),
+}));
+
+vi.mock('../api', () => ({
+  validateBehaviorCode: vi.fn(),
+  getBehaviors: vi.fn(),
+  createBehaviorPreview: vi.fn(),
+}));
 
 // Monaco no carga en jsdom: lo reemplazamos por un textarea
 vi.mock('@monaco-editor/react', () => ({
@@ -18,9 +31,12 @@ vi.mock('@monaco-editor/react', () => ({
 describe('BehaviorForm Component', () => {
   const mockOnSubmit = vi.fn();
   const mockOnCancel = vi.fn();
+  const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useNavigate.mockReturnValue(mockNavigate);
+    useLocation.mockReturnValue({ pathname: '/club/behaviors/new', state: null });
   });
 
   it('renderiza con código por defecto y el submit deshabilitado por falta de nombre', () => {
@@ -125,5 +141,83 @@ describe('BehaviorForm Component', () => {
 
     await user.click(screen.getByRole('button', { name: /Cerrar/i }));
     expect(screen.queryByText(/Reglas de ejecución/i)).not.toBeInTheDocument();
+  });
+
+  it('abre el modal de prueba con los comportamientos por defecto sin preseleccionar e inicia la previsualización', async () => {
+    const user = userEvent.setup();
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Defender', is_default: true },
+      { behavior_id: 2, name: 'Attacker', is_default: true },
+      { behavior_id: 10, name: 'Personalizado', is_default: false },
+    ]);
+    createBehaviorPreview.mockResolvedValue({ preview_id: 'uuid-999' });
+
+    render(
+      <BehaviorForm
+        initialName="Mi Jugada"
+        initialCode={'def play():\n    return wait()'}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Probar código' }));
+
+    const select1 = await screen.findByLabelText('Compañero 1');
+    const select2 = screen.getByLabelText('Compañero 2');
+    const startBtn = screen.getByRole('button', { name: 'Iniciar prueba' });
+
+    // Sin preselección inicial y botón deshabilitado
+    expect(select1).toHaveValue('');
+    expect(select2).toHaveValue('');
+    expect(startBtn).toBeDisabled();
+    expect(screen.queryByRole('option', { name: 'Personalizado' })).not.toBeInTheDocument();
+
+    await user.selectOptions(select1, '1');
+    expect(startBtn).toBeDisabled();
+
+    await user.selectOptions(select2, '2');
+    expect(startBtn).toBeEnabled();
+
+    await user.click(startBtn);
+
+    await waitFor(() => {
+      expect(createBehaviorPreview).toHaveBeenCalledWith({
+        code: 'def play():\n    return wait()',
+        behavior_teammate_1: 1,
+        behavior_teammate_2: 2,
+      });
+      expect(mockNavigate).toHaveBeenCalledWith('/club/behaviors/preview/uuid-999', {
+        state: {
+          returnPath: '/club/behaviors/new',
+          draftName: 'Mi Jugada',
+          draftCode: 'def play():\n    return wait()',
+        },
+      });
+    });
+  });
+
+  it('muestra el error del backend en el modal si createBehaviorPreview falla', async () => {
+    const user = userEvent.setup();
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Defender', is_default: true },
+    ]);
+    createBehaviorPreview.mockRejectedValue(new Error('El código no define play()'));
+
+    render(<BehaviorForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+    await user.click(screen.getByRole('button', { name: 'Probar código' }));
+
+    const select1 = await screen.findByLabelText('Compañero 1');
+    const select2 = screen.getByLabelText('Compañero 2');
+
+    await user.selectOptions(select1, '1');
+    await user.selectOptions(select2, '1');
+    await user.click(screen.getByRole('button', { name: 'Iniciar prueba' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('El código no define play()')).toBeInTheDocument();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
