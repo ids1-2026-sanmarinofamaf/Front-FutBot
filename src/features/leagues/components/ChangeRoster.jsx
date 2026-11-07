@@ -67,6 +67,12 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
    */
   const handleStarterChange = (playerId) => {
     setRoster(previous => {
+
+      const selectedPlayer = previous.players.find(player => player.player_id === playerId)
+      const startersCount = previous.players.filter(player => player.is_starter).length
+      
+      if (!selectedPlayer || (!selectedPlayer.is_starter && startersCount >= 3)) return previous
+
       const players = previous.players.map(player => player.player_id === playerId
         ? { ...player, is_starter: !player.is_starter, slot: null }
         : { ...player })
@@ -121,6 +127,11 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
     })
   }
 
+  // Constantes para contador y para verificar validez de alineación actual
+  const startersCount = roster?.players.filter(player => player.is_starter).length ?? 0
+  const substitutesCount = roster?.players.filter(player => !player.is_starter).length ?? 0
+  const hasValidPlayerCounts = startersCount === 3 && substitutesCount === 3
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4"
@@ -159,6 +170,11 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
               </select>
             </label>
 
+            <p>Titulares: {startersCount}/3 · Suplentes: {substitutesCount}/3</p>
+            {!hasValidPlayerCounts && (
+              <p className="text-amber-400">La alineación debe tener exactamente tres titulares y tres suplentes.</p>
+            )}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
               {/* Titulares */}
@@ -174,6 +190,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
               {/* Suplentes */}
               <RosterSection
                 title="Suplentes"
+                disablePromotion={startersCount >= 3}
                 players={roster.players.filter(player => !player.is_starter)}
                 behaviors={behaviors}
                 onStarterChange={handleStarterChange}

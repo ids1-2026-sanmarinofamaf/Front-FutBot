@@ -8,7 +8,7 @@
  * @param occupiedSlots: slots ocupados
  * @returns Componente de jugador
  */
-export default function RosterPlayer({ player, behaviors, onStarterChange, onBehaviorChange, onSlotChange, occupiedSlots }) {
+export default function RosterPlayer({ player, behaviors, onStarterChange, onBehaviorChange, onSlotChange, occupiedSlots, disablePromotion = false }) {
 
   //Filtra los comportamientos para obtener el que tiene el jugador
   const behavior = behaviors.find(
@@ -63,11 +63,12 @@ export default function RosterPlayer({ player, behaviors, onStarterChange, onBeh
       <button
         type="button"
         onClick={() => onStarterChange(player.player_id)}
-        className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-100 rounded-lg font-semibold transition-colors shadow-md"
+        disabled={!player.is_starter && disablePromotion}
+        className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-100 rounded-lg font-semibold transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {player.is_starter ? "Pasar a suplente" : "Pasar a titular"}
       </button>
 
     </li>
   )
-}
+}disablePromotion

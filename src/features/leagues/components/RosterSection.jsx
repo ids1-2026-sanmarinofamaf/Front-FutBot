@@ -8,9 +8,10 @@ import RosterPlayer from "./RosterPlayer"
  * @param onStarterChange: lógica para cambiar titulares del roster
  * @param onBehaviorChange: lógica para cambiar comportamientos del roster
  * @param onSlotChange: lógica para cambiar slots del roster
+ * @param disablePromotion: valor booleano para habilitar/deshabilitar pasar jugador de suplente a titular
  * @returns Componente con jugadores
  */
-export default function RosterSection({ title, players, behaviors, onStarterChange, onBehaviorChange, onSlotChange }) {
+export default function RosterSection({ title, players, behaviors, onStarterChange, onBehaviorChange, onSlotChange, disablePromotion = false }) {
   return (
     <section className="space-y-3">
 
@@ -23,6 +24,7 @@ export default function RosterSection({ title, players, behaviors, onStarterChan
           <RosterPlayer
             key={player.player_id}
             player={player}
+            disablePromotion={disablePromotion}
             behaviors={behaviors}
             onStarterChange={onStarterChange}
             onBehaviorChange={onBehaviorChange}
