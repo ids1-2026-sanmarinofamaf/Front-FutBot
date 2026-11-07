@@ -59,3 +59,21 @@ export const validateBehaviorCode = async (code) => {
   });
   return data;
 };
+
+/**
+ * Elimina un comportamiento personalizado del club actual por su id.
+ * @param {number|string} id Identificador del comportamiento a eliminar.
+ * @returns {Promise<null>} Respuesta del servidor (204 No Content).
+ */
+export const deleteBehavior = async (id) => {
+  if (id === undefined || id === null) {
+    throw new Error("El ID del comportamiento es requerido");
+  }
+
+  const data = await apiClient(`/clubes/me/behaviors/${id}`, {
+    method: 'DELETE',
+  });
+
+  return data;
+};
+
