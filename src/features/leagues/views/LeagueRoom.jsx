@@ -398,7 +398,7 @@ export function LeagueLobby() {
       <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
 
         {changeRoster && lobby.state === "INICIADA" && (
-          <ChangeRoster onClose={() => setChangeRoster(false)} />
+          <ChangeRoster leagueId={numericId} onClose={() => setChangeRoster(false)} />
         )}
 
         {showFinished && (
