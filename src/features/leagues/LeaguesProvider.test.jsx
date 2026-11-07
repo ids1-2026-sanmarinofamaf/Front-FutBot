@@ -102,6 +102,33 @@ describe("LeaguesSocketProvider", () => {
         });
     });
 
+    describe("replaceJoinedLIds", () => {
+        it("reemplaza IDs y storage, cierra sockets anteriores y recupera los nuevos", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            act(() => result.current.replaceJoinedLIds([7, 7, 10]));
+            expect(result.current.joinedLIds).toEqual([7, 10]);
+            expect(storedIds()).toEqual([7, 10]);
+            expect(wasClosed(3)).toBe(true);
+            expect(socketFor(7)).toBeDefined();
+            expect(socketFor(10)).toBeDefined();
+        });
+
+        it("una lista vacía elimina los IDs anteriores", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            act(() => result.current.replaceJoinedLIds([]));
+            expect(storedIds()).toEqual([]);
+        });
+
+        it("una respuesta inválida conserva los IDs previos", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            expect(() => act(() => result.current.replaceJoinedLIds([7, null]))).toThrow();
+            expect(storedIds()).toEqual([3]);
+        });
+    });
+
     describe("joinL", () => {
 
         it("abre un socket con la URL de la liga", async () => {
