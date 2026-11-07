@@ -398,7 +398,14 @@ export function LeagueLobby() {
       <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
 
         {changeRoster && lobby.state === "INICIADA" && (
-          <ChangeRoster leagueId={numericId} onClose={() => setChangeRoster(false)} />
+          <ChangeRoster
+            leagueId={numericId}
+            onClose={() => setChangeRoster(false)}
+            onLoadError={(message) => {
+              setAlert(message)
+              showToast()
+            }}
+          />
         )}
 
         {showFinished && (
@@ -474,6 +481,17 @@ export function LeagueLobby() {
 
         {alert === "El creador no puede abandonar su propia liga." && toast && (
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
+          />
+        )}
+        
+        {/** Alerta: Error al cargar datos en componente de cambio de alineacion */}
+        {alert === "Error al cargar la alineación y los comportamientos." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="No pudiste cargar la alineación"
+            errorDescription={alert}
+            color="red"
           />
         )}
 

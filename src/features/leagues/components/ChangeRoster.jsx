@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react"
 import { getBehaviors } from "../../behaviors/api"
 import { getLeagueRoster } from "../api"
-import { useToast } from "../../../shared/hooks"
-import RightDownAlert from "../../auth/components/RightDownAlert"
 
-export default function ChangeRoster({ leagueId, onClose }) {
+export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
   //Hooks para llamados a API
   const [roster, setRoster] = useState(null)
   const [behaviors, setBehaviors] = useState([])
   //Hooks para carga y notificaciones
   const [loading, setLoading] = useState(true)
-  const { toast, showToast, hideToast } = useToast()
-  const [alert, setAlert] = useState("")
 
   useEffect(() => {
     // Variable para manejar caso de cierre de sesión luego de usar endpoint
@@ -19,8 +15,6 @@ export default function ChangeRoster({ leagueId, onClose }) {
 
     const fetchData = async () => {
       setLoading(true)
-      setAlert("")
-      hideToast()
       setRoster(null)
       setBehaviors([])
 
@@ -36,8 +30,8 @@ export default function ChangeRoster({ leagueId, onClose }) {
         setBehaviors(behaviorsData.filter((behavior) => behavior.is_valid === true))
       } catch {
         if (active) {
-          setAlert("Error al cargar la alineación y los comportamientos.")
-          showToast()
+          onLoadError("Error al cargar la alineación y los comportamientos.")
+          onClose()
         }
       } finally {
         if (active) setLoading(false)
@@ -59,15 +53,6 @@ export default function ChangeRoster({ leagueId, onClose }) {
           Cambiar alineación
         </h2>
         {loading && <p role="status" className="text-slate-300">Cargando alineación...</p>}
-        {alert === "Error al cargar la alineación y los comportamientos." && toast && (
-          <RightDownAlert
-            key={toast.id}
-            toast={toast}
-            errorTitle="No pudiste cargar la alineación"
-            errorDescription={alert}
-            color="red"
-          />
-        )}
         <button
           type="button"
           onClick={onClose}
