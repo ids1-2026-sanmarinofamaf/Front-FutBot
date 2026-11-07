@@ -6,6 +6,7 @@ import { CreateBehavior } from './CreateBehavior';
 // 1. Mocks de dependencias externas
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
+  useLocation: vi.fn(() => ({ pathname: '/club/behaviors/new', state: null })),
 }));
 
 vi.mock('../api', () => ({

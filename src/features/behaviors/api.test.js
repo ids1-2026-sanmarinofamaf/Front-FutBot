@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBehaviors, getBehaviorById, createBehavior, updateBehavior } from './api';
+import {
+  getBehaviors,
+  getBehaviorById,
+  createBehavior,
+  updateBehavior,
+  createBehaviorPreview,
+  stopBehaviorPreview,
+} from './api';
 import { apiClient } from '../../shared/api/client';
 
 vi.mock('../../shared/api/client', () => ({
@@ -150,6 +157,77 @@ describe('Behaviors API', () => {
       apiClient.mockRejectedValue(new Error('Not Found'));
 
       await expect(updateBehavior(99, validPayload)).rejects.toThrow('Not Found');
+    });
+  });
+
+  describe('createBehaviorPreview', () => {
+    const validPayload = {
+      code: 'def play():\n    return wait()',
+      behavior_teammate_1: 1,
+      behavior_teammate_2: 2,
+    };
+
+    it('debe invocar apiClient con POST y los datos de la previsualización', async () => {
+      const mockResponse = { preview_id: '123e4567-e89b-12d3-a456-426614174000' };
+      apiClient.mockResolvedValue(mockResponse);
+
+      const result = await createBehaviorPreview(validPayload);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith('/clubes/me/behaviors/previews', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('debe lanzar un error si faltan datos requeridos', async () => {
+      await expect(createBehaviorPreview(null)).rejects.toThrow(
+        'Datos de previsualización inválidos o incompletos'
+      );
+      await expect(
+        createBehaviorPreview({ code: 'def play(): pass', behavior_teammate_1: 1 })
+      ).rejects.toThrow('Datos de previsualización inválidos o incompletos');
+      expect(apiClient).not.toHaveBeenCalled();
+    });
+
+    it('debe propagar errores de apiClient', async () => {
+      apiClient.mockRejectedValue(new Error('Invalid default behavior'));
+
+      await expect(createBehaviorPreview(validPayload)).rejects.toThrow(
+        'Invalid default behavior'
+      );
+    });
+  });
+
+  describe('stopBehaviorPreview', () => {
+    it('debe invocar apiClient con DELETE y el previewId en la ruta', async () => {
+      apiClient.mockResolvedValue(null);
+      const previewId = '123e4567-e89b-12d3-a456-426614174000';
+
+      const result = await stopBehaviorPreview(previewId);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+      expect(apiClient).toHaveBeenCalledWith(
+        `/clubes/me/behaviors/previews/${previewId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      expect(result).toBeNull();
+    });
+
+    it('debe lanzar un error si no se provee el previewId', async () => {
+      await expect(stopBehaviorPreview('')).rejects.toThrow(
+        'El ID de la previsualización es requerido'
+      );
+      expect(apiClient).not.toHaveBeenCalled();
+    });
+
+    it('debe propagar errores de apiClient', async () => {
+      apiClient.mockRejectedValue(new Error('Preview not found'));
+
+      await expect(stopBehaviorPreview('abc')).rejects.toThrow('Preview not found');
     });
   });
 });
