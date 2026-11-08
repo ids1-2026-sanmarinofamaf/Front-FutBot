@@ -17,8 +17,8 @@ export function EditClubNameModal({ name, onSave, onCancel, saving }) {
       <div>
         <label htmlFor="club-name">Nombre del club</label>
         <input id="club-name" value={value} onChange={(event) => setValue(event.target.value)} disabled={saving}
-          className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 p-3" />
-        {error && <p className="mt-2 text-red-400">{error}</p>}
+          className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 p-3 text-[1.75rem] leading-[2.125rem]" />
+        {error && <p className="mt-2 text-[1.5rem] leading-[1.875rem] text-red-400">{error}</p>}
       </div>
     </ClubEditModal>
   );

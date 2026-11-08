@@ -27,12 +27,12 @@ export function ClubStatsTab({ statistics }) {
   ];
 
   return (
-    <div className="flex flex-col gap-6 text-slate-100">
-      <h2 className="text-xl font-bold">Estadísticas del club</h2>
+    <div className="flex flex-col gap-6 text-[#F2F2F2]">
+      <h2 className="text-[2.25rem] leading-[2.625rem] font-bold">Estadísticas del club</h2>
 
       {sections.map(({ title, stats }) => (
         <section key={title} className="flex flex-col gap-3">
-          <h3 className="text-lg font-semibold text-slate-300">
+          <h3 className="text-[2rem] leading-[2.375rem] font-semibold text-slate-300">
             {title}
           </h3>
 
@@ -42,11 +42,11 @@ export function ClubStatsTab({ statistics }) {
                 key={label}
                 className="flex items-center justify-between px-4 py-3"
               >
-                <span className="text-sm text-slate-300">
+                <span className="text-[1.5rem] leading-[1.875rem] text-slate-300">
                   {label}
                 </span>
 
-                <span className="text-lg font-bold text-blue-400">
+                <span className="text-[2rem] leading-[2.375rem] font-bold text-[#5BB5D9]">
                   {value}
                 </span>
               </li>

@@ -130,11 +130,11 @@ export function MyClub() {
 
         <div className="flex items-center justify-between">
 
-          <h1 className="text-3xl font-bold text-slate-100 text-center mb-8">Mi Club</h1>
+          <h1 className="text-[5rem] leading-[3.375rem] font-bold text-[#F2F2F2] text-center mb-8">Mi Club</h1>
 
           <button
             onClick={() => navigate('/')}
-            className="py-3 px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 text-sm font-medium rounded-xl transition-colors"
+            className="py-3 px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 text-[1.5rem] leading-[1.875rem] font-medium rounded-xl transition-colors"
           >
             Volver al Menú Principal
           </button>
@@ -143,8 +143,8 @@ export function MyClub() {
 
         {loading ? (
           <div className="flex flex-col items-center gap-4 py-12">
-            <div className="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-slate-400">Cargando información del club…</p>
+            <div className="w-12 h-12 border-4 border-slate-600 border-t-[#5BB5D9] rounded-full animate-spin" />
+            <p className="text-[1.75rem] leading-[2.125rem] text-slate-400">Cargando información del club…</p>
           </div>
         ) : (
           <>
@@ -157,8 +157,8 @@ export function MyClub() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex-1 py-3 font-semibold border-b-2 transition-colors ${activeTab === id
-                      ? 'border-blue-500 text-blue-400'
+                  className={`flex-1 py-3 text-[1.75rem] leading-[2.125rem] font-semibold border-b-2 transition-colors ${activeTab === id
+                      ? 'border-[#5BB5D9] text-[#5BB5D9]'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                     }`}
                 >

@@ -18,7 +18,7 @@ export function EditClubAvatarModal({ club, onSave, onCancel, saving }) {
     {/* Vista previa */}
     <Avatar avatar={newAvatar || club.club_avatar} name={club.club_name} clubId={club.club_id} className="w-28 h-28" />
 
-    <div>
+    <div className="[&_input]:text-[1.75rem] [&_input]:leading-[2.125rem]">
 
       <label htmlFor="club-avatar">
         Nueva imagen JPG/JPEG (hasta 1 MB)
@@ -31,7 +31,7 @@ export function EditClubAvatarModal({ club, onSave, onCancel, saving }) {
         onChange={(value) => { setNewAvatar(value); if (value) setError(''); }} 
       />
 
-      {error && <p className="mt-2 text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-[1.5rem] leading-[1.875rem] text-red-400">{error}</p>}
       
     </div>
 
