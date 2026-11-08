@@ -11,13 +11,14 @@ const club = { club_name: 'San Marino', club_avatar: 'YWJj', club_id: 1 };
 describe('ClubInfoTab', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('muestra los datos del club y del usuario en modo de lectura', () => {
+  it('muestra el nombre del club y el correo en la tarjeta sin repetir el usuario', () => {
     render(<ClubInfoTab user={userData} club={club} />);
+    expect(screen.getByText('Nombre de club')).toBeInTheDocument();
     expect(screen.getByText('San Marino')).toBeInTheDocument();
-    expect(screen.getByText('Usuario: Luca')).toBeInTheDocument();
+    expect(screen.queryByText(/^Usuario:/)).not.toBeInTheDocument();
     expect(screen.getByText('Correo electrónico: luca@example.com')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'San Marino' })).toHaveAttribute('src', 'data:image/png;base64,YWJj');
-    expect(screen.getByRole('img')).toHaveClass('w-28', 'h-28');
+    expect(screen.getByRole('img')).toHaveClass('w-20', 'h-20', 'sm:w-28', 'sm:h-28');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 

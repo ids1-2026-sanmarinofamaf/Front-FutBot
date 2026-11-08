@@ -81,7 +81,7 @@ describe('MyClub', () => {
 
       expect(screen.getByRole('heading', { name: /Mi Club/i })).toBeInTheDocument();
       expect(screen.getByRole('img', { name: CLUB.club_name })).toBeInTheDocument();
-      expect(screen.getByText('Usuario: Luca')).toBeInTheDocument();
+      expect(screen.queryByText(/^Usuario:/)).not.toBeInTheDocument();
       expect(screen.getByText('Correo electrónico: luca@example.com')).toBeInTheDocument();
       expect(screen.queryByText('Estadísticas del club')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Gestión de Jugadores/i })).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('MyClub', () => {
       await act(async () => clubRequest.resolve(CLUB));
 
       expect(screen.getByText('San Marino')).toBeInTheDocument();
-      expect(screen.getByText('Usuario: Luca')).toBeInTheDocument();
+      expect(screen.queryByText(/^Usuario:/)).not.toBeInTheDocument();
       expect(screen.queryByText('Cargando información del club…')).not.toBeInTheDocument();
     });
 
