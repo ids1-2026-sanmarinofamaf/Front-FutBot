@@ -25,7 +25,7 @@ export function MainMenu() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6">
-      {alert === location.state?.clubLoadError && toast && (
+      {alert && toast && (
         <RightDownAlert
           key={toast.id}
           errorTitle="No se pudo cargar la información del club"

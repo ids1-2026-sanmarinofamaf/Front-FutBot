@@ -37,8 +37,18 @@ export function MyClub() {
     try {
       await updateMyClub(changes);
     } catch (error) {
-      notify(error.message, 'red');
       setSaving(false);
+      if (error.status === 401) return;
+
+      let message = 'Respuesta inválida del servidor';
+      if (error.status === 404 && error.message === 'Club not found') {
+        message = 'No se encontró el club';
+      } else if (error.status === 422) {
+        message = 'Revisá el nombre o la imagen del club e intentá nuevamente';
+      } else if (error instanceof TypeError && !error.status) {
+        message = 'No se pudo establecer conexión con el servidor';
+      }
+      notify(message, 'red');
       return;
     }
 
@@ -51,7 +61,15 @@ export function MyClub() {
     try {
       setClub(await getMyClub());
     } catch (error) {
-      notify(error.message, 'red');
+      if (error.status === 401) return;
+
+      let message = 'Respuesta inválida del servidor';
+      if (error.status === 404 && error.message === 'Club not found') {
+        message = 'No se encontró el club';
+      } else if (error instanceof TypeError && !error.status) {
+        message = 'No se pudo establecer conexión con el servidor';
+      }
+      notify(message, 'red');
     } finally {
       setRefreshing(false);
     }
@@ -78,7 +96,17 @@ export function MyClub() {
 
       } catch (error) {
         if (!active) return;
-        navigate('/', { state: { clubLoadError: error.message } });
+
+        if (error.status === 401) return;
+
+        let message = 'Respuesta inválida del servidor';
+        if (error.status === 404 && error.message === 'Club not found') {
+          message = 'No se encontró el club';
+        } else if (error instanceof TypeError && !error.status) {
+          message = 'No se pudo establecer conexión con el servidor';
+        }
+
+        navigate('/', { state: { clubLoadError: message } });
       }
     };
 
