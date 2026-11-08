@@ -54,14 +54,14 @@ describe("RosterPlayer", () => {
     expect(onStarterChange).toHaveBeenCalledWith(7)
   })
 
-  it.each([false, true])("un suplente no edita slot y respeta disablePromotion=%s", async disablePromotion => {
+  it.each([false, true])("un suplente solo muestra nombre y botón, respetando disablePromotion=%s", async disablePromotion => {
     const { onStarterChange } = setup({
       player: { ...player, is_starter: false, slot: null, initial_behavior_id: null },
       disablePromotion,
     })
-    expect(screen.getByLabelText("Posición:")).toBeDisabled()
-    expect(screen.getByLabelText("Posición:")).toHaveValue("")
-    expect(screen.getByLabelText("Comportamiento inicial:")).toHaveValue("")
+    expect(screen.getByText("Messi")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Posición:")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Comportamiento inicial:")).not.toBeInTheDocument()
     const button = screen.getByRole("button", { name: "Pasar a titular" })
     await userEvent.click(button)
     if (disablePromotion) {
