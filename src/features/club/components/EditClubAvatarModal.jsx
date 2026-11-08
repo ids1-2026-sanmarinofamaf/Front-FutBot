@@ -1,0 +1,40 @@
+import { useState } from 'react';
+import { Avatar } from '../../../shared/components/Avatar';
+import JpgInput from '../../auth/components/JpgToB64';
+import { ClubEditModal } from './ClubEditModal';
+
+export function EditClubAvatarModal({ club, onSave, onCancel, saving }) {
+  const [newAvatar, setNewAvatar] = useState(null);
+  const [error, setError] = useState('');
+
+  return (
+    <ClubEditModal 
+      title="Editar avatar del club" 
+      saving={saving} 
+      canSave={Boolean(newAvatar)}
+      onSave={() => onSave({ new_avatar: newAvatar })} onCancel={onCancel}
+    >
+      
+    {/* Vista previa */}
+    <Avatar avatar={newAvatar || club.avatar} name={club.club_name} clubId={club.club_id} className="w-28 h-28" />
+
+    <div>
+
+      <label htmlFor="club-avatar">
+        Nueva imagen JPG/JPEG (hasta 1 MB)
+      </label>
+
+      <JpgInput 
+        id="club-avatar" 
+        disabled={saving} 
+        onError={setError}
+        onChange={(value) => { setNewAvatar(value); if (value) setError(''); }} 
+      />
+
+      {error && <p className="mt-2 text-red-400">{error}</p>}
+      
+    </div>
+
+    </ClubEditModal>
+  );
+}

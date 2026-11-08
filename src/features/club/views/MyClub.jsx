@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyClub } from '../api';
+import { getMyClub, updateMyClub } from '../api';
 import { getCurrentUser } from '../../friendlyGames/api'; 
+import { ClubInfoTab } from '../components/ClubInfoTab';
+import { EditClubNameModal } from '../components/EditClubNameModal';
+import { EditClubAvatarModal } from '../components/EditClubAvatarModal';
+import { useToast } from '../../../shared/hooks';
+import RightDownAlert from '../../../shared/components/RightDownAlert';
 
 export function MyClub() {
   const navigate = useNavigate();
@@ -12,6 +17,44 @@ export function MyClub() {
   const [club, setClub] = useState(null);
   // Hook para manejo de caso de cierre de sesión luego de llamado a API
   const [loading, setLoading] = useState(true);
+  // Hooks para manejar modales de cambio de nombre u avatar
+  const [modal, setModal] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // Hooks para manejo de alertas
+  const [alert, setAlert] = useState(null);
+  const { toast, showToast } = useToast();
+  const notify = (message, color) => {
+    setAlert({ message, color });
+    showToast();
+  };
+
+  const saveClub = async (changes) => {
+    setSaving(true);
+
+    // Envío de datos
+    try {
+      await updateMyClub(changes);
+    } catch (error) {
+      notify(error.detail, 'red');
+      setSaving(false);
+      return;
+    }
+
+    setModal(null);
+    setSaving(false);
+    setRefreshing(true);
+    notify('Club actualizado correctamente', 'green');
+
+    // Actualización de datos
+    try {
+      setClub(await getMyClub());
+    } catch (error) {
+      notify(error.detail, 'red');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
 
@@ -45,6 +88,15 @@ export function MyClub() {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center p-6">
       
+      {alert && toast && (
+        <RightDownAlert key={toast.id} errorTitle={alert.color === 'red' ? 'No se pudo actualizar el club' : 'Mi club'}
+          errorDescription={alert.message} color={alert.color} />
+      )}
+
+      {/* Componentes para cambiar nombre y avatar */}
+      {modal === 'name' && <EditClubNameModal name={club.club_name} onSave={saveClub} onCancel={() => setModal(null)} saving={saving} />}
+      {modal === 'avatar' && <EditClubAvatarModal club={club} onSave={saveClub} onCancel={() => setModal(null)} saving={saving} />}
+
       <div className="max-w-7xl w-full flex flex-col gap-6">
 
         <div className="flex items-center justify-between">
@@ -89,27 +141,8 @@ export function MyClub() {
             {/* Contenido de pestañas */}
             <div className="flex flex-col gap-6">
               {activeTab === 'info' ? (
-                <>
-                  <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 text-slate-100">
-                    <h2 className="text-2xl font-bold">{club.club_name}</h2>
-                    <p className="mt-4">Usuario: {user.user_name}</p>
-                    <p>Correo electrónico: {user.user_email}</p>
-                  </div>
-                  <button
-                    onClick={() => navigate('/club/players')}
-                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-                  >
-                    Gestión de Jugadores
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/club/behaviors')}
-                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-                  >
-                    Gestión de Comportamientos
-                  </button>
-
-                </>
+                <ClubInfoTab user={user} club={club} editingDisabled={refreshing}
+                  onEditName={() => setModal('name')} onEditAvatar={() => setModal('avatar')} />
               ) : (
                 <div className="text-slate-100">
                   <h2 className="text-xl font-bold mb-4">Estadísticas del club</h2>
