@@ -48,7 +48,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
           ...rosterData,
           players: rosterData.players.map(player => ({
             ...player,
-            name: playersData.find(item => item.id === player.player_id)?.name ?? "Jugador sin nombre",
+            name: playersData.find(item => item.id === player.player_id)?.name ?? "Juancito Chiki Doe",
           })),
         })
         setBehaviors(behaviorsData)
