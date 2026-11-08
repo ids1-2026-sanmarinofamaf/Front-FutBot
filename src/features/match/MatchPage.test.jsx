@@ -36,13 +36,21 @@ vi.mock("./useAnimatedMatchState.js", () => ({
 }));
 
 vi.mock("./views/Match", () => ({
-  Match: ({ estado_partido, matchId, matchInfo, pausa, ventanaSustitucionesAbierta }) => (
+  Match: ({
+    estado_partido,
+    matchId,
+    matchInfo,
+    pausa,
+    ventanaSustitucionesAbierta,
+    penalties,
+  }) => (
     <div
       data-testid="match"
       data-match-id={matchId}
       data-pause-type={pausa?.pause_type ?? ""}
       data-my-club-id={matchInfo?.my_club_id ?? ""}
       data-substitutions-open={String(ventanaSustitucionesAbierta)}
+      data-penalties={JSON.stringify(penalties)}
     >
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
@@ -50,6 +58,7 @@ vi.mock("./views/Match", () => ({
     </div>
   ),
 }));
+
 
 describe("MatchPage", () => {
   beforeEach(() => {
@@ -476,5 +485,225 @@ describe("MatchPage", () => {
 
     expect(screen.getByTestId("match"))
       .toHaveAttribute("data-substitutions-open", "false");
+  });
+
+  it("gestiona las fases de penales y conserva el historial al finalizar", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toBeNull();
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_shootout_started",
+        duration: 5,
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "intro",
+      data: { event: "penalty_shootout_started", duration: 5 },
+      results: [],
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_turn_started",
+        turn: 1,
+        club_id: 7,
+        kicker: 10,
+        score_club_a: 0,
+        score_club_b: 0,
+        remaining_seconds: 5,
+      });
+    });
+
+    let penalties = JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    );
+
+    expect(penalties.phase).toBe("choosing");
+    expect(penalties.data.turn).toBe(1);
+    expect(penalties.results).toEqual([]);
+
+    const firstResult = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage(firstResult);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: firstResult,
+      results: [firstResult],
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_turn_started",
+        turn: 2,
+        club_id: 8,
+        kicker: 20,
+        score_club_a: 1,
+        score_club_b: 0,
+        remaining_seconds: 5,
+      });
+    });
+
+    penalties = JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    );
+
+    expect(penalties.phase).toBe("choosing");
+    expect(penalties.data.turn).toBe(2);
+    expect(penalties.results).toEqual([firstResult]);
+
+    const secondResult = {
+      event: "penalty_result",
+      turn: 2,
+      club_id: 8,
+      kicker: 20,
+      kick_side: "LEFT",
+      save_side: "LEFT",
+      is_goal: false,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    const finished = {
+      event: "penalty_shootout_finished",
+      winner_club_id: 7,
+      score_club_a: 1,
+      score_club_b: 0,
+    };
+
+    act(() => {
+      options.onMessage(secondResult);
+      options.onMessage(finished);
+      options.onClose({ code: 1000 });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "finished",
+      data: finished,
+      results: [firstResult, secondResult],
+    });
+
+    expect(screen.getByTestId("match")).toHaveTextContent(
+      "600/600 - 1-1"
+    );
+  });
+
+  it("no duplica el resultado de un mismo turno", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const result = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage(result);
+      options.onMessage({ ...result });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: result,
+      results: [result],
+    });
+  });
+
+  it("recibe un turno al reconectar sin haber recibido la introduccion", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const turn = {
+      event: "penalty_turn_started",
+      turn: 3,
+      club_id: 7,
+      kicker: 11,
+      score_club_a: 1,
+      score_club_b: 1,
+      remaining_seconds: 2,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage(turn);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "choosing",
+      data: turn,
+      results: [],
+    });
   });
 });

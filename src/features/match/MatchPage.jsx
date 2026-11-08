@@ -25,6 +25,7 @@ export function MatchPage() {
   const [ventanaSustitucionesAbierta, setVentanaSustitucionesAbierta] =
     useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [penalties, setPenalties] = useState(null);
 
   const handleMessage = useCallback(function (data) {
     switch (data.event) {
@@ -69,6 +70,52 @@ export function MatchPage() {
         if (data.substitution_window_open !== undefined) {
           setVentanaSustitucionesAbierta(Boolean(data.substitution_window_open));
         }
+        break;
+
+      case "penalty_shootout_started":
+        setPenalties(
+          {
+            phase: "intro",
+            data,
+            results: [],
+          }
+        );
+        break;
+
+      case "penalty_turn_started":
+        setPenalties(function (previous) {
+          return {
+            phase: "choosing",
+            data,
+            results: previous?.results ?? [],
+          };
+        });
+        break;
+
+      case "penalty_result":
+        setPenalties(function (previous) {
+          const results = previous?.results ?? [];
+
+          const otherResults = results.filter(function (result) {
+            return result.turn !== data.turn;
+          });
+
+          return {
+            phase: "result",
+            data,
+            results: [... otherResults, data],
+          };
+        });
+        break;
+
+      case "penalty_shootout_finished":
+        setPenalties(function (previous) {
+          return {
+            phase: "finished",
+            data,
+            results: previous?.results ?? [],
+          };
+        });
         break;
 
       default:
@@ -130,6 +177,7 @@ export function MatchPage() {
       matchInfo={matchInfo}
       pausa={pausa}
       ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
+      penalties={penalties}
     />
   );
 }
