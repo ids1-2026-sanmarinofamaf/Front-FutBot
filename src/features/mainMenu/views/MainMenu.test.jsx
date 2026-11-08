@@ -84,4 +84,15 @@ describe('MainMenu UI', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true, state: null });
   });
 
+  it('mantiene visible la notificación después de limpiar el estado de navegación', () => {
+    useLocation.mockReturnValue({ pathname: '/', state: { clubLoadError: 'No se encontró el club' } });
+    const { rerender } = render(<MainMenu />);
+
+    useLocation.mockReturnValue({ pathname: '/', state: null });
+    rerender(<MainMenu />);
+
+    expect(screen.getByText('No se encontró el club')).toBeInTheDocument();
+    expect(screen.getByText('No se encontró el club').closest('[role="alert"]')).toHaveClass('bg-red-300');
+  });
+
 });
