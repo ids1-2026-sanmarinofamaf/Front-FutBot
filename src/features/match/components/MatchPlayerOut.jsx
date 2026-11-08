@@ -234,14 +234,14 @@ export function MatchPlayerOut({
     : -1
 
   const selectedStarterX = selectedStarter?.team === "A" ? 40 : 1790
-  const selectedStarterY = 150 + selectedStarterIndex * 100
+  const selectedStarterY = 180 + selectedStarterIndex * 240
 
   const menuX =
     selectedStarter?.team === "A"
-      ? selectedStarterX + 100
-      : selectedStarterX - 240
+      ? selectedStarterX + 115
+      : selectedStarterX - 250
 
-  const menuY = selectedStarterY + 65
+  const menuY = selectedStarterY + 80
 
   return (
     <>
@@ -263,7 +263,7 @@ export function MatchPlayerOut({
             y={68}
             textAnchor="middle"
             fill="white"
-            fontSize="20"
+            fontSize="22"
             fontWeight="bold"
           >
             {substitutionMessage}
@@ -295,14 +295,14 @@ export function MatchPlayerOut({
 
       <BenchRow
         players={teamASubstitutes}
-        startX={320}
+        startX={310}
         direction={1}
         playersInfo={playersInfo}
       />
 
       <BenchRow
         players={teamBSubstitutes}
-        startX={1550}
+        startX={1525}
         direction={-1}
         playersInfo={playersInfo}
       />
@@ -339,7 +339,7 @@ function StarterColumn({
   return (
     <>
       {players.map(function (player, index) {
-        const y = 150 + index * 100
+        const y = 180 + index * 240
         const playerInfo = playersInfo[String(player.player_id)]
         const isOwn = Boolean(playerInfo?.isOwn)
         const isSubDisabled = !ventanaSustitucionesAbierta
@@ -358,7 +358,7 @@ function StarterColumn({
               playerInfo={playerInfo}
               x={x}
               y={y}
-              size={90}
+              size={110}
               number={playerNumbers[player.player_id]}
               onSelectStarter={onSelectStarter}
             />
@@ -375,11 +375,11 @@ function StarterColumn({
                 style={{ cursor: isSubDisabled ? "not-allowed" : "pointer" }}
               >
                 <rect
-                  x={player.team === "A" ? x + 95 : x - 115}
-                  y={y + 30}
-                  width={110}
-                  height={34}
-                  rx={5}
+                  x={player.team === "A" ? x + 115 : x - 120}
+                  y={y + 34}
+                  width={115}
+                  height={42}
+                  rx={6}
                   fill={isSubDisabled ? "#475569" : "#166534"}
                   opacity={isSubDisabled ? 0.6 : 1}
                   stroke={isSubDisabled ? "#94a3b8" : "white"}
@@ -387,11 +387,11 @@ function StarterColumn({
                 />
 
                 <text
-                  x={player.team === "A" ? x + 150 : x - 60}
-                  y={y + 52}
+                  x={player.team === "A" ? x + 172 : x - 62}
+                  y={y + 60}
                   textAnchor="middle"
                   fill="white"
-                  fontSize="13"
+                  fontSize="16"
                   fontWeight="bold"
                 >
                   {buttonLabel}
@@ -414,9 +414,9 @@ function BenchRow({ players, startX, direction, playersInfo }) {
             key={player.player_id}
             player={player}
             playerInfo={playersInfo[String(player.player_id)]}
-            x={startX + direction * index * 80}
-            y={40}
-            size={70}
+            x={startX + direction * index * 95}
+            y={35}
+            size={85}
           />
         )
       })}
@@ -468,11 +468,11 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 20 : y + 36}
+        y={isClickable ? y + 26 : y + 46}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize={isClickable ? "13" : "14"}
+        fontSize={isClickable ? "18" : "20"}
         fontWeight="bold"
       >
         {playerInfo?.Name || playerInfo?.name}
@@ -480,11 +480,11 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 37 : y + 54}
+        y={isClickable ? y + 48 : y + 70}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize={isClickable ? "12" : "13"}
+        fontSize={isClickable ? "16" : "18"}
       >
         Number: {number}
       </text>
@@ -493,11 +493,11 @@ function PlayerSquare({
         <text
           data-testid={`starter-behavior-${player.player_id}`}
           x={x + size / 2}
-          y={y + 54}
+          y={y + 70}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="#e2e8f0"
-          fontSize="11"
+          fontSize="16"
         >
           {behaviorName}
         </text>
@@ -506,11 +506,11 @@ function PlayerSquare({
       {isClickable && (
         <text
           x={x + size / 2}
-          y={y + 72}
+          y={y + 92}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="#bfdbfe"
-          fontSize="10"
+          fontSize="15"
         >
           Cambiar comp.
         </text>
@@ -539,7 +539,7 @@ function PlayerSquareOut({ player, playerInfo, x, y, size }) {
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize="13"
+        fontSize={18}
         fontWeight="bold"
       >
         {playerInfo?.Name || playerInfo?.name}

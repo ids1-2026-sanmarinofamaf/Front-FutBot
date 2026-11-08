@@ -113,7 +113,7 @@ export function BehaviorPreview() {
 
           {/* Tarjetas laterales del Equipo A (propio) */}
           {teamAStarters.map(function (player, index) {
-            const y = 150 + index * 100;
+            const y = 180 + index * 240;
             const isTestedPlayer = Number(player.player_id) === 2;
             const number = PREVIEW_PLAYER_NUMBERS[player.player_id];
             const behaviorLabel = isTestedPlayer
@@ -128,41 +128,41 @@ export function BehaviorPreview() {
                 <rect
                   x={40}
                   y={y}
-                  width={90}
-                  height={90}
+                  width={110}
+                  height={110}
                   fill={isTestedPlayer ? "#62B5E5" : "blue"}
                   stroke="white"
                   strokeWidth="2"
                 />
                 <text
-                  x={85}
-                  y={y + 25}
+                  x={95}
+                  y={y + 28}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={isTestedPlayer ? "black" : "white"}
-                  fontSize="13"
+                  fontSize="18"
                   fontWeight="bold"
                 >
                   {`Jugador ${number}`}
                 </text>
                 <text
-                  x={85}
-                  y={y + 45}
+                  x={95}
+                  y={y + 54}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={isTestedPlayer ? "black" : "white"}
-                  fontSize="12"
+                  fontSize="16"
                 >
                   Number: {number}
                 </text>
                 <text
                   data-testid={`starter-behavior-${player.player_id}`}
-                  x={85}
-                  y={y + 65}
+                  x={95}
+                  y={y + 80}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={isTestedPlayer ? "black" : "#e2e8f0"}
-                  fontSize="11"
+                  fontSize="16"
                   fontWeight={isTestedPlayer ? "bold" : "normal"}
                 >
                   {behaviorLabel}
@@ -173,7 +173,7 @@ export function BehaviorPreview() {
 
           {/* Tarjetas laterales del Equipo B (rival) */}
           {teamBStarters.map(function (player, index) {
-            const y = 150 + index * 100;
+            const y = 180 + index * 240;
             const number = PREVIEW_PLAYER_NUMBERS[player.player_id];
 
             return (
@@ -184,30 +184,30 @@ export function BehaviorPreview() {
                 <rect
                   x={1790}
                   y={y}
-                  width={90}
-                  height={90}
+                  width={110}
+                  height={110}
                   fill="red"
                   stroke="white"
                   strokeWidth="2"
                 />
                 <text
-                  x={1835}
-                  y={y + 36}
+                  x={1845}
+                  y={y + 42}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
-                  fontSize="14"
+                  fontSize="20"
                   fontWeight="bold"
                 >
                   {`Rival ${number}`}
                 </text>
                 <text
-                  x={1835}
-                  y={y + 54}
+                  x={1845}
+                  y={y + 68}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
-                  fontSize="13"
+                  fontSize="18"
                 >
                   Number: {number}
                 </text>

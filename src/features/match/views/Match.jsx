@@ -162,20 +162,20 @@ export function Match({
             <rect
               x={40}
               y={90}
-              width={205}
-              height={36}
-              rx={6}
+              width={225}
+              height={44}
+              rx={8}
               fill="#1e293b"
               stroke="#3b82f6"
               strokeWidth="1.5"
               opacity="0.95"
             />
             <text
-              x={142}
-              y={113}
+              x={152}
+              y={117}
               textAnchor="middle"
               fill="white"
-              fontSize="13"
+              fontSize="18"
               fontWeight="bold"
             >
               {`DT: ${matchInfo?.team_a?.coach_behavior_name || "Sin DT"}`}
@@ -185,22 +185,22 @@ export function Match({
           {/* Insignia DT Equipo B */}
           <g data-testid="coach-badge-B">
             <rect
-              x={1675}
+              x={1655}
               y={90}
-              width={205}
-              height={36}
-              rx={6}
+              width={225}
+              height={44}
+              rx={8}
               fill="#1e293b"
               stroke="#ef4444"
               strokeWidth="1.5"
               opacity="0.95"
             />
             <text
-              x={1777}
-              y={113}
+              x={1767}
+              y={117}
               textAnchor="middle"
               fill="white"
-              fontSize="13"
+              fontSize="18"
               fontWeight="bold"
             >
               {`DT: ${matchInfo?.team_b?.coach_behavior_name || "Sin DT"}`}

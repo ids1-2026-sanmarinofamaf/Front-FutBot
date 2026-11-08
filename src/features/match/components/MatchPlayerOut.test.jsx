@@ -69,7 +69,7 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
     const playerCardRects = Array.from(rects).filter(
-      r => r.getAttribute('width') === '90' || r.getAttribute('width') === '70'
+      r => r.getAttribute('width') === '110' || r.getAttribute('width') === '85'
     )
     expect(playerCardRects).toHaveLength(12)
 
@@ -80,11 +80,11 @@ describe('MatchPlayerOut', () => {
       r => r.getAttribute('x') === '1790'
     )
     const benchTeamA = Array.from(rects).filter(
-      r => r.getAttribute('y') === '40' &&
+      r => r.getAttribute('y') === '35' &&
         Number(r.getAttribute('x')) < 1000
     )
     const benchTeamB = Array.from(rects).filter(
-      r => r.getAttribute('y') === '40' &&
+      r => r.getAttribute('y') === '35' &&
         Number(r.getAttribute('x')) >= 1000
     )
 
@@ -107,12 +107,12 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
 
-    expect(findRectAtXY(rects, 40, 150)).toBeTruthy()
-    expect(findRectAtXY(rects, 40, 250)).toBeTruthy()
-    expect(findRectAtXY(rects, 40, 350)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 150)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 250)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 350)).toBeTruthy()
+    expect(findRectAtXY(rects, 40, 180)).toBeTruthy()
+    expect(findRectAtXY(rects, 40, 420)).toBeTruthy()
+    expect(findRectAtXY(rects, 40, 660)).toBeTruthy()
+    expect(findRectAtXY(rects, 1790, 180)).toBeTruthy()
+    expect(findRectAtXY(rects, 1790, 420)).toBeTruthy()
+    expect(findRectAtXY(rects, 1790, 660)).toBeTruthy()
   })
 
   it('ubica correctamente a los suplentes de cada equipo', () => {
@@ -128,12 +128,12 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
 
-    expect(findRectAtXY(rects, 320, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 400, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 480, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1550, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1470, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1390, 40)).toBeTruthy()
+    expect(findRectAtXY(rects, 310, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 405, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 500, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1525, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1430, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1335, 35)).toBeTruthy()
   })
 
   it('usa azul para el equipo A y rojo para el equipo B', () => {
@@ -172,7 +172,7 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
     const starterRects = Array.from(rects).filter(
-      r => r.getAttribute('opacity') === null && r.getAttribute('width') === '90'
+      r => r.getAttribute('opacity') === null && r.getAttribute('width') === '110'
     )
     const benchRects = Array.from(rects).filter(
       r => r.getAttribute('opacity') === '0.5'
