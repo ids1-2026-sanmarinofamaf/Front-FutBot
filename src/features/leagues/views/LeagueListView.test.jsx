@@ -8,6 +8,8 @@ const { replaceJoinedLIds, getMyLeagueIds } = vi.hoisted(() => ({
   replaceJoinedLIds: vi.fn(),
   getMyLeagueIds: vi.fn(),
 }));
+
+
 vi.mock("../LeaguesProvider", () => ({
   useLeaguesSocket: () => ({ replaceJoinedLIds }),
 }));
@@ -206,5 +208,67 @@ describe("recuperación de participación", () => {
     else act(() => window.dispatchEvent(new Event(event)));
     await act(async () => resolve([2]));
     expect(replaceJoinedLIds).not.toHaveBeenCalled();
+  });
+});
+
+describe("Buscador de ligas", () => {
+  const entries = [
+    { league_id: 1, name: "Club Norte" },
+    { league_id: 2, name: "Club Sur" }
+  ];
+
+  it("filtra coincidencias parciales sin distinguir mayúsculas y restaura la lista al borrar", async () => {
+    useSessionSocket.mockReturnValue({ messages: { leagues: entries } });
+
+    const user = userEvent.setup();
+    render(<LeagueListView />);
+
+    expect(screen.getByText("2 disponibles")).toBeInTheDocument();
+
+    const input = screen.getByRole("searchbox", { name: "Buscar ligas" });
+
+    await user.type(input, "nOr");
+
+    expect(screen.getByTestId("card-1")).toHaveTextContent("Club Norte");
+    expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+    expect(screen.getByText("1 disponibles")).toBeInTheDocument();
+
+    await user.clear(input);
+
+    expect(screen.getByTestId("card-2")).toBeInTheDocument();
+
+    await user.type(input, "inexistente");
+
+    expect(screen.getByText("No se encontraron resultados.")).toBeInTheDocument();
+  });
+
+  it("mantiene el filtro al recibir actualizaciones del WebSocket", async () => {
+    useSessionSocket.mockReturnValue({ messages: { leagues: entries } });
+
+    const user = userEvent.setup();
+    const { rerender } = render(<LeagueListView />);
+
+    await user.type(
+      screen.getByRole("searchbox", { name: "Buscar ligas" }),
+      "norte"
+    );
+
+    useSessionSocket.mockReturnValue({
+      messages: {
+        leagues: [
+          entries[1],
+          { league_id: 3, name: "Norte Unido" }
+        ]
+      }
+    });
+
+    rerender(<LeagueListView />);
+
+    expect(screen.getByTestId("card-3")).toHaveTextContent("Norte Unido");
+    expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("searchbox", { name: "Buscar ligas" }))
+      .toHaveValue("norte");
   });
 });
