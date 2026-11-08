@@ -36,7 +36,7 @@ export function MyClub() {
     try {
       await updateMyClub(changes);
     } catch (error) {
-      notify(error.detail, 'red');
+      notify(error.message, 'red');
       setSaving(false);
       return;
     }
@@ -50,7 +50,7 @@ export function MyClub() {
     try {
       setClub(await getMyClub());
     } catch (error) {
-      notify(error.detail, 'red');
+      notify(error.message, 'red');
     } finally {
       setRefreshing(false);
     }
