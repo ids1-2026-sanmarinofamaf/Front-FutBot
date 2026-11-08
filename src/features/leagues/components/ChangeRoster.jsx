@@ -87,9 +87,19 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
 
       if (!selectedPlayer || (!selectedPlayer.is_starter && startersCount >= 3)) return previous
 
-      const players = previous.players.map(player => player.player_id === playerId
-        ? { ...player, is_starter: !player.is_starter, slot: null }
-        : { ...player })
+      const players = previous.players.map(player =>
+        player.player_id === playerId
+          ? {
+              ...player,
+              is_starter: !player.is_starter,
+              slot: null,
+              initial_behavior_id: player.is_starter
+                ? null
+                : player.initial_behavior_id,
+            }
+          : { ...player }
+      )
+
       const availableSlots = ["left", "center", "right"].filter(slot =>
         !players.some(player => player.is_starter && player.slot === slot)
       )
@@ -110,12 +120,19 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
   const handleBehaviorChange = (playerId, behaviorId) => {
     setRoster(previous => ({
       ...previous,
-      players: previous.players.map(player => player.player_id === playerId
-        ? { ...player, initial_behavior_id: behaviorId === "" ? null : Number(behaviorId) }
-        : player),
+      players: previous.players.map(player =>
+        player.player_id === playerId && player.is_starter
+          ? {
+              ...player,
+              initial_behavior_id: behaviorId === ""
+                ? null
+                : Number(behaviorId)
+            }
+          : player
+      )
     }))
   }
-
+  
   /**
    * Lógica para modificar slot de jugador titular en roster
    */
