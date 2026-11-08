@@ -154,7 +154,10 @@ export function Match({
               width={1320}
               height={800}
             >
-              <PenaltyShootout />
+              <PenaltyShootout
+                matchInfo={matchInfo}
+                penalties={penalties}
+              />
             </foreignObject>
           ) : (
             <>

@@ -1,8 +1,37 @@
-export function PenaltyShootout() {
+export function PenaltyShootout({
+  matchInfo = null,
+  penalties = null,
+}) {
   const teams = [
-    { name: "Equipo local", results: [true, false, null] },
-    { name: "Equipo visitante", results: [false, true, null] },
+    {
+      clubId: matchInfo?.team_a?.club_id ?? null,
+      name: matchInfo?.team_a?.club_name ?? "Equipo local",
+      results: [null, null, null],
+    },
+    {
+      clubId: matchInfo?.team_b?.club_id ?? null,
+      name: matchInfo?.team_b?.club_name ?? "Equipo visitante",
+      results: [null, null, null],
+    },
   ]
+
+  const penaltyResults = penalties?.results ?? []
+
+  penaltyResults.forEach(function (result) {
+    const team = teams.find(function (team) {
+      return team.clubId === result.club_id
+    })
+
+    if (!team) return
+
+    const kickIndex = Math.floor((result.turn - 1) / 2)
+
+    team.results[kickIndex] = result.is_goal
+  })
+
+  const kicker = matchInfo?.players?.find(function (player) {
+    return player.player_id === penalties?.data?.kicker
+  })
 
   return (
     <div className="w-full h-full overflow-hidden bg-sm-green text-white">
@@ -152,7 +181,7 @@ export function PenaltyShootout() {
         </foreignObject>
 
         <text x={660} y={785} textAnchor="middle" fill="white" fontSize={36}>
-          Nombre del pateador
+          {kicker?.name ?? ""}
         </text>
 
         <foreignObject x={24} y={16} width={470} height={135}>
@@ -173,7 +202,10 @@ export function PenaltyShootout() {
                       </span>
                     </th>
                     {team.results.map(function (result, kickIndex) {
-                      const isActive = teamIndex === 0 && kickIndex === 2
+                      const isActive =
+                        penalties?.phase === "choosing" &&
+                        team.clubId === penalties.data.club_id &&
+                        kickIndex === Math.floor((penalties.data.turn -1) / 2)
                       const status = result === null ? "pendiente" : result ? "gol" : "atajado"
 
                       return (
