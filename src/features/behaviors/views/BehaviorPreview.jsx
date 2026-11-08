@@ -113,7 +113,7 @@ export function BehaviorPreview() {
 
           {/* Tarjetas laterales del Equipo A (propio) */}
           {teamAStarters.map(function (player, index) {
-            const y = 150 + index * 100;
+            const y = 160 + index * 250;
             const isTestedPlayer = Number(player.player_id) === 2;
             const number = PREVIEW_PLAYER_NUMBERS[player.player_id];
             const behaviorLabel = isTestedPlayer
@@ -126,44 +126,45 @@ export function BehaviorPreview() {
                 data-testid={`starter-card-${player.player_id}`}
               >
                 <rect
-                  x={40}
+                  x={30}
                   y={y}
-                  width={90}
-                  height={90}
-                  fill={isTestedPlayer ? "#62B5E5" : "blue"}
-                  stroke="white"
+                  width={135}
+                  height={135}
+                  fill={isTestedPlayer ? "#F2B035" : "#5BB5D9"}
+                  stroke="#F2F2F2"
                   strokeWidth="2"
                 />
                 <text
-                  x={85}
-                  y={y + 25}
+                  x={97}
+                  y={y + 30}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill={isTestedPlayer ? "black" : "white"}
-                  fontSize="13"
+                  fill={isTestedPlayer ? "black" : "#0f172a"}
+                  fontSize="24"
                   fontWeight="bold"
                 >
                   {`Jugador ${number}`}
                 </text>
                 <text
-                  x={85}
-                  y={y + 45}
+                  x={97}
+                  y={y + 60}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill={isTestedPlayer ? "black" : "white"}
-                  fontSize="12"
+                  fill={isTestedPlayer ? "black" : "#0f172a"}
+                  fontSize="22"
+                  fontWeight="bold"
                 >
                   Number: {number}
                 </text>
                 <text
                   data-testid={`starter-behavior-${player.player_id}`}
-                  x={85}
-                  y={y + 65}
+                  x={97}
+                  y={y + 90}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill={isTestedPlayer ? "black" : "#e2e8f0"}
-                  fontSize="11"
-                  fontWeight={isTestedPlayer ? "bold" : "normal"}
+                  fill={isTestedPlayer ? "black" : "#0f172a"}
+                  fontSize="22"
+                  fontWeight={isTestedPlayer ? "bold" : "bold"}
                 >
                   {behaviorLabel}
                 </text>
@@ -173,7 +174,7 @@ export function BehaviorPreview() {
 
           {/* Tarjetas laterales del Equipo B (rival) */}
           {teamBStarters.map(function (player, index) {
-            const y = 150 + index * 100;
+            const y = 160 + index * 250;
             const number = PREVIEW_PLAYER_NUMBERS[player.player_id];
 
             return (
@@ -182,32 +183,33 @@ export function BehaviorPreview() {
                 data-testid={`starter-card-${player.player_id}`}
               >
                 <rect
-                  x={1790}
+                  x={1755}
                   y={y}
-                  width={90}
-                  height={90}
-                  fill="red"
-                  stroke="white"
+                  width={135}
+                  height={135}
+                  fill="#D98E32"
+                  stroke="#F2F2F2"
                   strokeWidth="2"
                 />
                 <text
-                  x={1835}
-                  y={y + 36}
+                  x={1822}
+                  y={y + 48}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="white"
-                  fontSize="14"
+                  fill="#0f172a"
+                  fontSize="26"
                   fontWeight="bold"
                 >
                   {`Rival ${number}`}
                 </text>
                 <text
-                  x={1835}
-                  y={y + 54}
+                  x={1822}
+                  y={y + 82}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="white"
-                  fontSize="13"
+                  fill="#0f172a"
+                  fontSize="24"
+                  fontWeight="bold"
                 >
                   Number: {number}
                 </text>
@@ -216,6 +218,19 @@ export function BehaviorPreview() {
           })}
 
           <Ball ball={estadoAnimado.ball} />
+
+          {!isFinished && (
+            <foreignObject x={30} y={980} width={220} height={55} className="overflow-visible">
+              <button
+                type="button"
+                onClick={handleStop}
+                disabled={isStopping}
+                className="w-full h-full px-4 py-2 text-xl font-bold text-white bg-red-700 hover:bg-red-600 border border-red-500 rounded-lg shadow-md transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
+              >
+                {isStopping ? "Deteniendo..." : "Detener prueba"}
+              </button>
+            </foreignObject>
+          )}
         </svg>
 
         {isFinished && (
@@ -235,17 +250,6 @@ export function BehaviorPreview() {
           </div>
         )}
       </div>
-
-      {!isFinished && (
-        <button
-          type="button"
-          onClick={handleStop}
-          disabled={isStopping}
-          className="absolute bottom-35 left-4 px-4 py-2 text-xl text-white bg-red-600 border border-red-600 rounded disabled:opacity-50"
-        >
-          {isStopping ? "Deteniendo..." : "Detener prueba"}
-        </button>
-      )}
     </div>
   );
 }

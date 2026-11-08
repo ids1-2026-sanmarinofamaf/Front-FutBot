@@ -137,15 +137,15 @@ describe('Scoreboard', () => {
 
     expect(rects).toHaveLength(3);
 
-    const lightBlueRects = Array.from(rects).filter(function (rect) {
-      return rect.getAttribute('fill') === 'LightBlue';
+    const scoreboardRects = Array.from(rects).filter(function (rect) {
+      return rect.getAttribute('fill') === '#1e293b';
     });
 
     const blackRects = Array.from(rects).filter(function (rect) {
       return rect.getAttribute('fill') === 'Black';
     });
 
-    expect(lightBlueRects).toHaveLength(1);
+    expect(scoreboardRects).toHaveLength(1);
     expect(blackRects).toHaveLength(2);
   });
 

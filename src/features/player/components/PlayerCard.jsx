@@ -27,8 +27,8 @@ export function PlayerCard({ player, onView }) {
   // Sub-componente interno para mantener limpio el JSX principal
   const StatBadge = ({ label, value }) => (
     <div className="flex flex-col items-center min-w-[36px]">
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
-      <span className={`font-mono text-sm font-semibold ${getStatColor(value)}`}>
+      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+      <span className={`text-sm font-semibold ${getStatColor(value)}`}>
         {value}
       </span>
     </div>

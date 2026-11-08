@@ -48,7 +48,7 @@ export function BehaviorList() {
   if (loading) {
     return (
       <div className="flex justify-center p-12">
-        <span className="text-slate-400 font-mono animate-pulse">Cargando comportamientos...</span>
+        <span className="text-slate-400 animate-pulse">Cargando comportamientos...</span>
       </div>
     );
   }
