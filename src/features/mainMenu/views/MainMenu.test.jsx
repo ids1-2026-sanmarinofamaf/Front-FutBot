@@ -2,11 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MainMenu } from './MainMenu';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // 1. Interceptamos el enrutador
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
+  useLocation: vi.fn(),
 }));
 
 // 2. Aislamos el componente hijo (PlayOption)
@@ -24,6 +25,7 @@ describe('MainMenu UI', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useLocation.mockReturnValue({ pathname: '/', state: null });
     useNavigate.mockReturnValue(mockNavigate);
   });
 
@@ -75,4 +77,11 @@ describe('MainMenu UI', () => {
     // Verificamos que el modal se haya desmontado
     expect(screen.queryByTestId('play-option-modal')).not.toBeInTheDocument();
   });
+  it('muestra el error de carga del club al volver al menú y limpia el estado', () => {
+    useLocation.mockReturnValue({ pathname: '/', state: { clubLoadError: 'Error al cargar el club' } });
+    render(<MainMenu />);
+    expect(screen.getByText('Error al cargar el club')).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true, state: null });
+  });
+
 });

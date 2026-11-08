@@ -1,17 +1,38 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PlayOption } from '../components/PlayOption';
 // Se asume la existencia del recurso estático en la capa compartida
 import defaultAvatar from '../../../shared/assets/default-avatar.png';
 import Ranking from '../components/Ranking';
+import { useToast } from '../../../shared/hooks';
+import RightDownAlert from '../../../shared/components/RightDownAlert';
 
 export function MainMenu() {
   const [isPlayOptionOpen, setIsPlayOptionOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false)
   const navigate = useNavigate();
+  const location = useLocation(); // sirve para consultar información de la ruta actual
+  const [alert, setAlert] = useState(null);
+  const { toast, showToast } = useToast();
+
+  useEffect(() => {
+    if (location.state?.clubLoadError) {
+      setAlert(location.state.clubLoadError);
+      showToast();
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate, showToast]);
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6">
+      {alert === location.state?.clubLoadError && toast && (
+        <RightDownAlert
+          key={toast.id}
+          errorTitle="No se pudo cargar la información del club"
+          errorDescription={alert}
+          color="red"
+        />
+      )}
       <div className="max-w-md w-full flex flex-col gap-6">
         <h1 className="text-4xl font-extrabold text-slate-100 text-center mb-8">
           FUTBOT
