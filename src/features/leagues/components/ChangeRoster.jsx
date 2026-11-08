@@ -43,13 +43,21 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
           ...rosterData,
           players: rosterData.players.map(player => ({ ...player })),
         })
-        // Guarda el roster recibido y a cada jugador le agrega "name" obteniendo el nombre de la lista de los jugadores obtenida
+        // Agrega el nombre y las estadísticas obtenidos de los jugadores del club
         setRoster({
           ...rosterData,
-          players: rosterData.players.map(player => ({
-            ...player,
-            name: playersData.find(item => item.id === player.player_id)?.name ?? "Juancito Chiki Doe",
-          })),
+          players: rosterData.players.map(player => {
+            const clubPlayer = playersData.find(item => item.id === player.player_id)
+            return {
+              ...player,
+              name: clubPlayer?.name ?? "Juancito Chiki Doe",
+              power: clubPlayer?.power,
+              agility: clubPlayer?.agility,
+              control: clubPlayer?.control,
+              speed: clubPlayer?.speed,
+              strength: clubPlayer?.strength,
+            }
+          }),
         })
         setBehaviors(behaviorsData)
       } catch {
@@ -308,7 +316,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
               <p className="text-amber-400">La alineación debe tener exactamente tres titulares y tres suplentes.</p>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-6">
 
               {/* Titulares */}
               <RosterSection

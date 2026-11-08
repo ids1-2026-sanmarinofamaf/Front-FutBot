@@ -19,7 +19,7 @@ export default function RosterSection({ title, players, behaviors, onStarterChan
         {title}
       </h3>
 
-      <ul className="space-y-3">
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {players.map((player) => (
           <RosterPlayer
             key={player.player_id}

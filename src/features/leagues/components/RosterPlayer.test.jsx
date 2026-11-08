@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, it, expect, vi } from "vitest"
 import RosterPlayer from "./RosterPlayer"
@@ -12,6 +12,13 @@ const setup = (props = {}) => {
 }
 
 describe("RosterPlayer", () => {
+  it.each([true, false])("muestra las cinco estadísticas debajo del nombre con is_starter=%s", isStarter => {
+    setup({ player: { ...player, is_starter: isStarter, power: 0, agility: 62, control: 73, speed: 84, strength: 95 } })
+    for (const [label, value] of [["Potencia", "0"], ["Agilidad", "62"], ["Control", "73"], ["Velocidad", "84"], ["Fuerza", "95"]]) {
+      expect(within(screen.getByText(label).parentElement).getByText(value)).toBeInTheDocument()
+    }
+  })
+
   it("muestra nombre, posición y comportamiento actuales", () => {
     setup()
     expect(screen.getByText("Messi")).toBeInTheDocument()
@@ -54,7 +61,7 @@ describe("RosterPlayer", () => {
     expect(onStarterChange).toHaveBeenCalledWith(7)
   })
 
-  it.each([false, true])("un suplente solo muestra nombre y botón, respetando disablePromotion=%s", async disablePromotion => {
+  it.each([false, true])("un suplente oculta los selectores, respetando disablePromotion=%s", async disablePromotion => {
     const { onStarterChange } = setup({
       player: { ...player, is_starter: false, slot: null, initial_behavior_id: null },
       disablePromotion,

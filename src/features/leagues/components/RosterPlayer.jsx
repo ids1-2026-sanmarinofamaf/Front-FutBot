@@ -16,11 +16,26 @@ export default function RosterPlayer({ player, behaviors, onStarterChange, onBeh
   )
 
   return (
-    <li className="min-h-60 rounded-lg border border-slate-600 bg-slate-700 p-3 space-y-1">
+    <li className="min-h-40 rounded-lg border border-slate-600 bg-slate-700 p-3 space-y-1">
 
       <p className="font-semibold text-slate-100">
         {player.name}
       </p>
+
+      <div className="grid grid-cols-5 gap-2 rounded-lg bg-slate-800/60 p-2 text-center">
+        {[
+          { key: "power", label: "Potencia" },
+          { key: "agility", label: "Agilidad" },
+          { key: "control", label: "Control" },
+          { key: "speed", label: "Velocidad" },
+          { key: "strength", label: "Fuerza" },
+        ].map(stat => (
+          <div key={stat.key}>
+            <p className="text-[10px] text-slate-400">{stat.label}</p>
+            <p className="font-semibold text-slate-100">{player[stat.key] ?? "—"}</p>
+          </div>
+        ))}
+      </div>
 
       {player.is_starter && (
         <>

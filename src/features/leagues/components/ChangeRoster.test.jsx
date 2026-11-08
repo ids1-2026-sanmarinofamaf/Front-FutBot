@@ -56,7 +56,10 @@ const makeRoster = () => ({
     initial_behavior_id: index < 3 ? 1 : null,
   })),
 })
-const clubPlayers = Array.from({ length: 7 }, (_, index) => ({ id: index + 1, name: `Nombre ${index + 1}` }))
+const clubPlayers = Array.from({ length: 7 }, (_, index) => ({
+  id: index + 1, name: `Nombre ${index + 1}`,
+  power: 50 + index, agility: 60 + index, control: 70 + index, speed: 80 + index, strength: 90 + index,
+}))
 const behaviors = [{ behavior_id: 1, name: "Defender" }, { behavior_id: 2, name: "Atacar" }]
 const card = id => within(screen.getByText(`Nombre ${id}`).closest("li"))
 const saveButton = () => screen.getByRole("button", { name: "Guardar alineación" })
@@ -105,6 +108,8 @@ describe("ChangeRoster: carga", () => {
     expect(within(screen.getByRole("heading", { name: "Suplentes" }).closest("section")).getAllByRole("listitem")).toHaveLength(3)
     expect(card(1).getByLabelText("Posición:")).toHaveValue("left")
     expect(card(1).getByLabelText("Comportamiento inicial:")).toHaveValue("1")
+    expect(within(card(1).getByText("Potencia").parentElement).getByText("50")).toBeInTheDocument()
+    expect(within(card(4).getByText("Fuerza").parentElement).getByText("93")).toBeInTheDocument()
     expect(saveButton()).toBeDisabled()
   })
 
