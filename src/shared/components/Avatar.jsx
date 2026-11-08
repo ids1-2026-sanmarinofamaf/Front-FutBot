@@ -10,7 +10,7 @@ const AVATARS_COUNT = 6;
  * @param clubId: ID del club 
  * @returns avatar del usuario
  */
-export function Avatar({ avatar, name, clubId = 0 }) {
+export function Avatar({ avatar, name, clubId = 0, className = "w-12 h-12" }) {
   const [failed, setFailed] = useState(false);
 
   // Si cambia el avatar, se reintenta
@@ -29,7 +29,7 @@ export function Avatar({ avatar, name, clubId = 0 }) {
       src={src}
       alt={name}
       onError={() => setFailed(true)}
-      className="w-12 h-12 rounded-full object-cover border border-slate-600"
+      className={`${className} rounded-full object-cover border border-slate-600`}
     />
   );
 }

@@ -64,4 +64,11 @@ describe("Avatar", () => {
       "object-cover"
     )
   })
+  it("permite reemplazar el tamaño conservando los estilos y el avatar predeterminado", () => {
+    render(<Avatar avatar="default" name="Club" clubId={1} className="w-28 h-28" />)
+    expect(screen.getByRole('img')).toHaveClass('w-28', 'h-28', 'rounded-full')
+    expect(screen.getByRole('img')).not.toHaveClass('w-12', 'h-12')
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/assets/defaultAvatars/2.png')
+  })
+
 })
