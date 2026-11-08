@@ -207,6 +207,19 @@ export function Match({
             </text>
           </g>
 
+          <Ball ball={estado_partido.ball} />
+
+          {/* La pausa cubre únicamente el rectángulo de juego y queda por debajo de los modales de sustitución */}
+          <foreignObject
+            x={300}
+            y={150}
+            width={1320}
+            height={800}
+            className="pointer-events-none"
+          >
+            <MatchPause pausa={pausa} />
+          </foreignObject>
+
           <MatchPlayerOut
             players={estado_partido.players.map(function (player) {
               const assignedName = assignedBehaviorNames[player.player_id]
@@ -221,23 +234,8 @@ export function Match({
             ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
           />
 
-          <Ball ball={estado_partido.ball} />
-
           <ExitMatchButton />
         </svg>
-
-        {/* La pausa cubre únicamente el rectángulo de juego */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: "15.625%",
-            top: "13.8889%",
-            width: "68.75%",
-            height: "74.0741%"
-          }}
-        >
-          <MatchPause pausa={pausa} />
-        </div>
       </div>
 
       <ChangeBehaviorMenu
