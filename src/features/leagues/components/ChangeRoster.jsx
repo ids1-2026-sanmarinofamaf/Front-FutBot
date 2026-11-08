@@ -5,6 +5,7 @@ import { getLeagueRoster, updateLeagueRoster } from "../api"
 import { useToast } from "../../../shared/hooks"
 import RightDownAlert from "../../auth/components/RightDownAlert"
 import RosterSection from "./RosterSection"
+import DiscardRosterChanges from "./DiscardRosterChanges"
 
 export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuccess }) {
   //Hooks para llamados a API
@@ -14,6 +15,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
   //Hooks para carga y notificaciones
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showDiscardChanges, setShowDiscardChanges] = useState(false)
   const savingRef = useRef(false)
   const { toast, showToast, hideToast } = useToast()
   const [alert, setAlert] = useState("")
@@ -170,6 +172,15 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
     })
   )
 
+  const handleClose = () => {
+    if (savingRef.current) return
+    if (hasChanges) {
+      setShowDiscardChanges(true)
+      return
+    }
+    onClose()
+  }
+
   const handleSaveRoster = async () => {
     if (loading || savingRef.current || !isValid || !hasChanges) return
 
@@ -197,7 +208,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
     } catch (err) {
       //Se maneja multiples codigos centralizadamente, pero solo el primero debería ser visto
       const errorMessages = {
-        400: "La alineación es inválida.",
+        400: "Todos los jugadores titulares deben tener comportamiento.",
         401: "La sesión no es válida.",
         403: "No participás en esta liga.",
         404: "La liga no existe.",
@@ -227,7 +238,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
             <button
               type="button"
               onClick={handleSaveRoster}
-              disabled={loading || saving || !isValid || !hasChanges}
+              disabled={loading || saving || showDiscardChanges || !isValid || !hasChanges}
               className="px-10 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
             >
               {saving ? "Guardando alineación..." : "Guardar alineación"}
@@ -235,8 +246,8 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
 
             <button
               type="button"
-              onClick={onClose}
-              disabled={saving}
+              onClick={handleClose}
+              disabled={saving || showDiscardChanges}
               className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
             >
               Cerrar
@@ -255,7 +266,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
         )}
 
         {!loading && roster && (
-          <fieldset disabled={saving} className="space-y-4 text-slate-300">
+          <fieldset disabled={saving || showDiscardChanges} className="space-y-4 text-slate-300">
 
             <div className="flex items-center justify-between">
 
@@ -307,6 +318,15 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
           </fieldset>
         )}
       </div>
+      {showDiscardChanges && (
+        <DiscardRosterChanges
+          onCancel={() => setShowDiscardChanges(false)}
+          onConfirm={() => {
+            setShowDiscardChanges(false)
+            onClose()
+          }}
+        />
+      )}
     </div>
   )
 }
