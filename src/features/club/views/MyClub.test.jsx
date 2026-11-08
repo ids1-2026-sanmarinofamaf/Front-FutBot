@@ -29,7 +29,25 @@ describe('MyClub UI', () => {
 
     // Verificamos que los botones de features futuras no se rendericen
     expect(screen.queryByRole('button', { name: /Preparar mi plantilla/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Estadísticas/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Estadísticas' })).toBeInTheDocument();
+  });
+
+  it('alterna las pestañas sin navegar y vuelve a Información al ingresar nuevamente', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<MyClub />);
+
+    expect(screen.getByRole('button', { name: 'Gestión de Jugadores' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Estadísticas' }));
+    expect(screen.getByText('Estadísticas del club')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gestión de Jugadores' })).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Información' }));
+    expect(screen.getByRole('button', { name: 'Gestión de Jugadores' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Estadísticas' }));
+    unmount();
+    render(<MyClub />);
+    expect(screen.getByRole('button', { name: 'Gestión de Jugadores' })).toBeInTheDocument();
   });
 
   it('navega a "/club/players" al hacer clic en "Gestión de Jugadores"', async () => {
