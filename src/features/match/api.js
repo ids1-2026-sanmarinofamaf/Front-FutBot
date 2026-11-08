@@ -39,3 +39,18 @@ export const makeSubstitution = async (matchId, playerId, newPlayerId) => {
     }
   );
 };
+
+
+export const submitPenaltyChoice = async (
+  matchId,
+  turn,
+  side,
+) => {
+  return await apiClient(
+    `/live_match/${encodeURIComponent(matchId)}/penalties/choices`,
+    {
+      method: "POST",
+      body: JSON.stringify({turn, side}),
+    }
+  );
+};
