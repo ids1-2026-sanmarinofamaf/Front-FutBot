@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMyClub, updateMyClub } from '../api';
 import { getCurrentUser } from '../../friendlyGames/api'; 
 import { ClubInfoTab } from '../components/ClubInfoTab';
+import { ClubStatsTab } from '../components/ClubStatsTab';
 import { EditClubNameModal } from '../components/EditClubNameModal';
 import { EditClubAvatarModal } from '../components/EditClubAvatarModal';
 import { useToast } from '../../../shared/hooks';
@@ -144,20 +145,7 @@ export function MyClub() {
                 <ClubInfoTab user={user} club={club} editingDisabled={refreshing}
                   onEditName={() => setModal('name')} onEditAvatar={() => setModal('avatar')} />
               ) : (
-                <div className="text-slate-100">
-                  <h2 className="text-xl font-bold mb-4">Estadísticas del club</h2>
-                  {[
-                    ['Puntos totales', club.statistics.total_points],
-                    ['Partidos jugados', club.statistics.matches_played],
-                    ['Partidos ganados', club.statistics.matches_won],
-                    ['Partidos empatados', club.statistics.matches_drawn],
-                    ['Partidos perdidos', club.statistics.matches_lost],
-                    ['Goles a favor', club.statistics.goals_for],
-                    ['Goles en contra', club.statistics.goals_against],
-                    ['Ligas jugadas', club.statistics.leagues_played],
-                    ['Ligas ganadas', club.statistics.leagues_won],
-                  ].map(([label, value]) => <p key={label}>{label}: {value}</p>)}
-                </div>
+                <ClubStatsTab statistics={club.statistics} />
               )}
             </div>
           </>

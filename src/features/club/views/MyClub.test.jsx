@@ -63,7 +63,7 @@ describe('MyClub UI', () => {
     expect(screen.getByRole('button', { name: 'Gestión de Jugadores' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Estadísticas' }));
     expect(screen.getByText('Estadísticas del club')).toBeInTheDocument();
-    expect(screen.getByText('Puntos totales: 42')).toBeInTheDocument();
+    expect(screen.getByText('Puntos totales').parentElement).toHaveTextContent('42');
     expect(screen.queryByRole('button', { name: 'Gestión de Jugadores' })).not.toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(getCurrentUser).toHaveBeenCalledTimes(1);
@@ -254,7 +254,7 @@ describe('MyClub UI', () => {
     expect(screen.getByTitle('Editar nombre')).toBeEnabled();
     expect(screen.getByTitle('Editar avatar')).toBeEnabled();
     await user.click(screen.getByText('Estadísticas'));
-    expect(screen.getByText('Puntos totales: 60')).toBeInTheDocument();
+    expect(screen.getByText('Puntos totales').parentElement).toHaveTextContent('60');
     expect(getCurrentUser).toHaveBeenCalledTimes(1);
     expect(getMyClub).toHaveBeenCalledTimes(2);
   });
