@@ -160,22 +160,22 @@ export function Match({
           {/* Insignia DT Equipo A */}
           <g data-testid="coach-badge-A">
             <rect
-              x={40}
+              x={30}
               y={90}
-              width={205}
-              height={36}
-              rx={6}
+              width={230}
+              height={44}
+              rx={8}
               fill="#1e293b"
-              stroke="#3b82f6"
-              strokeWidth="1.5"
+              stroke="#5BB5D9"
+              strokeWidth="2"
               opacity="0.95"
             />
             <text
-              x={142}
-              y={113}
+              x={145}
+              y={117}
               textAnchor="middle"
-              fill="white"
-              fontSize="13"
+              fill="#F2F2F2"
+              fontSize="18"
               fontWeight="bold"
             >
               {`DT: ${matchInfo?.team_a?.coach_behavior_name || "Sin DT"}`}
@@ -185,27 +185,40 @@ export function Match({
           {/* Insignia DT Equipo B */}
           <g data-testid="coach-badge-B">
             <rect
-              x={1675}
+              x={1660}
               y={90}
-              width={205}
-              height={36}
-              rx={6}
+              width={230}
+              height={44}
+              rx={8}
               fill="#1e293b"
-              stroke="#ef4444"
-              strokeWidth="1.5"
+              stroke="#D98E32"
+              strokeWidth="2"
               opacity="0.95"
             />
             <text
-              x={1777}
-              y={113}
+              x={1775}
+              y={117}
               textAnchor="middle"
-              fill="white"
-              fontSize="13"
+              fill="#F2F2F2"
+              fontSize="18"
               fontWeight="bold"
             >
               {`DT: ${matchInfo?.team_b?.coach_behavior_name || "Sin DT"}`}
             </text>
           </g>
+
+          <Ball ball={estado_partido.ball} />
+
+          {/* La pausa cubre únicamente el rectángulo de juego y queda por debajo de los modales de sustitución */}
+          <foreignObject
+            x={300}
+            y={150}
+            width={1320}
+            height={800}
+            className="pointer-events-none"
+          >
+            <MatchPause pausa={pausa} />
+          </foreignObject>
 
           <MatchPlayerOut
             players={estado_partido.players.map(function (player) {
@@ -221,21 +234,8 @@ export function Match({
             ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
           />
 
-          <Ball ball={estado_partido.ball} />
+          <ExitMatchButton />
         </svg>
-
-        {/* La pausa cubre únicamente el rectángulo de juego */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: "15.625%",
-            top: "13.8889%",
-            width: "68.75%",
-            height: "74.0741%"
-          }}
-        >
-          <MatchPause pausa={pausa} />
-        </div>
       </div>
 
       <ChangeBehaviorMenu
@@ -247,8 +247,6 @@ export function Match({
         onConfirm={handleConfirmBehaviorChange}
         onCancel={handleCancelBehaviorChange}
       />
-
-      <ExitMatchButton />
     </div>
   )
 }

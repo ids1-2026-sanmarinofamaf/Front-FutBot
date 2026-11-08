@@ -23,8 +23,8 @@ export function MatchPlayerInMatch({
         })
         .map(function (p) {
           const pos = {
-            x: 300 + ((p.x + 0.5) / 40) * 1320,
-            y: 150 + ((p.y + 0.5) / 20) * 800
+            x: 300 + (p.x / 40) * 1320,
+            y: 150 + (p.y / 20) * 800
           }
           //pinta cada jugador con un color según su equipo (o el color resaltado) y dibuja su número en el centro del círculo
           const isHighlighted =
@@ -32,10 +32,10 @@ export function MatchPlayerInMatch({
             highlightedPlayerId !== undefined &&
             String(p.player_id) === String(highlightedPlayerId)
           const color = isHighlighted
-            ? "#62B5E5"
+            ? "#F2B035"
             : p.team === "A"
-              ? "blue"
-              : "red"
+              ? "#5BB5D9"
+              : "#D98E32"
           const number = p.shirt_number ?? playerNumbers[p.player_id]
 
           return (

@@ -36,7 +36,7 @@ export function MatchPause({ pausa }) {
   }
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/90 pointer-events-none">
+    <div className="w-full h-full flex items-center justify-center bg-slate-950/90 pointer-events-none">
       {isHydration && (
         <h2 className="text-6xl font-bold text-white">
           COOLING BREAK
