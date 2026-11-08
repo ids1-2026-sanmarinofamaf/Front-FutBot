@@ -26,6 +26,17 @@ describe('CoachApiDocs Component', () => {
     expect(screen.getByText(/Manual de comportamientos de DT/i)).toBeInTheDocument();
     expect(screen.getByText(/Reglas de ejecución/i)).toBeInTheDocument();
     expect(screen.getByText(/def coach\(\):/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/substitute\(player_out_id, player_in_id\)/i).length).toBeGreaterThan(0);
+  });
+
+  it('incluye las primitivas de sustitución bench, can_substitute y substitute', () => {
+    render(<CoachApiDocs isOpen={true} onClose={mockOnClose} />);
+
+    expect(screen.getByText('bench() -> list[int]')).toBeInTheDocument();
+    expect(screen.getByText('can_substitute() -> bool')).toBeInTheDocument();
+    expect(
+      screen.getByText('substitute(player_out_id: int, player_in_id: int) -> Substitution')
+    ).toBeInTheDocument();
   });
 
   it('renderiza todas las categorías y primitivas definidas en COACH_API_CATEGORIES', () => {

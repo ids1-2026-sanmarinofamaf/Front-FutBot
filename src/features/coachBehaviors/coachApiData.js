@@ -8,7 +8,7 @@ export const COACH_API_CATEGORIES = [
     title: 'Coach Primitives (Exclusivas de DT)',
     badgeClass: 'bg-violet-950/80 text-violet-300 border-violet-700/60',
     accentClass: 'border-l-violet-400',
-    description: 'Consultan el evento disparador y los comportamientos actuales o disponibles del equipo.',
+    description: 'Consultan el evento disparador, los comportamientos y los suplentes disponibles del equipo.',
     items: [
       {
         name: 'trigger',
@@ -31,14 +31,28 @@ export const COACH_API_CATEGORIES = [
         statementSnippet: 'behaviors = available_behaviors()',
         description: 'Devuelve la lista de nombres de comportamientos de jugador que el DT puede asignar (propios del club y por defecto).',
       },
+      {
+        name: 'bench',
+        signature: 'bench() -> list[int]',
+        returnType: 'list[int]',
+        statementSnippet: 'substitutes = bench()',
+        description: 'Devuelve la lista de identificadores de los jugadores suplentes propios que están en el banco.',
+      },
+      {
+        name: 'can_substitute',
+        signature: 'can_substitute() -> bool',
+        returnType: 'bool',
+        statementSnippet: 'if can_substitute():\n    pass',
+        description: 'Devuelve True si en este momento se aceptaría una sustitución pedida por el DT (False si ya se sustituyó en el período, en el último cuarto o si hay una sustitución manual pendiente).',
+      },
     ],
   },
   {
     id: 'coach_actions',
-    title: 'Coach Action (Retorno de coach)',
+    title: 'Coach Actions (Retorno de coach)',
     badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60',
     accentClass: 'border-l-emerald-400',
-    description: 'Construye las asignaciones de comportamiento que debe devolver coach() dentro de una lista.',
+    description: 'Construyen los comandos (asignaciones de comportamiento y sustituciones) que debe devolver coach() dentro de una lista.',
     items: [
       {
         name: 'assign',
@@ -46,6 +60,13 @@ export const COACH_API_CATEGORIES = [
         returnType: 'tuple[int, str]',
         statementSnippet: 'return [assign(player_id, "Attacker")]',
         description: 'Solicita que el jugador propio en cancha player_id pase a ejecutar behavior_name a partir del próximo tic.',
+      },
+      {
+        name: 'substitute',
+        signature: 'substitute(player_out_id: int, player_in_id: int) -> Substitution',
+        returnType: 'Substitution',
+        statementSnippet: 'return [substitute(player_out_id, player_in_id)]',
+        description: 'Solicita que el jugador propio en cancha player_out_id sea reemplazado por el suplente propio player_in_id en la próxima pausa.',
       },
     ],
   },
@@ -74,8 +95,8 @@ export const COACH_API_CATEGORIES = [
         name: 'current_period',
         signature: 'current_period() -> Period',
         returnType: 'Period',
-        statementSnippet: 'period = current_period()',
-        description: 'Cuarto actual del partido (Period.FIRST_QUARTER .. FOURTH_QUARTER).',
+        statementSnippet: 'if current_period().value == 2:\n    pass',
+        description: 'Cuarto actual del partido (.value devuelve 1, 2, 3 o 4; .name devuelve "FIRST_QUARTER" .. "FOURTH_QUARTER").',
       },
       {
         name: 'period_time_remaining',
@@ -143,13 +164,6 @@ export const COACH_API_CATEGORIES = [
         returnType: 'CoachTrigger',
         statementSnippet: 'if trigger() == CoachTrigger.PERIOD_START:\n    pass',
         description: 'Eventos que disparan la ejecución de coach(): gol propio (GOAL_FOR), gol rival (GOAL_AGAINST) o inicio de período (PERIOD_START).',
-      },
-      {
-        name: 'Period.FIRST_QUARTER',
-        signature: 'Period.FIRST_QUARTER .. FOURTH_QUARTER',
-        returnType: 'Period',
-        statementSnippet: 'if current_period() == Period.FOURTH_QUARTER:\n    pass',
-        description: 'Constantes de período para comparar con current_period().',
       },
     ],
   },

@@ -49,12 +49,13 @@ export function CoachApiDocs({ isOpen, onClose }) {
                 Se ejecuta al <strong>inicio de cada período</strong> y cuando <strong>cualquiera de los equipos convierte un gol</strong>.
               </li>
               <li>
-                Debe devolver una lista de asignaciones construidas con{' '}
-                <code className="text-emerald-300">assign(player_id, behavior_name)</code> (o{' '}
+                Debe devolver una lista de comandos construidos con{' '}
+                <code className="text-emerald-300">assign(player_id, behavior_name)</code> y/o{' '}
+                <code className="text-emerald-300">substitute(player_out_id, player_in_id)</code> (o{' '}
                 <code className="text-emerald-300">[]</code> si no realiza cambios).
               </li>
               <li>
-                Los cambios válidos se aplican desde el tic siguiente y deben finalizar dentro del límite de tiempo del servidor.
+                Las asignaciones de comportamiento se aplican desde el tic siguiente; las sustituciones se ejecutan en la pausa siguiente (máximo una por período, con prioridad para las sustituciones manuales).
               </li>
             </ul>
           </div>
