@@ -1,17 +1,21 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MyClub } from './MyClub';
-import { useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { MainMenu } from '../../mainMenu/views/MainMenu';
 import { getMyClub, updateMyClub } from '../api';
 import { getCurrentUser } from '../../friendlyGames/api';
 
 vi.mock('../api', () => ({ getMyClub: vi.fn(), updateMyClub: vi.fn() }));
 vi.mock('../../friendlyGames/api', () => ({ getCurrentUser: vi.fn() }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...await importOriginal(),
   useNavigate: vi.fn(),
 }));
+
+const realRouter = await vi.importActual('react-router-dom');
 
 const USER = { user_name: 'Luca', user_email: 'luca@example.com' };
 const CLUB = {
@@ -76,6 +80,10 @@ describe('MyClub', () => {
       await renderLoadedClub();
 
       expect(screen.getByRole('heading', { name: /Mi Club/i })).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: CLUB.club_name })).toBeInTheDocument();
+      expect(screen.getByText('Usuario: Luca')).toBeInTheDocument();
+      expect(screen.getByText('Correo electrónico: luca@example.com')).toBeInTheDocument();
+      expect(screen.queryByText('Estadísticas del club')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Gestión de Jugadores/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Gestión de Comportamientos/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Volver al Menú Principal/i })).toBeInTheDocument();
@@ -175,13 +183,13 @@ describe('MyClub', () => {
     });
 
     it.each([
-      { resource: 'usuario', request: getCurrentUser },
-      { resource: 'club', request: getMyClub },
-    ])('redirige al menú con el error si falla la consulta de $resource', async ({ request }) => {
-      request.mockRejectedValue(Object.assign(new Error('Club not found'), { status: 404 }));
+      { resource: 'usuario', request: getCurrentUser, error: new TypeError('Failed to fetch'), message: 'No se pudo establecer conexión con el servidor' },
+      { resource: 'club', request: getMyClub, error: Object.assign(new Error('Club not found'), { status: 404 }), message: 'No se encontró el club' },
+    ])('redirige al menú con el error si falla la consulta de $resource', async ({ request, error, message }) => {
+      request.mockRejectedValue(error);
       render(<MyClub />);
       await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', {
-        state: { clubLoadError: 'No se encontró el club' },
+        state: { clubLoadError: message },
       }));
     });
   });
@@ -201,6 +209,7 @@ describe('MyClub', () => {
       await user.click(screen.getByText('Guardar'));
 
       await screen.findByText('Nuevo club');
+      expect(screen.queryByLabelText('Nombre del club')).not.toBeInTheDocument();
       expect(updateMyClub).toHaveBeenCalledWith({ new_name: 'Nuevo club' });
       expect(getCurrentUser).toHaveBeenCalledTimes(1);
       expect(getMyClub).toHaveBeenCalledTimes(2);
@@ -222,23 +231,17 @@ describe('MyClub', () => {
       expect(getMyClub).toHaveBeenCalledTimes(1);
     });
 
-    it('bloquea la edición durante el refresco y conserva los datos anteriores si falla', async () => {
+    it('conserva los datos anteriores y vuelve a habilitar la edición si falla el GET posterior', async () => {
       const user = userEvent.setup();
-      const saveRequest = createPendingRequest();
       const refreshRequest = createPendingRequest();
-      updateMyClub.mockReturnValue(saveRequest.promise);
+      updateMyClub.mockResolvedValue(null);
       await renderLoadedClub();
       await user.click(screen.getByTitle('Editar nombre'));
       await enterClubName(user, 'Nuevo club');
       getMyClub.mockReturnValueOnce(refreshRequest.promise);
       await user.click(screen.getByText('Guardar'));
-      expect(screen.getByText('Guardando…')).toBeDisabled();
-      expect(screen.getByText('Cancelar')).toBeDisabled();
 
-      // El PUT terminó, pero la consulta de los datos actualizados sigue pendiente.
-      await act(async () => saveRequest.resolve(null));
-
-      expect(screen.queryByLabelText('Nombre del club')).not.toBeInTheDocument();
+      // El PUT ya terminó; el GET de actualización todavía está pendiente.
       expect(screen.getByText('San Marino')).toBeInTheDocument();
       expect(screen.getByTitle('Editar nombre')).toBeDisabled();
       expect(screen.getByTitle('Editar avatar')).toBeDisabled();
@@ -286,6 +289,11 @@ describe('MyClub', () => {
 
       await user.click(screen.getByTitle('Editar avatar'));
       expect(screen.getByText('Guardar')).toBeDisabled();
+      expect(screen.getByLabelText(AVATAR_LABEL)).toHaveValue('');
+      expect(screen.getAllByRole('img')).toHaveLength(2);
+      for (const image of screen.getAllByRole('img')) {
+        expect(image).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
+      }
     });
   });
 
@@ -315,11 +323,15 @@ describe('MyClub', () => {
       });
       await user.click(screen.getByText('Guardar'));
       await waitFor(() => expect(screen.queryByText('Guardar')).not.toBeInTheDocument());
+
       expect(updateMyClub).toHaveBeenCalledTimes(2);
       expect(screen.getByRole('img')).toHaveAttribute('src', 'data:image/png;base64,anBlZw==');
       expect(screen.getByTitle('Editar nombre')).toBeEnabled();
       expect(screen.getByTitle('Editar avatar')).toBeEnabled();
+
+      // La otra pestaña también debe recibir las estadísticas actualizadas.
       await user.click(screen.getByText('Estadísticas'));
+
       expect(screen.getByText('Puntos totales').parentElement).toHaveTextContent('60');
       expect(getCurrentUser).toHaveBeenCalledTimes(1);
       expect(getMyClub).toHaveBeenCalledTimes(2);
@@ -417,4 +429,166 @@ describe('MyClub', () => {
     });
   });
 
+  describe('Apertura de los modales', () => {
+    it('abre el editor de nombre con el nombre actual', async () => {
+      const user = userEvent.setup();
+      await renderLoadedClub();
+
+      await user.click(screen.getByTitle('Editar nombre'));
+
+      expect(screen.getByLabelText('Nombre del club')).toHaveValue(CLUB.club_name);
+      expect(screen.getByText('Guardar')).toBeDisabled();
+    });
+
+    it('abre el editor de avatar con la imagen actual y el selector vacío', async () => {
+      const user = userEvent.setup();
+      getMyClub.mockResolvedValue({ ...CLUB, club_avatar: 'YWJj' });
+      await renderLoadedClub();
+
+      await user.click(screen.getByTitle('Editar avatar'));
+
+      expect(screen.getByLabelText(AVATAR_LABEL)).toHaveValue('');
+      expect(screen.getByText('Guardar')).toBeDisabled();
+      const modal = screen.getByText('Editar avatar del club').closest('form');
+      expect(modal.querySelector('img')).toHaveAttribute('src', 'data:image/png;base64,YWJj');
+    });
+  });
+
+  describe('Bloqueo durante el PUT', () => {
+    it.each([
+      { modal: 'nombre', enterChanges: user => enterClubName(user, 'Otro club') },
+      { modal: 'avatar', enterChanges: selectValidAvatar },
+    ])('no permite cerrar el modal de $modal mientras guarda', async ({ modal, enterChanges }) => {
+      const user = userEvent.setup();
+      const saveRequest = createPendingRequest();
+      updateMyClub.mockReturnValue(saveRequest.promise);
+      await renderLoadedClub();
+      await user.click(screen.getByTitle(`Editar ${modal}`));
+      await enterChanges(user);
+
+      await user.click(screen.getByText('Guardar'));
+      await user.click(screen.getByText('Cancelar'));
+      fireEvent.keyDown(document, { key: 'Escape' });
+      fireEvent.click(screen.getByText('Guardando…').closest('form').parentElement);
+
+      expect(screen.getByText('Guardando…')).toBeDisabled();
+      expect(screen.getByText('Cancelar')).toBeDisabled();
+      expect(updateMyClub).toHaveBeenCalledTimes(1);
+      expect(getMyClub).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Finalización del refresco', () => {
+    it('actualiza ambas pestañas y habilita la edición cuando termina el GET', async () => {
+      const user = userEvent.setup();
+      const refreshRequest = createPendingRequest();
+      updateMyClub.mockResolvedValue(null);
+      await renderLoadedClub();
+      await user.click(screen.getByTitle('Editar nombre'));
+      await enterClubName(user, 'Nuevo club');
+      getMyClub.mockReturnValueOnce(refreshRequest.promise);
+      await user.click(screen.getByText('Guardar'));
+
+      expect(screen.getByText(CLUB.club_name)).toBeInTheDocument();
+      expect(screen.getByTitle('Editar nombre')).toBeDisabled();
+      expect(screen.getByTitle('Editar avatar')).toBeDisabled();
+
+      await act(async () => refreshRequest.resolve({
+        ...CLUB,
+        club_name: 'Nuevo club',
+        statistics: { ...CLUB.statistics, total_points: 99 },
+      }));
+
+      expect(screen.getByText('Nuevo club')).toBeInTheDocument();
+      expect(screen.getByTitle('Editar nombre')).toBeEnabled();
+      expect(screen.getByTitle('Editar avatar')).toBeEnabled();
+      expect(screen.queryByText('Guardar')).not.toBeInTheDocument();
+
+      await user.click(screen.getByText('Estadísticas'));
+
+      expect(screen.getByText('Puntos totales').parentElement).toHaveTextContent('99');
+      expect(getCurrentUser).toHaveBeenCalledTimes(1);
+      expect(getMyClub).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('delega a apiClient el 401 del GET posterior al guardado', async () => {
+      const user = userEvent.setup();
+      updateMyClub.mockResolvedValue(null);
+      await renderLoadedClub();
+      await user.click(screen.getByTitle('Editar nombre'));
+      await enterClubName(user, 'Nuevo club');
+      getMyClub.mockRejectedValueOnce(Object.assign(new Error('Unauthorized'), { status: 401 }));
+
+      await user.click(screen.getByText('Guardar'));
+
+      expect(screen.queryByText('No se pudo actualizar el club')).not.toBeInTheDocument();
+      expect(screen.getByTitle('Editar nombre')).toBeEnabled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
+
+});
+
+function CurrentPath() {
+  const location = useLocation();
+  return <p>Ruta actual: {location.pathname}</p>;
+}
+
+function renderApp(initialPath) {
+  render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <CurrentPath />
+      <Routes>
+        <Route path="/" element={<MainMenu />} />
+        <Route path="/club" element={<MyClub />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('Navegación de Mi club con el router real', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useNavigate.mockImplementation(realRouter.useNavigate);
+    getCurrentUser.mockResolvedValue({ user_name: 'Luca', user_email: 'luca@example.com' });
+    getMyClub.mockResolvedValue({ club_name: 'San Marino', club_avatar: 'default', statistics: {} });
+  });
+
+  it('abre /club desde el menú principal', async () => {
+    const user = userEvent.setup();
+    renderApp('/');
+
+    await user.click(screen.getByText('Mi Club'));
+
+    await screen.findByText('San Marino');
+    expect(screen.getByText('Ruta actual: /club')).toBeInTheDocument();
+  });
+
+  it('mantiene la URL y reutiliza los datos al alternar ambas pestañas', async () => {
+    const user = userEvent.setup();
+    renderApp('/club');
+    await screen.findByText('San Marino');
+
+    await user.click(screen.getByText('Estadísticas'));
+    await user.click(screen.getByText('Información'));
+
+    expect(screen.getByText('Ruta actual: /club')).toBeInTheDocument();
+    expect(screen.getByText('San Marino')).toBeInTheDocument();
+    expect(getCurrentUser).toHaveBeenCalledTimes(1);
+    expect(getMyClub).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { resource: 'usuario', request: getCurrentUser },
+    { resource: 'club', request: getMyClub },
+  ])('vuelve al menú y conserva la notificación si falla la carga de $resource', async ({ request }) => {
+    request.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderApp('/club');
+
+    await screen.findByText('No se pudo establecer conexión con el servidor');
+
+    expect(screen.getByText('Ruta actual: /')).toBeInTheDocument();
+    expect(screen.getByText('FUTBOT')).toBeInTheDocument();
+  });
 });
