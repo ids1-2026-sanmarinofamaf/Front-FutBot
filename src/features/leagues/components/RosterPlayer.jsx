@@ -71,4 +71,4 @@ export default function RosterPlayer({ player, behaviors, onStarterChange, onBeh
 
     </li>
   )
-}disablePromotion
+}
