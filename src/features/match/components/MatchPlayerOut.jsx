@@ -58,6 +58,7 @@ export function MatchPlayerOut({
   matchId,
   matchInfo,
   onSelectStarter,
+  behaviorChangesDisabled = false,
   ventanaSustitucionesAbierta = true,
 }) {
   const [selectedStarterId, setSelectedStarterId] = useState(null)
@@ -280,6 +281,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
+        behaviorChangesDisabled={behaviorChangesDisabled}
         onToggleSubstitutes={handleToggleSubstitutes}
         ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
@@ -291,6 +293,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
+        behaviorChangesDisabled={behaviorChangesDisabled}
         onToggleSubstitutes={handleToggleSubstitutes}
         ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
@@ -309,7 +312,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
       />
 
-      {selectedStarter && (
+      {selectedStarter && ventanaSustitucionesAbierta && (
         <SubstituteList
           substitutes={selectedSubstitutesList}
           playersInfo={playersInfo}
@@ -335,6 +338,7 @@ function StarterColumn({
   playersInfo,
   pendingSubstitution,
   onSelectStarter,
+  behaviorChangesDisabled = false,
   onToggleSubstitutes,
   ventanaSustitucionesAbierta = true,
 }) {
@@ -363,6 +367,7 @@ function StarterColumn({
               size={135}
               number={playerNumbers[player.player_id]}
               onSelectStarter={onSelectStarter}
+              behaviorChangesDisabled={behaviorChangesDisabled}
             />
 
             {isOwn && (
@@ -434,15 +439,17 @@ function PlayerSquare({
   size,
   number,
   onSelectStarter,
+  behaviorChangesDisabled = false,
 }) {
   const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
+  const canChangeBehavior = isClickable && !behaviorChangesDisabled
   const isOwn = Boolean(playerInfo?.isOwn)
   const behaviorName = isOwn
     ? (player.current_behavior_name || "Default")
     : null
 
   function handleClick() {
-    if (!isClickable) return
+    if (!canChangeBehavior) return
 
     onSelectStarter({
       player_id: player.player_id,
@@ -455,8 +462,13 @@ function PlayerSquare({
   return (
     <g
       data-testid={`starter-card-${player.player_id}`}
-      onClick={isClickable ? handleClick : undefined}
-      style={isClickable ? { cursor: "pointer" } : undefined}
+      onClick={canChangeBehavior ? handleClick : undefined}
+      aria-disabled={isClickable ? behaviorChangesDisabled: undefined}
+      style={isClickable
+        ? { cursor: canChangeBehavior
+            ? "pointer" : "not-allowed"
+          } : undefined
+      }
     >
       <rect
         x={x}
@@ -508,7 +520,7 @@ function PlayerSquare({
       )}
 
       {isClickable && (
-        <g>
+        <g opacity={behaviorChangesDisabled ? 0.45 : 1}>
           <rect
             x={x + 10}
             y={y + 98}

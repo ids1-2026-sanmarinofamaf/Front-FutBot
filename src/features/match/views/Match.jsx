@@ -11,6 +11,7 @@ import { ChangeBehaviorMenu } from "../components/ChangeBehaviorMenu"
 import { MatchPause } from "../components/MatchPause"
 import { getBehaviors } from "../../behaviors/api.js"
 import { changeBehavior } from "../api.js"
+import { PenaltyShootout } from "../components/PenaltyShootout.jsx"
 
 /**
  * Obtiene el mapa de dorsales fijos (shirt_number) para cada jugador a partir de `matchInfo`.
@@ -48,6 +49,7 @@ export function Match({
   matchInfo,
   pausa,
   ventanaSustitucionesAbierta = true,
+  penalties = null,
 }) {
   const params = useParams()
   const effectiveMatchId = matchId ?? params?.matchId
@@ -145,12 +147,37 @@ export function Match({
             backgroundColor: "#063343"
           }}
         >
-          <SoccerField />
+          {penalties ? (
+            <foreignObject
+              x={300}
+              y={150}
+              width={1320}
+              height={800}
+            >
+              <PenaltyShootout />
+            </foreignObject>
+          ) : (
+            <>
+              <SoccerField />
 
-          <MatchPlayerInMatch
-            players={estado_partido.players}
-            playerNumbers={playerNumbers}
-          />
+              <MatchPlayerInMatch
+                players={estado_partido.players}
+                playerNumbers={playerNumbers}
+              />
+
+              <Ball ball={estado_partido.ball} />
+
+              <foreignObject
+                x={300}
+                y={150}
+                width={1320}
+                height={800}
+                className="pointer-events-none"
+              >
+                <MatchPause pausa={pausa} />
+              </foreignObject>
+            </>
+          )}
 
           <Scoreboard
             estado_partido={estado_partido}
@@ -207,19 +234,6 @@ export function Match({
             </text>
           </g>
 
-          <Ball ball={estado_partido.ball} />
-
-          {/* La pausa cubre únicamente el rectángulo de juego y queda por debajo de los modales de sustitución */}
-          <foreignObject
-            x={300}
-            y={150}
-            width={1320}
-            height={800}
-            className="pointer-events-none"
-          >
-            <MatchPause pausa={pausa} />
-          </foreignObject>
-
           <MatchPlayerOut
             players={estado_partido.players.map(function (player) {
               const assignedName = assignedBehaviorNames[player.player_id]
@@ -231,7 +245,10 @@ export function Match({
             matchId={effectiveMatchId}
             matchInfo={matchInfo}
             onSelectStarter={handleSelectStarter}
-            ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
+            behaviorChangesDisabled={Boolean(penalties)}
+            ventanaSustitucionesAbierta={
+              ventanaSustitucionesAbierta && !penalties
+            }
           />
 
           <ExitMatchButton />
@@ -239,7 +256,7 @@ export function Match({
       </div>
 
       <ChangeBehaviorMenu
-        player={selectedStarter}
+        player={penalties ? null : selectedStarter}
         behaviors={behaviors || []}
         isLoading={isLoadingBehaviors}
         isSubmitting={isSubmittingBehavior}

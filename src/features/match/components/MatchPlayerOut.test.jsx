@@ -571,4 +571,76 @@ describe('MatchPlayerOut', () => {
     expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
     expect(screen.queryByTestId('cancel-substitution-A')).not.toBeInTheDocument()
   })
+
+  it('mantiene visible el control de comportamiento pero bloquea el click cuando está deshabilitado', () => {
+    const onSelectStarter = vi.fn()
+
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+          onSelectStarter={onSelectStarter}
+          behaviorChangesDisabled={true}
+        />
+      </svg>
+    )
+
+    const card = screen.getByTestId('starter-card-1')
+
+    expect(card).toHaveTextContent('Cambiar comp.')
+    expect(card).toHaveAttribute('aria-disabled', 'true')
+    expect(card).toHaveStyle({ cursor: 'not-allowed' })
+
+    fireEvent.click(card)
+
+    expect(onSelectStarter).not.toHaveBeenCalled()
+  })
+
+  it('oculta una lista de suplentes abierta cuando se cierra la ventana de sustituciones', () => {
+    const { rerender } = render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={true}
+        />
+      </svg>
+    )
+
+    fireEvent.click(screen.getByTestId('substitution-button-1'))
+
+    expect(screen.getByTestId('substitute-option-4')).toBeInTheDocument()
+
+    rerender(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={false}
+        />
+      </svg>
+    )
+
+    expect(
+      screen.queryByTestId('substitute-option-4')
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByTestId('cancel-substitution-A')
+    ).not.toBeInTheDocument()
+
+    const button = screen.getByTestId('substitution-button-1')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+
+    fireEvent.click(button)
+
+    expect(
+      screen.queryByTestId('substitute-option-4')
+    ).not.toBeInTheDocument()
+    expect(makeSubstitution).not.toHaveBeenCalled()
+  })
 })

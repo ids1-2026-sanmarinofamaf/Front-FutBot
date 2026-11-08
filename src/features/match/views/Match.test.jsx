@@ -576,4 +576,112 @@ describe('Match', () => {
     expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
   })
 
+  it('muestra los penales al comenzar la tanda y mantiene el marcador y la salida', () => {
+    const pausa = {
+      pause_type: 'hydration',
+      duration: 10,
+      planning_duration: 5,
+    }
+
+    const penalties = {
+      phase: 'intro',
+      data: {
+        event: 'penalty_shootout_started',
+        duration: 5,
+      },
+      results: [],
+    }
+
+    const { rerender } = renderMatch(estado_partido, '42', pausa)
+
+    expect(screen.getByText('COOLING BREAK')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('group', { name: /Definición por penales/i })
+    ).not.toBeInTheDocument()
+
+    rerender(
+      <MemoryRouter>
+        <Match
+          estado_partido={estado_partido}
+          matchId="42"
+          matchInfo={defaultMatchInfo}
+          pausa={pausa}
+          penalties={penalties}
+        />
+      </MemoryRouter>
+    )
+
+    expect(
+      screen.getByRole('group', { name: /Definición por penales/i })
+    ).toBeInTheDocument()
+
+    expect(screen.queryByText('COOLING BREAK')).not.toBeInTheDocument()
+    expect(screen.getByText('99')).toBeInTheDocument()
+    expect(screen.getByText('88')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-badge-A')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-badge-B')).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', { name: 'Salir del partido' })
+    ).toBeEnabled()
+  })
+
+  it('oculta el menú de comportamiento y bloquea los controles laterales al comenzar los penales', async () => {
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Default', is_default: true },
+    ])
+
+    const penalties = {
+      phase: 'intro',
+      data: {
+        event: 'penalty_shootout_started',
+        duration: 5,
+      },
+      results: [],
+    }
+
+    const { rerender } = renderMatch(estado_partido)
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+
+    expect(
+      await screen.findByRole('option', { name: /Default/i })
+    ).toBeInTheDocument()
+
+    rerender(
+      <MemoryRouter>
+        <Match
+          estado_partido={estado_partido}
+          matchId="42"
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={true}
+          penalties={penalties}
+        />
+      </MemoryRouter>
+    )
+
+    expect(
+      screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
+    ).not.toBeInTheDocument()
+
+    const card = screen.getByTestId('starter-card-1')
+    const substitutionButton = screen.getByTestId('substitution-button-1')
+
+    expect(card).toHaveTextContent('Cambiar comp.')
+    expect(card).toHaveAttribute('aria-disabled', 'true')
+    expect(substitutionButton).toHaveAttribute('aria-disabled', 'true')
+
+    fireEvent.click(card)
+    fireEvent.click(substitutionButton)
+
+    expect(
+      screen.queryByRole('heading', { name: 'Cambiar comportamiento' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId('substitute-option-4')
+    ).not.toBeInTheDocument()
+
+    expect(changeBehavior).not.toHaveBeenCalled()
+    expect(makeSubstitution).not.toHaveBeenCalled()
+  })
 })
