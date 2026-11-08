@@ -145,8 +145,8 @@ describe('MatchPlayerInMatch', () => {
 
     const circle = container.querySelector('circle')
 
-    const expectedX = 300 + ((5.8 + 0.5) / 40) * 1320
-    const expectedY = 150 + ((10.3 + 0.5) / 20) * 800
+    const expectedX = 300 + (5.8 / 40) * 1320
+    const expectedY = 150 + (10.3 / 20) * 800
 
     expect(circle).toHaveAttribute('cx', String(expectedX))
     expect(circle).toHaveAttribute('cy', String(expectedY))
@@ -178,8 +178,8 @@ describe('MatchPlayerInMatch', () => {
 
     const circle = container.querySelector('circle')
 
-    const expectedX = 300 + ((39.5 + 0.5) / 40) * 1320
-    const expectedY = 150 + ((19.5 + 0.5) / 20) * 800
+    const expectedX = 300 + (39.5 / 40) * 1320
+    const expectedY = 150 + (19.5 / 20) * 800
 
     expect(circle).toHaveAttribute('cx', String(expectedX))
     expect(circle).toHaveAttribute('cy', String(expectedY))
