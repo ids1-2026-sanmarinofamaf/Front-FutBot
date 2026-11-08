@@ -30,22 +30,23 @@ describe('MatchPlayerOut', () => {
 
   const playerNumbers = { 1: 1, 2: 2, 3: 3, 7: 1, 8: 2, 9: 3 }
 
+  const defaultMatchInfo = {
+    match_id: 42,
+    my_club_id: 1,
+    team_a: { club_id: 1, club_name: 'Club A', coach_behavior_name: 'Coach A' },
+    team_b: { club_id: 2, club_name: 'Club B', coach_behavior_name: 'Coach B' },
+    players: players.map((p) => ({
+      player_id: p.player_id,
+      name: p.team === 'A' ? `Player ${p.player_id}` : 'Rival',
+      club_id: p.team === 'A' ? 1 : 2,
+      shirt_number: playerNumbers[p.player_id] ?? (p.player_id - 3),
+      team: p.team,
+    })),
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
-
     makeSubstitution.mockResolvedValue(null)
-
-    getPlayerById.mockImplementation(function (id) {
-      const player = players.find(function (p) {
-        return p.player_id === id
-      })
-
-      if (player.team === 'B') {
-        return Promise.reject(new Error('Not found'))
-      }
-
-      return Promise.resolve({ player_id: id, name: 'Player ' + id })
-    })
   })
 
   function findRectAtXY(rects, x, y) {
@@ -58,12 +59,19 @@ describe('MatchPlayerOut', () => {
   it('muestra 3 titulares y 3 suplentes por equipo', () => {
     const { container } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
     const rects = container.querySelectorAll('rect')
-    expect(rects).toHaveLength(12)
+    const playerCardRects = Array.from(rects).filter(
+      r => r.getAttribute('width') === '90' || r.getAttribute('width') === '70'
+    )
+    expect(playerCardRects).toHaveLength(12)
 
     const starterTeamA = Array.from(rects).filter(
       r => r.getAttribute('x') === '40'
@@ -89,7 +97,11 @@ describe('MatchPlayerOut', () => {
   it('apila correctamente a los titulares de cada equipo', () => {
     const { container } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
@@ -106,7 +118,11 @@ describe('MatchPlayerOut', () => {
   it('ubica correctamente a los suplentes de cada equipo', () => {
     const { container } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
@@ -123,7 +139,11 @@ describe('MatchPlayerOut', () => {
   it('usa azul para el equipo A y rojo para el equipo B', () => {
     const { container } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
@@ -142,13 +162,17 @@ describe('MatchPlayerOut', () => {
   it('no define opacidad explícita en los titulares, y usa 0.5 en los suplentes', () => {
     const { container } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
     const rects = container.querySelectorAll('rect')
     const starterRects = Array.from(rects).filter(
-      r => r.getAttribute('opacity') === null
+      r => r.getAttribute('opacity') === null && r.getAttribute('width') === '90'
     )
     const benchRects = Array.from(rects).filter(
       r => r.getAttribute('opacity') === '0.5'
@@ -158,87 +182,96 @@ describe('MatchPlayerOut', () => {
     expect(benchRects).toHaveLength(6)
   })
 
-  it('consulta los datos de los jugadores por su ID para determinar cuáles pertenecen al club', async () => {
+  it('determina los datos de los jugadores directamente sin llamadas HTTP a getPlayerById', () => {
     render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
-    await waitFor(() => {
-      expect(getPlayerById).toHaveBeenCalledTimes(players.length)
-
-      players.forEach(function (player) {
-        expect(getPlayerById).toHaveBeenCalledWith(player.player_id)
-      })
-    })
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
+    expect(screen.getByText('Player 6')).toBeInTheDocument()
+    expect(screen.getAllByText('Rival')).toHaveLength(6)
+    expect(getPlayerById).not.toHaveBeenCalled()
   })
 
-  it('muestra los nombres propios y "Rival" para el equipo contrario', async () => {
+  it('muestra los nombres propios y "Rival" para el equipo contrario', () => {
     render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
-    await waitFor(() => {
-      expect(screen.getByText('Player 1')).toBeInTheDocument()
-      expect(screen.getByText('Player 6')).toBeInTheDocument()
-      expect(screen.getAllByText('Rival')).toHaveLength(6)
-    })
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
+    expect(screen.getByText('Player 6')).toBeInTheDocument()
+    expect(screen.getAllByText('Rival')).toHaveLength(6)
   })
 
-  it('muestra el número solamente en los titulares', async () => {
+  it('muestra el número solamente en los titulares', () => {
     render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
-    await waitFor(() => {
-      expect(screen.getAllByText('Number: 1')).toHaveLength(2)
-      expect(screen.getAllByText('Number: 2')).toHaveLength(2)
-      expect(screen.getAllByText('Number: 3')).toHaveLength(2)
-    })
+    expect(screen.getAllByText('Number: 1')).toHaveLength(2)
+    expect(screen.getAllByText('Number: 2')).toHaveLength(2)
+    expect(screen.getAllByText('Number: 3')).toHaveLength(2)
 
     expect(screen.queryByText('Number: 4')).not.toBeInTheDocument()
   })
 
-  it('no rompe mientras los datos del jugador todavía no llegaron', () => {
-    getPlayerById.mockImplementation(() => new Promise(() => {}))
-
+  it('renderiza correctamente sin errores con matchInfo vacío', () => {
     expect(() => {
       render(
         <svg>
-          <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+          <MatchPlayerOut
+            players={players}
+            playerNumbers={playerNumbers}
+            matchInfo={{}}
+          />
         </svg>
       )
     }).not.toThrow()
   })
 
-  it('no vuelve a pedir un jugador que ya fue cargado, ante un rerender', async () => {
+  it('no realiza llamadas HTTP a la API ante un rerender', () => {
     const { rerender } = render(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
-
-    await waitFor(() => {
-      expect(getPlayerById).toHaveBeenCalledTimes(12)
-    })
 
     rerender(
       <svg>
-        <MatchPlayerOut players={players} playerNumbers={playerNumbers} />
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
       </svg>
     )
 
-    await new Promise(resolve => setTimeout(resolve, 50))
-
-    expect(getPlayerById).toHaveBeenCalledTimes(12)
+    expect(getPlayerById).not.toHaveBeenCalled()
   })
 
-  it('permite seleccionar un titular propio al hacer click y bloquea los titulares rivales', async () => {
+  it('permite seleccionar un titular propio al hacer click y bloquea los titulares rivales', () => {
     const onSelectStarter = vi.fn()
 
     render(
@@ -246,12 +279,13 @@ describe('MatchPlayerOut', () => {
         <MatchPlayerOut
           players={players}
           playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
           onSelectStarter={onSelectStarter}
         />
       </svg>
     )
 
-    await screen.findByText('Player 1')
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('starter-card-7'))
     expect(onSelectStarter).not.toHaveBeenCalled()
@@ -267,36 +301,38 @@ describe('MatchPlayerOut', () => {
     })
   })
 
-  it('soporta que el usuario pertenezca al equipo B y bloquea a un espectador', async () => {
+  it('soporta que el usuario pertenezca al equipo B y bloquea a un espectador', () => {
     const onSelectStarter = vi.fn()
 
-    getPlayerById.mockImplementation(function (id) {
-      const player = players.find(function (p) {
-        return p.player_id === id
-      })
-
-      if (player.team === 'B') {
-        return Promise.resolve({ player_id: id, name: 'PlayerB ' + id })
-      }
-
-      return Promise.reject(new Error('Not found'))
-    })
+    const matchInfoTeamB = {
+      my_club_id: 2,
+      players: players.map(p => ({
+        player_id: p.player_id,
+        name: p.team === 'B' ? `PlayerB ${p.player_id}` : 'Rival',
+        club_id: p.team === 'A' ? 1 : 2,
+        shirt_number: playerNumbers[p.player_id] ?? 1,
+        team: p.team,
+      })),
+    }
 
     render(
       <svg>
         <MatchPlayerOut
           players={players}
           playerNumbers={playerNumbers}
+          matchInfo={matchInfoTeamB}
           onSelectStarter={onSelectStarter}
         />
       </svg>
     )
 
-    await screen.findByText('PlayerB 7')
+    expect(screen.getByText('PlayerB 7')).toBeInTheDocument()
 
+    // No permite clickear un rival (equipo A)
     fireEvent.click(screen.getByTestId('starter-card-1'))
     expect(onSelectStarter).not.toHaveBeenCalled()
 
+    // Permite clickear un titular propio (equipo B)
     fireEvent.click(screen.getByTestId('starter-card-7'))
 
     expect(onSelectStarter).toHaveBeenCalledWith({
@@ -314,11 +350,12 @@ describe('MatchPlayerOut', () => {
           players={players}
           playerNumbers={playerNumbers}
           matchId="77"
+          matchInfo={defaultMatchInfo}
         />
       </svg>
     )
 
-    await screen.findByText('Player 1')
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('substitution-button-1'))
     fireEvent.click(await screen.findByTestId('substitute-option-4'))
@@ -340,11 +377,12 @@ describe('MatchPlayerOut', () => {
           players={players}
           playerNumbers={playerNumbers}
           matchId="77"
+          matchInfo={defaultMatchInfo}
         />
       </svg>
     )
 
-    await screen.findByText('Player 1')
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('substitution-button-1'))
     fireEvent.click(await screen.findByTestId('substitute-option-4'))
@@ -375,6 +413,7 @@ describe('MatchPlayerOut', () => {
           players={updatedPlayers}
           playerNumbers={{ ...playerNumbers, 4: 1 }}
           matchId="77"
+          matchInfo={defaultMatchInfo}
         />
       </svg>
     )
@@ -404,11 +443,12 @@ describe('MatchPlayerOut', () => {
             players={players}
             playerNumbers={playerNumbers}
             matchId="77"
+            matchInfo={defaultMatchInfo}
           />
         </svg>
       )
 
-      await screen.findByText('Player 1')
+      expect(screen.getByText('Player 1')).toBeInTheDocument()
 
       fireEvent.click(screen.getByTestId('substitution-button-1'))
       fireEvent.click(await screen.findByTestId('substitute-option-4'))
@@ -437,6 +477,7 @@ describe('MatchPlayerOut', () => {
             players={updatedPlayers}
             playerNumbers={{ ...playerNumbers, 4: 1 }}
             matchId="77"
+            matchInfo={defaultMatchInfo}
           />
         </svg>
       )
@@ -466,11 +507,12 @@ describe('MatchPlayerOut', () => {
           players={players}
           playerNumbers={playerNumbers}
           matchId="77"
+          matchInfo={defaultMatchInfo}
         />
       </svg>
     )
 
-    await screen.findByText('Player 1')
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('substitution-button-1'))
     fireEvent.click(await screen.findByTestId('substitute-option-4'))
@@ -484,5 +526,49 @@ describe('MatchPlayerOut', () => {
     )
 
     expect(screen.queryByTestId('substitution-message')).not.toBeInTheDocument()
+  })
+
+  it('muestra el comportamiento asignado en la tarjeta del titular', () => {
+    const playersWithBehavior = players.map(p => ({
+      ...p,
+      current_behavior_name: p.player_id === 1 ? 'Ataque Rápido' : 'Default'
+    }))
+
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={playersWithBehavior}
+          playerNumbers={playerNumbers}
+          matchInfo={defaultMatchInfo}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Rápido')
+    expect(screen.getByTestId('starter-behavior-2')).toHaveTextContent('Default')
+    expect(screen.queryByTestId('starter-behavior-7')).not.toBeInTheDocument()
+  })
+
+  it('deshabilita el botón de sustitución cuando la ventana de sustituciones está cerrada', () => {
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          ventanaSustitucionesAbierta={false}
+        />
+      </svg>
+    )
+
+    const button = screen.getByTestId('substitution-button-1')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveStyle({ cursor: 'not-allowed' })
+
+    fireEvent.click(button)
+
+    expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-substitution-A')).not.toBeInTheDocument()
   })
 })

@@ -84,3 +84,19 @@ export const getUserSessionInfo = async () => {
       user_email,
   };
 };
+
+export const getLeagueInfo = async ({league_id}) => {
+  let dataREST
+  try{
+    dataREST = await apiClient(`/leagues/${league_id}`, {method :"GET"})
+  } catch {
+    dataREST = {fixture: [], standings: []}
+  }
+  return dataREST
+}
+
+/** Recupera los IDs de las ligas del usuario autenticado. */
+export const getMyLeagueIds = async () => {
+  const response = await apiClient("/leagues/me", { method: "GET" });
+  return response?.league_ids;
+};

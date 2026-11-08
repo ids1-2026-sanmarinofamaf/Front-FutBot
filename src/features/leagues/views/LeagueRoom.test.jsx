@@ -42,11 +42,13 @@ vi.mock("../../friendlyGames/api", () => ({
 
 const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
+const mockGetLeagueInfo = vi.fn();
 const mockLeaveLeagueAsPlayer = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
   startLeague: (...args) => mockStartLeague(...args),
+  getLeagueInfo: (...args) => mockGetLeagueInfo(...args),
   leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
 }));
 
@@ -152,6 +154,7 @@ describe("LeagueLobby Component", () => {
     };
     mockToastState = null;
     mockGetCurrentUser.mockResolvedValue({ user_name: "MiClub" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
     mockGetUserSessionInfo.mockResolvedValue({
       user_id: 1,
       user_name: "Club A",
@@ -659,6 +662,20 @@ describe("LeagueLobby Component", () => {
         expect(screen.queryByText(/Esperando que el creador inicie la liga/i)).not.toBeInTheDocument();
       }
     );
+
+    it("cuando la liga pasa a FINALIZADA muestra el diálogo y llama a leaveL para cerrar el socket", async () => {
+      setEvents([
+        lobbyConCreador(3),
+        leagueStarted(),
+        { type: "league_finished", league_id: 10 },
+      ]);
+
+      await renderLobby();
+
+      expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Liga finalizada")).toBeInTheDocument();
+    });
   });
 
    describe("Abandonar liga", () => {
@@ -666,6 +683,16 @@ describe("LeagueLobby Component", () => {
       setEvents([lobbyConCreador(3)]);
       comoParticipante();
       mockToastState = { id: 1 };
+    });
+
+    it.each(["INICIADA", "FINALIZADA"])("deshabilita Abandonar en una liga %s", async (state) => {
+      setEvents([lobbyConCreador(3, state)]);
+      await renderLobby();
+      const button = screen.getByRole("button", { name: /abandonar/i });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it("abandona la liga correctamente y vuelve a /league", async () => {
@@ -752,10 +779,9 @@ describe("LeagueLobby Component", () => {
       fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalled();
+        expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
       });
-
-      expect(mockLeaveLeagueAsPlayer).toHaveBeenCalledWith(10);
+      expect(mockShowToast).toHaveBeenCalled();
       expect(mockSocketState.leaveL).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
     });
@@ -786,6 +812,130 @@ describe("LeagueLobby Component", () => {
       fireEvent.click(screen.getByRole("button", { name: /volver/i }));
 
       expect(mockNavigate).toHaveBeenCalledWith("/league");
+    });
+  });
+
+  describe("Recarga de lobby interno y fixture con liga iniciada", () => {
+    it("muestra la ronda en juego y habilita el botón de ver partido al recargar", async () => {
+      mockParams = { id: "5", leagueName: "saresr" };
+      mockSocketState.joinedLIds = [5];
+      mockGetLeagueInfo.mockResolvedValue({
+        league_id: 5,
+        name: "saresr",
+        state: "INICIADA",
+        privacy: "PUBLICA",
+        current_participants: 3,
+        capacity: 3,
+        fixture: [
+          {
+            match_id: 75,
+            match_order: 1,
+            round: 1,
+            state: "JUGANDO",
+            local: { club_id: 2, name: "qeqe" },
+            visitante: { club_id: 1, name: "luca" },
+            score: null,
+          },
+          {
+            match_id: 76,
+            match_order: 2,
+            round: 2,
+            state: "POR_COMENZAR",
+            local: { club_id: 3, name: "Brave FC" },
+            visitante: { club_id: 2, name: "qeqe" },
+            score: null,
+          },
+          {
+            match_id: 77,
+            match_order: 3,
+            round: 3,
+            state: "POR_COMENZAR",
+            local: { club_id: 3, name: "Brave FC" },
+            visitante: { club_id: 1, name: "luca" },
+            score: null,
+          },
+        ],
+        standings: [
+          { club_id: 2, name: "qeqe", points: 0, matches_played: 0, matches_won: 0, matches_drawn: 0, matches_lost: 0, goals_for: 0, goals_against: 0, goal_difference: 0 },
+          { club_id: 1, name: "luca", points: 0, matches_played: 0, matches_won: 0, matches_drawn: 0, matches_lost: 0, goals_for: 0, goals_against: 0, goal_difference: 0 },
+          { club_id: 3, name: "Brave FC", points: 0, matches_played: 0, matches_won: 0, matches_drawn: 0, matches_lost: 0, goals_for: 0, goals_against: 0, goal_difference: 0 },
+        ],
+        last_completed_round: 0,
+        active_round: 1,
+        active_match_ids: [75],
+        break_ends_at: null,
+      });
+
+      mockSocketState.messages = {
+        5: [
+          {
+            type: "lobby_state",
+            league_id: 5,
+            state: "INICIADA",
+            current_users: 3,
+            users: [u(1), u(2), u(3)],
+          },
+        ],
+      };
+
+      await renderLobby();
+
+      // Fixture tab debe estar habilitado
+      const fixtureTabBtn = screen.getByRole("button", { name: /^fixture$/i });
+      expect(fixtureTabBtn).not.toBeDisabled();
+
+      // Cambiar a la pestaña Fixture
+      fireEvent.click(fixtureTabBtn);
+
+      // Debe mostrar la ronda en juego
+      expect(screen.getByText("En juego")).toBeInTheDocument();
+      expect(screen.getByText("JUGANDO")).toBeInTheDocument();
+
+      // El botón de ver partido para el partido 75 debe estar habilitado
+      const buttons = screen.getAllByRole("button", { name: /ver partido/i });
+      expect(buttons[0]).not.toBeDisabled(); // Partido 75
+      expect(buttons[1]).toBeDisabled();     // Partido 76
+      expect(buttons[2]).toBeDisabled();     // Partido 77
+
+      // Al tocar Ver partido, navega al match
+      fireEvent.click(buttons[0]);
+      expect(mockNavigate).toHaveBeenCalledWith("/matches/75", {
+        state: { from: "/league/lobby/5/saresr" },
+      });
+    });
+
+    it("muestra la tabla de posiciones con los datos recibidos", async () => {
+      mockParams = { id: "5", leagueName: "saresr" };
+      mockSocketState.joinedLIds = [5];
+      mockGetLeagueInfo.mockResolvedValue({
+        league_id: 5,
+        name: "saresr",
+        state: "INICIADA",
+        standings: [
+          { club_id: 2, name: "qeqe", points: 3, matches_played: 1, matches_won: 1, matches_drawn: 0, matches_lost: 0, goals_for: 2, goals_against: 0, goal_difference: 2 },
+        ],
+      });
+
+      mockSocketState.messages = {
+        5: [
+          {
+            type: "lobby_state",
+            league_id: 5,
+            state: "INICIADA",
+            current_users: 3,
+            users: [u(1), u(2), u(3)],
+          },
+        ],
+      };
+
+      await renderLobby();
+
+      const tablaTabBtn = screen.getByRole("button", { name: /tabla de posiciones/i });
+      expect(tablaTabBtn).not.toBeDisabled();
+      fireEvent.click(tablaTabBtn);
+
+      expect(screen.getByText("qeqe")).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
     });
   });
 });

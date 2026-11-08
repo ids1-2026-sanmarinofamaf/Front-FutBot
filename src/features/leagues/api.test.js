@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewL, joinLeagueAsPlayer, startLeague, leaveLeagueAsPlayer } from "./api";
+import { sendNewL, joinLeagueAsPlayer, startLeague, leaveLeagueAsPlayer, getMyLeagueIds } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 
@@ -250,5 +250,12 @@ describe("leaveLeagueAsPlayer", () => {
 
     await expect(leaveLeagueAsPlayer(10)).rejects.toBe(error);
     expect(error.code).toBeUndefined();
+  });
+});
+describe("getMyLeagueIds", () => {
+  it("consulta GET /leagues/me a través del cliente autenticado", async () => {
+    apiClient.mockResolvedValue({ league_ids: [2, 5] });
+    await expect(getMyLeagueIds()).resolves.toEqual([2, 5]);
+    expect(apiClient).toHaveBeenCalledWith("/leagues/me", { method: "GET" });
   });
 });

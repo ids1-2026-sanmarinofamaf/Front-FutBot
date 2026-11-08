@@ -1,15 +1,25 @@
 import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
 import useWebSocket from "../../shared/hooks.js";
+import { getToken } from "../auth/auth.js";
 import { Match } from "./views/Match";
 import { useAnimatedMatchState } from "./useAnimatedMatchState.js";
 import { ExitMatchButton } from "./components/ExitMatchButton";
 
 const WS_BASE_URL = import.meta.env.VITE_WS_SESSION_URL;
 
+/**
+ * Componente principal de la página de partido.
+ * Gestiona la conexión WebSocket con el servidor enviando el token de autenticación (si existe),
+ * almacena la información estática del encuentro (`match_info`), el estado en tiempo real (`estado_partido`),
+ * los eventos de pausa y delega el renderizado en la vista `Match`.
+ *
+ * @returns {JSX.Element}
+ */
 export function MatchPage() {
   const { matchId } = useParams();
 
+  const [matchInfo, setMatchInfo] = useState(null);
   const [estadoPartido, setEstadoPartido] = useState(null);
   const [pausa, setPausa] = useState(null);
   const [ventanaSustitucionesAbierta, setVentanaSustitucionesAbierta] =
@@ -18,20 +28,47 @@ export function MatchPage() {
 
   const handleMessage = useCallback(function (data) {
     switch (data.event) {
+      case "match_info":
+        setMatchInfo(data);
+        break;
+
       case "pause_started":
         setPausa(data);
+        setVentanaSustitucionesAbierta(true);
+        break;
+
+      case "substitution_window_closed":
+        setVentanaSustitucionesAbierta(false);
         break;
 
       case "pause_finished":
         setPausa(null);
+        setVentanaSustitucionesAbierta(false);
         break;
 
-      case "substitution_window_closed":
-        // Este evento no corresponde a este ticket.
+      case "coach_changes":
+      case "coach_change":
+        if (data.changes && Array.isArray(data.changes)) {
+          setEstadoPartido(function (previous) {
+            if (!previous) return previous;
+            const updatedPlayers = previous.players.map(function (player) {
+              const change = data.changes.find(
+                (c) => String(c.player_id) === String(player.player_id)
+              );
+              return change
+                ? { ...player, current_behavior_name: change.behavior_name }
+                : player;
+            });
+            return { ...previous, players: updatedPlayers };
+          });
+        }
         break;
 
       case "estado_partido":
         setEstadoPartido(data);
+        if (data.substitution_window_open !== undefined) {
+          setVentanaSustitucionesAbierta(Boolean(data.substitution_window_open));
+        }
         break;
 
       default:
@@ -56,8 +93,9 @@ export function MatchPage() {
     console.log("Conexión del partido cerrada:", event);
   }, []);
 
+  const token = getToken();
   const url = matchId
-    ? `${WS_BASE_URL}/ws/matches/${matchId}`
+    ? `${WS_BASE_URL}/ws/matches/${matchId}${token ? `?token=${token}` : ""}`
     : null;
 
   useWebSocket(url, {
@@ -89,6 +127,7 @@ export function MatchPage() {
     <Match
       matchId={matchId}
       estado_partido={estadoAnimado}
+      matchInfo={matchInfo}
       pausa={pausa}
       ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
     />

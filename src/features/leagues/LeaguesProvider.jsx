@@ -67,6 +67,16 @@ export function LeaguesSocketProvider({ children }) {
         []
     );
 
+    // Reemplaza la participación local con la lista confirmada por el servidor.
+    const replaceJoinedLIds = useCallback((ids) => {
+        //Se verifica que que ids sea un array y que todos los ID's sean enteros positivos
+        if (!Array.isArray(ids) || !ids.every(isValidLeagueId)) {
+            throw new Error("Respuesta de ligas del usuario inválida");
+        }
+        //Se pasan los ID's primero como Set para eliminar duplicados (medida de seguridad) y luego como arreglo formato necesario por la lógica 
+        setLIds([...new Set(ids)]);
+    }, []);
+
     {/** Quita el id y se desmonta */}
     const leaveL = useCallback(
         (id) => setLIds((ids) => ids.filter((i) => i !== id)),
@@ -90,11 +100,16 @@ export function LeaguesSocketProvider({ children }) {
     }, [leaveAll]);
 
     {/** Agrega el mensaje al array de la liga correspondiente,
-        sin tocar los de otras ligas. */}
+        sin tocar los de otras ligas. Si la liga finalizó, se cierra la conexión
+        y se quita el ID de sessionStorage. */}
     const handleMessage = useCallback(
-        (id, msg) =>
-        setMessages((m) => ({ ...m, [id]: [...(m[id] ?? []), msg] })),
-        []
+        (id, msg) => {
+            setMessages((m) => ({ ...m, [id]: [...(m[id] ?? []), msg] }));
+            if (msg?.type === "league_finished") {
+                leaveL(id);
+            }
+        },
+        [leaveL]
     );
 
     /** El map crea los websockets viendo los ids guardados */
@@ -102,6 +117,7 @@ export function LeaguesSocketProvider({ children }) {
         <LeaguesSocketContext.Provider value={{
             messages,
             joinedLIds: LIds,
+            replaceJoinedLIds,
             joinL,
             leaveL,
             leaveAll

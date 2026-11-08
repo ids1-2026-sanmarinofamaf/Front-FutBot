@@ -59,3 +59,55 @@ export const validateBehaviorCode = async (code) => {
   });
   return data;
 };
+
+export const createBehaviorPreview = async (previewData) => {
+  if (
+    !previewData ||
+    !previewData.code ||
+    !previewData.code.trim() ||
+    !previewData.behavior_teammate_1 ||
+    !previewData.behavior_teammate_2
+  ) {
+    throw new Error("Datos de previsualización inválidos o incompletos");
+  }
+
+  const data = await apiClient('/clubes/me/behaviors/previews', {
+    method: 'POST',
+    body: JSON.stringify({
+      code: previewData.code,
+      behavior_teammate_1: Number(previewData.behavior_teammate_1),
+      behavior_teammate_2: Number(previewData.behavior_teammate_2),
+    }),
+  });
+
+  return data;
+};
+
+export const stopBehaviorPreview = async (previewId) => {
+  if (!previewId) {
+    throw new Error("El ID de la previsualización es requerido");
+  }
+
+  const data = await apiClient(`/clubes/me/behaviors/previews/${previewId}`, {
+    method: 'DELETE',
+  });
+
+  return data;
+};
+
+/**
+ * Elimina un comportamiento personalizado del club actual por su id.
+ * @param {number|string} id Identificador del comportamiento a eliminar.
+ * @returns {Promise<null>} Respuesta del servidor (204 No Content).
+ */
+export const deleteBehavior = async (id) => {
+  if (id === undefined || id === null) {
+    throw new Error("El ID del comportamiento es requerido");
+  }
+
+  const data = await apiClient(`/clubes/me/behaviors/${id}`, {
+    method: 'DELETE',
+  });
+
+  return data;
+};

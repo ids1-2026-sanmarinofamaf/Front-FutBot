@@ -102,6 +102,33 @@ describe("LeaguesSocketProvider", () => {
         });
     });
 
+    describe("replaceJoinedLIds", () => {
+        it("reemplaza IDs y storage, cierra sockets anteriores y recupera los nuevos", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            act(() => result.current.replaceJoinedLIds([7, 7, 10]));
+            expect(result.current.joinedLIds).toEqual([7, 10]);
+            expect(storedIds()).toEqual([7, 10]);
+            expect(wasClosed(3)).toBe(true);
+            expect(socketFor(7)).toBeDefined();
+            expect(socketFor(10)).toBeDefined();
+        });
+
+        it("una lista vacía elimina los IDs anteriores", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            act(() => result.current.replaceJoinedLIds([]));
+            expect(storedIds()).toEqual([]);
+        });
+
+        it("una respuesta inválida conserva los IDs previos", () => {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3]));
+            const { result } = setup();
+            expect(() => act(() => result.current.replaceJoinedLIds([7, null]))).toThrow();
+            expect(storedIds()).toEqual([3]);
+        });
+    });
+
     describe("joinL", () => {
 
         it("abre un socket con la URL de la liga", async () => {
@@ -214,6 +241,24 @@ describe("LeaguesSocketProvider", () => {
             expect(within(list3).getByText("de-3")).toBeInTheDocument();
             expect(within(list7).getAllByRole("listitem")).toHaveLength(1);
             expect(within(list7).getByText("de-7")).toBeInTheDocument();
+        });
+
+        it("al recibir league_finished cierra la conexión websocket y elimina el id de sessionStorage", async () => {
+            const user = userEvent.setup();
+            renderProvider();
+            await user.click(screen.getByRole("button", { name: "unirse 3" }));
+
+            expect(storedIds()).toEqual([3]);
+            expect(socketFor(3)).toBeDefined();
+
+            emit(3, { type: "league_finished", league_id: 3 });
+
+            expect(socketFor(3)).toBeUndefined();
+            expect(wasClosed(3)).toBe(true);
+            expect(storedIds()).toEqual([]);
+
+            const list = screen.getByRole("list", { name: "mensajes 3" });
+            expect(within(list).getByText("league_finished")).toBeInTheDocument();
         });
     });
 

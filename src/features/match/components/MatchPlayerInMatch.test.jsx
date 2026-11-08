@@ -250,4 +250,78 @@ describe('MatchPlayerInMatch', () => {
 
     expect(container.querySelectorAll('circle')).toHaveLength(0)
   })
+
+  it('utiliza shirt_number directamente cuando está definido en el jugador', () => {
+    const players = [
+      {
+        player_id: 1,
+        x: 5,
+        y: 10,
+        team: 'A',
+        is_on_field: true,
+        shirt_number: 10
+      }
+    ]
+
+    render(
+      <svg>
+        <MatchPlayerInMatch
+          players={players}
+        />
+      </svg>
+    )
+
+    expect(screen.getByText('10')).toBeInTheDocument()
+  })
+
+  it('mantiene el número del jugador fijo a través de playerNumbers', () => {
+    const players = [
+      {
+        player_id: 42,
+        x: 10,
+        y: 10,
+        team: 'B',
+        is_on_field: true
+      }
+    ]
+
+    const playerNumbers = {
+      42: 9
+    }
+
+    render(
+      <svg>
+        <MatchPlayerInMatch
+          players={players}
+          playerNumbers={playerNumbers}
+        />
+      </svg>
+    )
+
+    expect(screen.getByText('9')).toBeInTheDocument()
+  })
+
+  it('pinta con el color distintivo #62B5E5 al jugador indicado en highlightedPlayerId', () => {
+    const players = [
+      { player_id: 1, x: 5, y: 5, team: 'A', is_on_field: true },
+      { player_id: 2, x: 10, y: 10, team: 'A', is_on_field: true },
+      { player_id: 7, x: 25, y: 10, team: 'B', is_on_field: true }
+    ]
+
+    const { container } = render(
+      <svg>
+        <MatchPlayerInMatch
+          players={players}
+          playerNumbers={{ 1: 1, 2: 2, 7: 1 }}
+          highlightedPlayerId={2}
+        />
+      </svg>
+    )
+
+    const circles = container.querySelectorAll('circle')
+    expect(circles).toHaveLength(3)
+    expect(circles[0]).toHaveAttribute('fill', 'blue')
+    expect(circles[1]).toHaveAttribute('fill', '#62B5E5')
+    expect(circles[2]).toHaveAttribute('fill', 'red')
+  })
 })

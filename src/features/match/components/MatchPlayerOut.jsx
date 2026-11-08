@@ -1,55 +1,72 @@
-import { useEffect, useRef, useState } from "react"
-import { getPlayerById } from "../../player/api.js"
+import { useEffect, useState } from "react"
 import { makeSubstitution } from "../api.js"
 import { SubstituteList } from "./SubstituteList.jsx"
 
 const SUBSTITUTION_MESSAGE_DURATION = 4000
 
+/**
+ * Construye la información de cada jugador a partir de `matchInfo`.
+ * Determina si el jugador pertenece al club del usuario mediante `matchInfo.my_club_id`.
+ *
+ * @param {Object} matchInfo - Información estática del partido.
+ * @returns {Object} Mapa de información de jugadores por player_id.
+ */
+function getPlayersInfo(matchInfo) {
+  const info = {}
+
+  if (!matchInfo?.players) {
+    return info
+  }
+
+  matchInfo.players.forEach(function (player) {
+    const isOwn = Boolean(
+      matchInfo.my_club_id !== null &&
+      matchInfo.my_club_id !== undefined &&
+      player.club_id === matchInfo.my_club_id
+    )
+
+    info[String(player.player_id)] = {
+      player_id: player.player_id,
+      name: player.name,
+      Name: player.name,
+      shirt_number: player.shirt_number,
+      club_id: player.club_id,
+      team: player.team,
+      isOwn: isOwn,
+    }
+  })
+
+  return info
+}
+
+/**
+ * Componente que renderiza los jugadores fuera del campo de juego (titulares en los laterales
+ * y suplentes en el banco), permitiendo solicitar sustituciones entre ellos.
+ *
+ * @param {Object} props
+ * @param {Array<Object>} props.players - Jugadores en el estado dinámico del partido.
+ * @param {Object} props.playerNumbers - Mapeo de player_id a número de dorsal.
+ * @param {string|number} [props.matchId] - ID del partido.
+ * @param {Object} props.matchInfo - Información estática recibida por WebSocket.
+ * @param {Function} [props.onSelectStarter] - Callback al hacer click en un titular propio.
+ * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana de sustituciones está abierta.
+ * @returns {JSX.Element}
+ */
 export function MatchPlayerOut({
   players,
   playerNumbers,
   matchId,
+  matchInfo,
   onSelectStarter,
+  ventanaSustitucionesAbierta = true,
 }) {
-  const [playersInfo, setPlayersInfo] = useState({})
   const [selectedStarterId, setSelectedStarterId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [substitutionError, setSubstitutionError] = useState(null)
   const [pendingSubstitution, setPendingSubstitution] = useState(null)
   const [substitutionMessage, setSubstitutionMessage] = useState(null)
 
-  const requestedIdsRef = useRef(new Set())
-
-  useEffect(function () {
-    players.forEach(function (player) {
-      const id = player.player_id
-      const key = String(id)
-
-      if (playersInfo[key] || requestedIdsRef.current.has(key)) {
-        return
-      }
-
-      requestedIdsRef.current.add(key)
-
-      getPlayerById(id)
-        .then(function (data) {
-          setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [key]: { ...data, isOwn: true },
-            }
-          })
-        })
-        .catch(function () {
-          setPlayersInfo(function (previous) {
-            return {
-              ...previous,
-              [key]: { name: "Rival", isOwn: false },
-            }
-          })
-        })
-    })
-  }, [players, playersInfo])
+  const playersInfo = getPlayersInfo(matchInfo)
 
   // Confirma la sustitución únicamente cuando el WebSocket
   // informa que el titular salió y el suplente ingresó.
@@ -262,6 +279,7 @@ export function MatchPlayerOut({
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
         onToggleSubstitutes={handleToggleSubstitutes}
+        ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
 
       <StarterColumn
@@ -272,6 +290,7 @@ export function MatchPlayerOut({
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
         onToggleSubstitutes={handleToggleSubstitutes}
+        ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
 
       <BenchRow
@@ -315,6 +334,7 @@ function StarterColumn({
   pendingSubstitution,
   onSelectStarter,
   onToggleSubstitutes,
+  ventanaSustitucionesAbierta = true,
 }) {
   return (
     <>
@@ -322,6 +342,7 @@ function StarterColumn({
         const y = 150 + index * 100
         const playerInfo = playersInfo[String(player.player_id)]
         const isOwn = Boolean(playerInfo?.isOwn)
+        const isSubDisabled = !ventanaSustitucionesAbierta
 
         const buttonLabel =
           pendingSubstitution &&
@@ -345,11 +366,13 @@ function StarterColumn({
             {isOwn && (
               <g
                 data-testid={`substitution-button-${player.player_id}`}
+                aria-disabled={isSubDisabled}
                 onClick={function (event) {
                   event.stopPropagation()
+                  if (isSubDisabled) return
                   onToggleSubstitutes(player)
                 }}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: isSubDisabled ? "not-allowed" : "pointer" }}
               >
                 <rect
                   x={player.team === "A" ? x + 95 : x - 115}
@@ -357,8 +380,9 @@ function StarterColumn({
                   width={110}
                   height={34}
                   rx={5}
-                  fill="#166534"
-                  stroke="white"
+                  fill={isSubDisabled ? "#475569" : "#166534"}
+                  opacity={isSubDisabled ? 0.6 : 1}
+                  stroke={isSubDisabled ? "#94a3b8" : "white"}
                   strokeWidth="1.5"
                 />
 
@@ -410,6 +434,10 @@ function PlayerSquare({
   onSelectStarter,
 }) {
   const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
+  const isOwn = Boolean(playerInfo?.isOwn)
+  const behaviorName = isOwn
+    ? (player.current_behavior_name || "Default")
+    : null
 
   function handleClick() {
     if (!isClickable) return
@@ -440,11 +468,11 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={y + size / 2 - (isClickable ? 16 : 8)}
+        y={isClickable ? y + 20 : y + 36}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize="14"
+        fontSize={isClickable ? "13" : "14"}
         fontWeight="bold"
       >
         {playerInfo?.Name || playerInfo?.name}
@@ -452,23 +480,37 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={y + size / 2 + (isClickable ? 2 : 12)}
+        y={isClickable ? y + 37 : y + 54}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="white"
-        fontSize="13"
+        fontSize={isClickable ? "12" : "13"}
       >
         Number: {number}
       </text>
 
+      {behaviorName && (
+        <text
+          data-testid={`starter-behavior-${player.player_id}`}
+          x={x + size / 2}
+          y={y + 54}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#e2e8f0"
+          fontSize="11"
+        >
+          {behaviorName}
+        </text>
+      )}
+
       {isClickable && (
         <text
           x={x + size / 2}
-          y={y + size / 2 + 24}
+          y={y + 72}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="#bfdbfe"
-          fontSize="11"
+          fontSize="10"
         >
           Cambiar comp.
         </text>
