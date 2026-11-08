@@ -17,6 +17,33 @@
   --text-xl--line-height: 2.625rem;
   --text-2xl: 2.5rem;
   --text-2xl--line-height: 2.875rem;
+
+  /* Paleta de la bandera y escudo de San Marino */
+  --color-sm-celeste: #5BB5D9;
+  --color-sm-green: #678C5D;
+  --color-sm-gold: #F2B035;
+  --color-sm-amber: #D98E32;
+  --color-sm-white: #F2F2F2;
+
+  /* Adaptación de tokens de color a la paleta de San Marino */
+  --color-blue-400: #5BB5D9;
+  --color-blue-500: #5BB5D9;
+  --color-blue-600: #499dbd;
+  --color-blue-700: #3b84a0;
+
+  --color-emerald-300: #7fa475;
+  --color-emerald-400: #678C5D;
+  --color-emerald-500: #678C5D;
+  --color-emerald-600: #56774d;
+  --color-emerald-700: #45613e;
+  --color-emerald-900: #23321f;
+
+  --color-yellow-400: #F2B035;
+  --color-yellow-500: #F2B035;
+  --color-amber-400: #F2B035;
+  --color-amber-500: #D98E32;
+  --color-orange-400: #D98E32;
+  --color-orange-500: #D98E32;
 }
 
 /* Añadir fondo oscuro y color de texto base a toda la aplicación */

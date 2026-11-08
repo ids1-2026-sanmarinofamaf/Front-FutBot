@@ -84,7 +84,7 @@ describe("BehaviorPreview", () => {
     expect(options.reconnect).toBe(false);
   });
 
-  it("renderiza los 6 titulares en cancha, resalta al jugador 2 con #62B5E5 y muestra las tarjetas laterales", () => {
+  it("renderiza los 6 titulares en cancha, resalta al jugador 2 con #F2B035 y muestra las tarjetas laterales", () => {
     const { container } = render(<BehaviorPreview />);
 
     const [, options] = mockUseWebSocket.mock.calls[0];
@@ -95,21 +95,21 @@ describe("BehaviorPreview", () => {
 
     // Tarjetas laterales de los 3 titulares propios y 3 rivales
     const card2 = screen.getByTestId("starter-card-2");
-    expect(card2.querySelector("rect")).toHaveAttribute("fill", "#62B5E5");
+    expect(card2.querySelector("rect")).toHaveAttribute("fill", "#F2B035");
     expect(screen.getByTestId("starter-behavior-2")).toHaveTextContent("En prueba");
 
     const card1 = screen.getByTestId("starter-card-1");
-    expect(card1.querySelector("rect")).toHaveAttribute("fill", "blue");
+    expect(card1.querySelector("rect")).toHaveAttribute("fill", "#5BB5D9");
     expect(screen.getByTestId("starter-behavior-1")).toHaveTextContent("Defender");
 
     const card7 = screen.getByTestId("starter-card-7");
-    expect(card7.querySelector("rect")).toHaveAttribute("fill", "red");
+    expect(card7.querySelector("rect")).toHaveAttribute("fill", "#D98E32");
 
     // No debe renderizar suplentes fuera de cancha (player_id = 4)
     expect(screen.queryByTestId("starter-card-4")).not.toBeInTheDocument();
 
-    // Verifica que en la cancha hay un círculo pintado con #62B5E5
-    const highlightedCircles = container.querySelectorAll('circle[fill="#62B5E5"]');
+    // Verifica que en la cancha hay un círculo pintado con #F2B035
+    const highlightedCircles = container.querySelectorAll('circle[fill="#F2B035"]');
     expect(highlightedCircles).toHaveLength(1);
   });
 

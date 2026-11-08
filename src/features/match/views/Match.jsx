@@ -160,21 +160,21 @@ export function Match({
           {/* Insignia DT Equipo A */}
           <g data-testid="coach-badge-A">
             <rect
-              x={40}
+              x={30}
               y={90}
-              width={225}
+              width={230}
               height={44}
               rx={8}
               fill="#1e293b"
-              stroke="#3b82f6"
-              strokeWidth="1.5"
+              stroke="#5BB5D9"
+              strokeWidth="2"
               opacity="0.95"
             />
             <text
-              x={152}
+              x={145}
               y={117}
               textAnchor="middle"
-              fill="white"
+              fill="#F2F2F2"
               fontSize="18"
               fontWeight="bold"
             >
@@ -185,21 +185,21 @@ export function Match({
           {/* Insignia DT Equipo B */}
           <g data-testid="coach-badge-B">
             <rect
-              x={1655}
+              x={1660}
               y={90}
-              width={225}
+              width={230}
               height={44}
               rx={8}
               fill="#1e293b"
-              stroke="#ef4444"
-              strokeWidth="1.5"
+              stroke="#D98E32"
+              strokeWidth="2"
               opacity="0.95"
             />
             <text
-              x={1767}
+              x={1775}
               y={117}
               textAnchor="middle"
-              fill="white"
+              fill="#F2F2F2"
               fontSize="18"
               fontWeight="bold"
             >
@@ -222,6 +222,8 @@ export function Match({
           />
 
           <Ball ball={estado_partido.ball} />
+
+          <ExitMatchButton />
         </svg>
 
         {/* La pausa cubre únicamente el rectángulo de juego */}
@@ -247,8 +249,6 @@ export function Match({
         onConfirm={handleConfirmBehaviorChange}
         onCancel={handleCancelBehaviorChange}
       />
-
-      <ExitMatchButton />
     </div>
   )
 }

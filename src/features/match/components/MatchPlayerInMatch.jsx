@@ -32,10 +32,10 @@ export function MatchPlayerInMatch({
             highlightedPlayerId !== undefined &&
             String(p.player_id) === String(highlightedPlayerId)
           const color = isHighlighted
-            ? "#62B5E5"
+            ? "#F2B035"
             : p.team === "A"
-              ? "blue"
-              : "red"
+              ? "#5BB5D9"
+              : "#D98E32"
           const number = p.shirt_number ?? playerNumbers[p.player_id]
 
           return (
