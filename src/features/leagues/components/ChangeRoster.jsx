@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { getBehaviors } from "../../behaviors/api"
 import { getPlayers } from "../../player/api"
-import { getLeagueRoster } from "../api"
+import { getLeagueRoster, updateLeagueRoster } from "../api"
+import { useToast } from "../../../shared/hooks"
+import RightDownAlert from "../../auth/components/RightDownAlert"
 import RosterSection from "./RosterSection"
 
-export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
+export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuccess }) {
   //Hooks para llamados a API
   const [roster, setRoster] = useState(null)
   const [initialRoster, setInitialRoster] = useState(null)
   const [behaviors, setBehaviors] = useState([])
   //Hooks para carga y notificaciones
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const { toast, showToast, hideToast } = useToast()
+  const [alert, setAlert] = useState("")
 
   useEffect(() => {
     // Variable para manejar caso de cierre de sesión luego de usar endpoint
@@ -150,7 +156,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
   // Constante para verificar las tres condiciones anteriores
   const isValid = hasValidPlayerCounts && hasValidSlots && hasUniquePlayers &&
     ["defensive", "offensive"].includes(roster?.formation)
-  
+
   // Booleano para indicar si alineacion actual hizo cambios a la original
   const hasChanges = roster !== null && initialRoster !== null && (
     roster.formation !== initialRoster.formation ||
@@ -163,6 +169,48 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
         player.initial_behavior_id !== initialPlayer.initial_behavior_id
     })
   )
+
+  const handleSaveRoster = async () => {
+    if (loading || savingRef.current || !isValid || !hasChanges) return
+
+    // Se envían únicamente los campos esperados por el backend
+    const payload = {
+      formation: roster.formation,
+      players: roster.players.map(player => ({
+        player_id: player.player_id,
+        is_starter: player.is_starter,
+        slot: player.slot,
+        initial_behavior_id: player.initial_behavior_id,
+      }))
+    }
+
+    savingRef.current = true
+    setSaving(true)
+    setAlert("")
+    hideToast()
+
+    try {
+      await updateLeagueRoster(leagueId, payload)
+      setInitialRoster(payload)
+      onSaveSuccess()
+      onClose()
+    } catch (err) {
+      //Se maneja multiples codigos centralizadamente, pero solo el primero debería ser visto
+      const errorMessages = {
+        400: "La alineación es inválida.",
+        401: "La sesión no es válida.",
+        403: "No participás en esta liga.",
+        404: "La liga no existe.",
+        409: "La liga no está en curso.",
+        422: "Los datos de la petición son inválidos.",
+      }
+      setAlert(errorMessages[err.status] ?? "Error al actualizar la alineación.")
+      showToast()
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
 
   return (
     <div
@@ -178,15 +226,17 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={loading || !isValid || !hasChanges}
+              onClick={handleSaveRoster}
+              disabled={loading || saving || !isValid || !hasChanges}
               className="px-10 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
             >
-              Guardar alineación
+              {saving ? "Guardando alineación..." : "Guardar alineación"}
             </button>
 
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
             >
               Cerrar
@@ -196,9 +246,16 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
         </div>
 
         {loading && <p className="text-slate-300">Cargando alineación...</p>}
+        {alert && toast && (
+          <RightDownAlert 
+            key={toast.id} 
+            toast={toast} 
+            errorTitle="No pudiste guardar la alineación" 
+            errorDescription={alert} color="orange" />
+        )}
 
         {!loading && roster && (
-          <div className="space-y-4 text-slate-300">
+          <fieldset disabled={saving} className="space-y-4 text-slate-300">
 
             <div className="flex items-center justify-between">
 
@@ -247,7 +304,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError }) {
               />
 
             </div>
-          </div>
+          </fieldset>
         )}
       </div>
     </div>

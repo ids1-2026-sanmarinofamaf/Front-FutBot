@@ -400,6 +400,10 @@ export function LeagueLobby() {
         {changeRoster && lobby.state === "INICIADA" && (
           <ChangeRoster
             leagueId={numericId}
+            onSaveSuccess={() => {
+              setAlert("Alineación actualizada correctamente.")
+              showToast()
+            }}
             onClose={() => setChangeRoster(false)}
             onLoadError={(message) => {
               setAlert(message)
@@ -492,6 +496,16 @@ export function LeagueLobby() {
             errorTitle="No pudiste cargar la alineación"
             errorDescription={alert}
             color="red"
+          />
+        )}
+
+        {alert === "Alineación actualizada correctamente." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Alineación guardada"
+            errorDescription={alert}
+            color="green"
           />
         )}
 

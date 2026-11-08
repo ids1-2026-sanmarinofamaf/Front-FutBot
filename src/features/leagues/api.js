@@ -1,5 +1,12 @@
 import { apiClient } from "../../shared/api/client";
 
+export const updateLeagueRoster = (leagueId, roster) => {
+  return apiClient(`/leagues/${leagueId}/users/me/roster`, {
+    method: "PUT",
+    body: JSON.stringify(roster),
+  })
+}
+
 export const getLeagueRoster = (leagueId) => {
   return apiClient(`/leagues/${leagueId}/users/me/roster`, {
     method: "GET",
