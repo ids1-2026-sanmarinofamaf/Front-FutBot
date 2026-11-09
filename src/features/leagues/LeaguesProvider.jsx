@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import useWebSocket from "../../shared/hooks";
 import { getToken } from "../auth/auth";
 
@@ -48,6 +48,8 @@ function LSocket({ id_liga, onMessage, onLGone }) {
 export function LeaguesSocketProvider({ children }) {
     const [LIds, setLIds] = useState(loadIds); /** Guarda IDs para que luego se creen conexiones ws */
     const [messages, setMessages] = useState({}); /** <- IMPORTANTE */
+    // Las ligas canceladas no deben recuperarse desde respuestas anteriores al evento.
+    const cancelledLIds = useRef(new Set());
 
     // Cada vez que cambia la lista, se guarda (incluye leaveL y leaveAll)
     useEffect(() => {
@@ -61,7 +63,7 @@ export function LeaguesSocketProvider({ children }) {
     {/** Agrega id sin duplicar para que sean montados por LSocket */}
     const joinL = useCallback(
         (id) => setLIds((ids) => {
-            if (!isValidLeagueId(id) || ids.includes(id)) return ids;
+            if (!isValidLeagueId(id) || ids.includes(id) || cancelledLIds.current.has(id)) return ids;
             return [...ids, id];
         }),
         []
@@ -74,7 +76,7 @@ export function LeaguesSocketProvider({ children }) {
             throw new Error("Respuesta de ligas del usuario inválida");
         }
         //Se pasan los ID's primero como Set para eliminar duplicados (medida de seguridad) y luego como arreglo formato necesario por la lógica 
-        setLIds([...new Set(ids)]);
+        setLIds([...new Set(ids)].filter((id) => !cancelledLIds.current.has(id)));
     }, []);
 
     {/** Quita el id y se desmonta */}
@@ -85,6 +87,7 @@ export function LeaguesSocketProvider({ children }) {
 
     {/** Vacía la lista de ids y cierra todo */}
     const leaveAll = useCallback(() => {
+        cancelledLIds.current.clear();
         setLIds([]);
         setMessages({});
     }, []);
@@ -104,6 +107,14 @@ export function LeaguesSocketProvider({ children }) {
         y se quita el ID de sessionStorage. */}
     const handleMessage = useCallback(
         (id, msg) => {
+            if (cancelledLIds.current.has(id)) return;
+
+            if (msg?.type === "league_cancelled") {
+                cancelledLIds.current.add(id);
+                leaveL(id);
+            }
+
+            // Se conserva el evento aunque se desmonte el socket para que el lobby pueda leerlo.
             setMessages((m) => ({ ...m, [id]: [...(m[id] ?? []), msg] }));
             if (msg?.type === "league_finished") {
                 leaveL(id);

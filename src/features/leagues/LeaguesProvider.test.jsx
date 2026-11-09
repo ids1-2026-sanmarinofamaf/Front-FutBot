@@ -448,3 +448,32 @@ describe("LeaguesSocketProvider", () => {
     });
 });
 
+
+describe("cancelación de liga", () => {
+    it("conserva el evento, cierra solo su socket y evita recuperar una liga cancelada", () => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 7]));
+        const { result } = setup();
+        const cancelledSocket = socketFor(3);
+
+        act(() => cancelledSocket.onMessage({ type: "league_cancelled" }));
+
+        expect(result.current.messages[3]).toEqual([{ type: "league_cancelled" }]);
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(storedIds()).toEqual([7]);
+        expect(wasClosed(3)).toBe(true);
+        expect(wasClosed(7)).toBe(false);
+        expect(cancelledSocket.reconnect).toBe(false);
+
+        act(() => {
+            cancelledSocket.onClose({ code: 1000 });
+            cancelledSocket.onMessage({ type: "league_cancelled" });
+            result.current.joinL(3);
+            result.current.replaceJoinedLIds([3, 7]);
+        });
+
+        expect(countOpened(3)).toBe(1);
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(storedIds()).toEqual([7]);
+        expect(result.current.messages[3]).toHaveLength(1);
+    });
+});

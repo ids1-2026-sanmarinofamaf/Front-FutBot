@@ -93,7 +93,13 @@ export function LeagueLobby() {
    * @returns Lista actualizada de acuerdo al evento procesado
    */
   function applyLeagueEvent(lobby, msg, data) {
+    // Una cancelación es definitiva aunque lleguen eventos anteriores fuera de orden.
+    if (lobby.cancelled) return lobby;
+
     switch (msg.type) {
+      case "league_cancelled":
+        return { ...lobby, cancelled: true };
+
       case "lobby_state": { // foto completa: reemplaza todo
         const activeRound = data?.active_round ?? (
           data?.fixture ? (data.fixture.find((m) => m.state === "JUGANDO")?.round ?? 0) : 0
@@ -343,7 +349,7 @@ export function LeagueLobby() {
   }, [lobby.state])
 
   const handleCancelLeague = async () => {
-    if (!isCreator || lobby.state !== "POR_COMENZAR" || cancelPending.current) return;
+    if (!isCreator || lobby.cancelled || lobby.state !== "POR_COMENZAR" || cancelPending.current) return;
 
     cancelPending.current = true;
     setCancelling(true);
