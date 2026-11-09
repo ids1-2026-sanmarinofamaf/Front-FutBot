@@ -36,22 +36,50 @@ export function MatchPlayerInMatch({
             : p.team === "A"
               ? "#5BB5D9"
               : "#D98E32"
+          const borderColor = isHighlighted
+            ? "#8A6318"
+            : p.team === "A"
+              ? "#3D91B2"
+              : "#B57226"
           const number = p.shirt_number ?? playerNumbers[p.player_id]
 
           return (
             <g key={p.player_id}>
+              {/* Ground shadow adds visual depth without shifting the player. */}
+              <ellipse
+                cx={pos.x}
+                cy={pos.y + 7}
+                rx={22}
+                ry={19}
+                fill="#0F172A"
+                opacity={0.22}
+              />
+
               <circle
                 cx={pos.x}
                 cy={pos.y}
-                r={8.25}
+                r={20}
                 fill={color}
+                stroke={borderColor}
+                strokeWidth={5}
+              />
+
+              {/* Subtle upper highlight suggests a raised surface. */}
+              <path
+                d="M -12 -11 A 16 16 0 0 1 12 -11"
+                transform={`translate(${pos.x} ${pos.y})`}
+                fill="none"
+                stroke="white"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                opacity={0.35}
               />
 
               <text
                 x={pos.x}
                 y={pos.y}
-                fill="black"
-                fontSize={12}
+                fill={borderColor}
+                fontSize={40}
                 fontWeight="bold"
                 textAnchor="middle"
                 dominantBaseline="middle"

@@ -961,6 +961,86 @@ describe("LeagueLobby Component", () => {
       expect(screen.getByText("3")).toBeInTheDocument();
     });
   });
+
+  describe("Avisos de inicio de liga y entretiempo entre rondas (SCRUM-183)", () => {
+    it("al presionar Iniciar liga muestra la alerta para dirigirse al fixture", async () => {
+      mockToastState = { id: 1 };
+      setEvents([lobbyConCreador(3)]);
+      await renderLobby();
+
+      fireEvent.click(btnIniciar());
+
+      await waitFor(() => {
+        expect(mockStartLeague).toHaveBeenCalledWith(10);
+      });
+      expect(mockShowToast).toHaveBeenCalled();
+      expect(
+        screen.getByText("La liga ha iniciado, dirígete a Fixture para ver los partidos.")
+      ).toBeInTheDocument();
+    });
+
+    it("al recibir el evento league_started por WebSocket muestra la alerta para dirigirse al fixture", async () => {
+      mockToastState = { id: 1 };
+      setEvents([lobbyConCreador(3)]);
+      const { rerender } = await renderLobby();
+
+      setEvents([lobbyConCreador(3), leagueStarted()]);
+      rerender(<LeagueLobby />);
+
+      expect(mockShowToast).toHaveBeenCalled();
+      expect(
+        screen.getByText("La liga ha iniciado, dirígete a Fixture para ver los partidos.")
+      ).toBeInTheDocument();
+    });
+
+    it("al recibir league_round_finished muestra la alerta de espera de 60 segundos", async () => {
+      mockToastState = { id: 1 };
+      setEvents([lobbyConCreador(3), leagueStarted()]);
+      const { rerender } = await renderLobby();
+
+      setEvents([
+        lobbyConCreador(3),
+        leagueStarted(),
+        {
+          type: "league_round_finished",
+          league_id: 10,
+          round: 1,
+          standings: [],
+          results: [],
+        },
+      ]);
+      rerender(<LeagueLobby />);
+
+      expect(mockShowToast).toHaveBeenCalled();
+      expect(
+        screen.getByText("En 60 segundos larga la otra ronda.")
+      ).toBeInTheDocument();
+    });
+
+    it("no muestra la alerta de espera de 60 segundos si break_ends_at es null (última ronda)", async () => {
+      mockToastState = { id: 1 };
+      setEvents([lobbyConCreador(3), leagueStarted()]);
+      const { rerender } = await renderLobby();
+
+      setEvents([
+        lobbyConCreador(3),
+        leagueStarted(),
+        {
+          type: "league_round_finished",
+          league_id: 10,
+          round: 2,
+          break_ends_at: null,
+          standings: [],
+          results: [],
+        },
+      ]);
+      rerender(<LeagueLobby />);
+
+      expect(
+        screen.queryByText("En 60 segundos larga la otra ronda.")
+      ).not.toBeInTheDocument();
+    });
+  });
 });
 describe("Confirmación de cancelación", () => {
   beforeEach(() => {

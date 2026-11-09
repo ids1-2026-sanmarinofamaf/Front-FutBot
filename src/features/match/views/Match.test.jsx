@@ -93,10 +93,10 @@ describe('Match', () => {
     vi.clearAllMocks()
   })
 
-  it('dibuja un círculo por cada jugador en cancha de ambos equipos, más la pelota, mas el circulo central de la cancha', () => {
+  it('dibuja los jugadores, la pelota, el círculo central y los postes', () => {
     const { container } = renderMatch(estado_partido)
 
-    expect(container.querySelectorAll('circle')).toHaveLength(8)
+    expect(container.querySelectorAll('circle')).toHaveLength(12)
   })
 
   it('muestra el marcador con los goles y el tiempo correctos', () => {

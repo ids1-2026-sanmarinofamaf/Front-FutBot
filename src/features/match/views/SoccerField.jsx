@@ -10,57 +10,68 @@ export function SoccerField() {
 
   const netDepth = 40 // profundidad de la red, hacia afuera de la cancha
 
-  const verticalLines = []
-  for (let col = 0; col <= 40; col++) {
-    const top = toPixels(col, 0)
-    const bottom = toPixels(col, 20)
-    verticalLines.push(
-      <line key={`v-${col}`} x1={top.x} y1={top.y} x2={bottom.x} y2={bottom.y} stroke="white" strokeWidth="1" opacity="0.5" />
-    )
-  }
-
-  const horizontalLines = []
-  for (let row = 0; row <= 20; row++) {
-    const left = toPixels(0, row)
-    const right = toPixels(40, row)
-    horizontalLines.push(
-      <line key={`h-${row}`} x1={left.x} y1={left.y} x2={right.x} y2={right.y} stroke="white" strokeWidth="1" opacity="0.5" />
-    )
-  }
-
   return (
     <>
       {/* patrón de red, reutilizado en ambos arcos */}
       <defs>
-        <pattern id="netPattern" width="8" height="8" patternUnits="userSpaceOnUse">
-          <path d="M 8 0 L 0 8 M -2 2 L 2 -2 M 6 10 L 10 6" stroke="white" strokeWidth="1.5" opacity="0.9" />
+        <pattern
+          id="netPattern"
+          width={14}
+          height={14}
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d="M 0 0 L 14 14 M 14 0 L 0 14"
+            fill="none"
+            stroke="white"
+            strokeWidth={1}
+          />
+        </pattern>
+        <pattern
+          id="pitch-stripes"
+          x={300}
+          y={150}
+          width={528}
+          height={800}
+          patternUnits="userSpaceOnUse"
+        >
+          <rect
+            width={264}
+            height={800}
+            fill="#5F8256"
+          />
         </pattern>
       </defs>
 
       {/* césped, extendido para cubrir también el fondo de ambos arcos */}
       <rect x={300 - netDepth} y={150} width={1320 + netDepth * 2} height={800} fill="#678C5D" />
 
-      {/* grilla */}
-      {verticalLines}
-      {horizontalLines}
+      {/* Alternating mowing stripes, below the pitch markings. */}
+      <rect
+        x={300}
+        y={150}
+        width={1320}
+        height={800}
+        fill="url(#pitch-stripes)"
+      />
 
       {/* línea de medio campo */}
       {(() => {
         const top = toPixels(20, 0)
         const bottom = toPixels(20, 20)
-        return <line x1={top.x} y1={top.y} x2={bottom.x} y2={bottom.y} stroke="white" strokeWidth="3" />
+        return <line x1={top.x} y1={top.y} x2={bottom.x} y2={bottom.y} stroke="white" strokeWidth="4" />
       })()}
 
       {/* círculo central */}
       {(() => {
         const center = toPixels(20, 10)
-        return <circle cx={center.x} cy={center.y} r="60" fill="none" stroke="white" strokeWidth="3" />
+        return <circle cx={center.x} cy={center.y} r="150" fill="none" stroke="white" strokeWidth="4" />
       })()}
 
-      {/* área chica izquierda: 3m de profundidad x 7m de ancho, centrada en el arco (GOAL_WIDTH=3, +2m a cada lado) */}
+      {/* área chica izquierda: 6m de profundidad x 11m de ancho, centrada en el arco  */}
       {(() => {
-        const topLeft = toPixels(0, 6.5)
-        const bottomRight = toPixels(3, 13.5)
+        const topLeft = toPixels(0, 4.5)
+        const bottomRight = toPixels(6, 15.5)
         return (
           <rect
             x={topLeft.x}
@@ -69,15 +80,15 @@ export function SoccerField() {
             height={bottomRight.y - topLeft.y}
             fill="none"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth="4"
           />
         )
       })()}
 
       {/* área chica derecha */}
       {(() => {
-        const topLeft = toPixels(37, 6.5)
-        const bottomRight = toPixels(40, 13.5)
+        const topLeft = toPixels(34, 4.5)
+        const bottomRight = toPixels(40, 15.5)
         return (
           <rect
             x={topLeft.x}
@@ -86,57 +97,63 @@ export function SoccerField() {
             height={bottomRight.y - topLeft.y}
             fill="none"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth="4"
           />
         )
       })()}
 
       {/* borde de la cancha */}
-      <rect x={300} y={150} width={1320} height={800} fill="none" stroke="white" strokeWidth="3" />
+      <rect x={300} y={150} width={1320} height={800} fill="none" stroke="white" strokeWidth="4" />
 
-      {/* red del arco izquierdo */}
-      {(() => {
-        const top = toPixels(0, 8.5)
-        const bottom = toPixels(0, 11.5)
+      {/* Mirrored goals: shadow, translucent net, frame and front posts. */}
+      {[0, 40].map(function (goalX) {
+        const top = toPixels(goalX, 8.5)
+        const bottom = toPixels(goalX, 11.5)
+        const direction = goalX === 0 ? -1 : 1
+        const backX = top.x + direction * netDepth
+
+        const goalShape = `
+          M ${top.x} ${top.y}
+          L ${backX} ${top.y + 8}
+          L ${backX} ${bottom.y - 8}
+          L ${bottom.x} ${bottom.y}
+          Z
+        `
+
         return (
-          <rect
-            x={top.x - netDepth}
-            y={top.y}
-            width={netDepth}
-            height={bottom.y - top.y}
-            fill="url(#netPattern)"
-          />
+          <g key={goalX}>
+            <path
+              d={goalShape}
+              transform="translate(0 5)"
+              fill="#0F172A"
+              opacity={0.18}
+            />
+
+            <path
+              d={goalShape}
+              fill="url(#netPattern)"
+              fillOpacity={0.4}
+              stroke="white"
+              strokeOpacity={0.65}
+              strokeWidth={3}
+              strokeLinejoin="round"
+            />
+
+            <line
+              x1={top.x}
+              y1={top.y}
+              x2={bottom.x}
+              y2={bottom.y}
+              stroke="white"
+              strokeWidth={8}
+              strokeLinecap="round"
+            />
+
+            <circle cx={top.x} cy={top.y} r={5} fill="white" />
+            <circle cx={bottom.x} cy={bottom.y} r={5} fill="white" />
+          </g>
         )
-      })()}
-
-      {/* red del arco derecho */}
-      {(() => {
-        const top = toPixels(40, 8.5)
-        const bottom = toPixels(40, 11.5)
-        return (
-          <rect
-            x={top.x}
-            y={top.y}
-            width={netDepth}
-            height={bottom.y - top.y}
-            fill="url(#netPattern)"
-          />
-        )
-      })()}
-
-      {/* arco izquierdo (GOAL_WIDTH = 3m, centrado en y=10) */}
-      {(() => {
-        const top = toPixels(0, 8.5)
-        const bottom = toPixels(0, 11.5)
-        return <line x1={top.x} y1={top.y} x2={bottom.x} y2={bottom.y} stroke="white" strokeWidth="6" />
-      })()}
-
-      {/* arco derecho */}
-      {(() => {
-        const top = toPixels(40, 8.5)
-        const bottom = toPixels(40, 11.5)
-        return <line x1={top.x} y1={top.y} x2={bottom.x} y2={bottom.y} stroke="white" strokeWidth="6" />
-      })()}
+      })}
     </>
   )
 }

@@ -6,10 +6,12 @@ import { getMyClub } from '../../club/api';
 import Ranking from '../components/Ranking';
 import { useToast } from '../../../shared/hooks';
 import RightDownAlert from '../../../shared/components/RightDownAlert';
+import { SearchClubsModal } from '../../club/components/SearchClubsModal';
 
 export function MainMenu() {
   const [isPlayOptionOpen, setIsPlayOptionOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [club, setClub] = useState(null);
   const navigate = useNavigate();
   const location = useLocation(); // sirve para consultar información de la ruta actual
@@ -79,7 +81,13 @@ export function MainMenu() {
           RANKING
         </button>
 
+        <button onClick={() => setIsSearchOpen(true)}
+          className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-xl transition-colors shadow-lg">
+          Buscar usuarios
+        </button>
       </div>
+
+      {isSearchOpen && <SearchClubsModal onClose={() => setIsSearchOpen(false)} />}
 
       {isPlayOptionOpen && (
         <PlayOption onClose={() => setIsPlayOptionOpen(false)} />

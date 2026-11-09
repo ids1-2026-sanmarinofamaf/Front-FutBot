@@ -3,9 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MainMenu } from './MainMenu';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getMyClub } from '../../club/api';
+import { getRankingREST } from '../api';
+import { getMyClub, getClub } from '../../club/api';
 
-vi.mock('../../club/api', () => ({ getMyClub: vi.fn() }));
+vi.mock('../../club/api', () => ({ getMyClub: vi.fn(), getClub: vi.fn() }));
+
+vi.mock('../api', () => ({ getRankingREST: vi.fn() }));
 
 // 1. Interceptamos el enrutador
 vi.mock('react-router-dom', () => ({
@@ -119,4 +122,37 @@ describe('MainMenu UI', () => {
     expect(screen.getByText('No se encontró el club').closest('[role="alert"]')).toHaveClass('bg-red-300');
   });
 
+});
+
+it.each(['listado', 'perfil'])('abre desde el menú y sale desde %s sin navegar ni reemplazar el menú', async (view) => {
+  const user = userEvent.setup();
+  getRankingREST.mockResolvedValue([{ club_id: 42, club_name: 'Talleres', points: 100 }]);
+  getClub.mockResolvedValue({ club_name: 'Talleres' });
+
+  render(<MainMenu />);
+
+  const menuTitle = screen.getByText('FUTBOT');
+
+  expect(getRankingREST).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Buscar usuarios' }));
+  expect(await screen.findByRole('button', { name: 'Talleres 100 puntos' })).toBeInTheDocument();
+  expect(getRankingREST).toHaveBeenCalledTimes(1);
+
+  if (view === 'perfil') {
+    await user.click(screen.getByRole('button', { name: 'Talleres 100 puntos' }));
+    await screen.findByText('No hay estadísticas disponibles para este club.');
+
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+    expect(screen.getByRole('button', { name: 'Talleres 100 puntos' })).toBeInTheDocument();
+    expect(getRankingREST).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'Talleres 100 puntos' }));
+    await screen.findByText('No hay estadísticas disponibles para este club.');
+  }
+
+  await user.click(screen.getByRole('button', { name: 'Salir' }));
+
+  expect(screen.queryByRole('button', { name: 'Salir' })).not.toBeInTheDocument();
+  expect(screen.getByText('FUTBOT')).toBe(menuTitle);
+  expect(useNavigate.mock.results.at(-1).value).not.toHaveBeenCalled();
 });
