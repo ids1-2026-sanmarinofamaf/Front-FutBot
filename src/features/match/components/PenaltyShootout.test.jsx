@@ -661,7 +661,7 @@ describe('PenaltyShootout', () => {
     )
 
     expect(
-      screen.queryByText('Victoria definida por sorteo')
+      screen.queryByText('VICTORIA POR SORTEO')
     ).not.toBeInTheDocument()
 
     expect(
@@ -738,6 +738,45 @@ describe('PenaltyShootout', () => {
 
     expect(panel).toHaveTextContent('Ganador: Club B')
     expect(panel).toHaveTextContent('Penales: 2 - 2')
-    expect(panel).toHaveTextContent('Victoria definida por sorteo')
+    expect(panel).toHaveTextContent('VICTORIA POR SORTEO')
+  })
+
+  it('muestra los penales anteriores y mantiene los controles bloqueados mientras espera', () => {
+    render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          phase: 'waiting',
+          data: null,
+          results: [
+            { turn: 1, club_id: 1, is_goal: true },
+            { turn: 2, club_id: 2, is_goal: false },
+          ],
+        }}
+      />
+    )
+
+    expect(
+      screen.getByRole('cell', { name: 'Club A, penal 1: gol' })
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('cell', { name: 'Club B, penal 1: atajado' })
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getAllByRole('cell', { name: /pendiente$/ })
+    ).toHaveLength(4)
+
+    expect(
+      screen.queryByRole('img', { name: /^Tiempo para elegir:/ })
+    ).not.toBeInTheDocument()
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeDisabled()
+      fireEvent.click(button)
+    })
+
+    expect(submitPenaltyChoice).not.toHaveBeenCalled()
   })
 })

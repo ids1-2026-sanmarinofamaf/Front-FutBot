@@ -82,6 +82,14 @@ export function MatchPage() {
         );
         break;
 
+      case "penalty_history":
+        setPenalties({
+          phase: "waiting",
+          data: null,
+          results: data.results,
+        });
+        break;
+
       case "penalty_turn_started":
         setPenalties(function (previous) {
           return {

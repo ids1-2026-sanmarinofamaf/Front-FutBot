@@ -706,4 +706,100 @@ describe("MatchPage", () => {
       results: [],
     });
   });
+
+  it("recupera el historial y conserva los resultados al continuar la tanda", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const firstResult = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 0,
+    };
+
+    const secondResult = {
+      ...firstResult,
+      turn: 2,
+      club_id: 8,
+      kicker: 20,
+      save_side: "LEFT",
+      is_goal: false,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage({
+        event: "penalty_history",
+        results: [firstResult, secondResult],
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "waiting",
+      data: null,
+      results: [firstResult, secondResult],
+    });
+
+    const turn = {
+      event: "penalty_turn_started",
+      turn: 3,
+      club_id: 7,
+      kicker: 11,
+      score_club_a: 1,
+      score_club_b: 0,
+      remaining_seconds: 2,
+    };
+
+    act(() => {
+      options.onMessage(turn);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "choosing",
+      data: turn,
+      results: [firstResult, secondResult],
+    });
+
+    const thirdResult = {
+      ...firstResult,
+      turn: 3,
+      kicker: 11,
+      score_club_a: 2,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage(thirdResult);
+      options.onMessage({ ...thirdResult });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: thirdResult,
+      results: [firstResult, secondResult, thirdResult],
+    });
+  });
 });
