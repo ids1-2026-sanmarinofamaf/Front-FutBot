@@ -1,6 +1,5 @@
-export function BehaviorCard({ behavior, onView }) {
-  // Si el backend no informa el estado, se considera válido por defecto.
-  const isValid = behavior.is_valid !== false;
+export function BehaviorCard({ behavior, onView, onEdit, onDelete, isDeleting = false }) {
+  const isDefault = Boolean(behavior.is_default);
 
   const handleView = () => {
     // Ejecuta la función del padre pasando el ID correcto
@@ -10,11 +9,18 @@ export function BehaviorCard({ behavior, onView }) {
   };
 
   const handleEdit = () => {
-    console.info('Endpoint de edición no implementado.');
+    if (!isDefault && onEdit) {
+      onEdit(behavior.behavior_id);
+    }
   };
 
   const handleDelete = () => {
-    console.info('Endpoint de borrado no implementado.');
+    if (!isDefault && !isDeleting && onDelete) {
+      const confirmed = window.confirm("¿Estás seguro de que deseas eliminar este comportamiento?");
+      if (confirmed) {
+        onDelete(behavior.behavior_id);
+      }
+    }
   };
 
   return (
@@ -23,18 +29,14 @@ export function BehaviorCard({ behavior, onView }) {
         <span className="text-lg font-medium text-slate-200">
           {behavior.name}
         </span>
-        <span 
-          className={`text-xs px-2 py-1 rounded font-mono border ${
-            isValid
-              ? 'bg-emerald-900/40 text-emerald-400 border-emerald-800' 
-              : 'bg-red-900/40 text-red-400 border-red-800'
-          }`}
-        >
-          {isValid ? 'Válido' : 'Inválido'}
-        </span>
+        {isDefault && (
+          <span className="text-xs px-2 py-1 rounded border bg-slate-700/60 text-slate-300 border-slate-600">
+            Por defecto
+          </span>
+        )}
       </div>
 
-      {/* <div className="flex gap-2">
+      <div className="flex gap-2">
         <button 
           onClick={handleView}
           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors"
@@ -43,19 +45,21 @@ export function BehaviorCard({ behavior, onView }) {
         </button>
         <button 
           onClick={handleEdit}
-          className="px-3 py-1.5 bg-slate-700 text-slate-400 text-sm font-medium rounded cursor-not-allowed opacity-70"
-          title="No disponible en este sprint"
+          disabled={isDefault}
+          title={isDefault ? "Los comportamientos por defecto no se pueden editar" : undefined}
+          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Editar
         </button>
         <button 
           onClick={handleDelete}
-          className="px-3 py-1.5 bg-slate-700 text-slate-400 text-sm font-medium rounded cursor-not-allowed opacity-70"
-          title="No disponible en este sprint"
+          disabled={isDefault || isDeleting}
+          title={isDefault ? "Los comportamientos por defecto no se pueden borrar" : undefined}
+          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Borrar
+          {isDeleting ? 'Eliminando...' : 'Eliminar'}
         </button>
-      </div> */}
+      </div>
     </div>
   );
 }

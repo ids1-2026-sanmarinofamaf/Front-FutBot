@@ -22,6 +22,13 @@ export function MyClub() {
           Gestión de Comportamientos
         </button>
 
+        <button 
+          onClick={() => navigate('/club/coach-behaviors')}
+          className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
+        >
+          Gestión de Directores Técnicos
+        </button>
+
         {/* <button 
           onClick={() => navigate('/club/roster')}
           className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"

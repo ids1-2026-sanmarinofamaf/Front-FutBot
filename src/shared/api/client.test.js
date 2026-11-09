@@ -66,7 +66,10 @@ describe("apiClient", () => {
       apiClient("/users/me", {
         method: "GET"
       })
-    ).rejects.toThrow("Token inválido");
+    ).rejects.toMatchObject({
+      message: "Token inválido",
+      status: 401
+    });
   });
 
 

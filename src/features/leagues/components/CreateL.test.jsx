@@ -554,7 +554,7 @@ describe("CreateL", () => {
       await user.click(screen.getByRole("button", { name: "Lobby" }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
-      expect(navigate).toHaveBeenCalledWith(`/league/lobby/${LEAGUE_ID}`);
+      expect(navigate).toHaveBeenCalledWith(`/league/lobby/${LEAGUE_ID}/Liga Super Liga`);
     });
   });
 });

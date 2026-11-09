@@ -12,7 +12,8 @@ import LeagueListView from "../features/leagues";
 
 // Importación de Entidades
 import { PlayersList, CreatePlayer } from "../features/player";
-import { BehaviorList, BehaviorDetail } from "../features/behaviors/index.js";
+import { BehaviorList, BehaviorDetail, CreateBehavior, EditBehavior, BehaviorPreview } from "../features/behaviors/index.js";
+import { CoachBehaviorList, CoachBehaviorDetail, CreateCoachBehavior } from "../features/coachBehaviors/index.js";
 import { LeagueLobby } from "../features/leagues/views/LeagueRoom.jsx";
 
 // Placeholder reutilizable
@@ -79,7 +80,15 @@ const AppRouter = () => {
           
           {/* Módulo: Comportamientos */}
           <Route path="/club/behaviors" element={<BehaviorList />} />
+          <Route path="/club/behaviors/new" element={<CreateBehavior />} />
+          <Route path="/club/behaviors/preview/:previewId" element={<BehaviorPreview />} />
           <Route path="/club/behaviors/:id" element={<BehaviorDetail />} />
+          <Route path="/club/behaviors/:id/edit" element={<EditBehavior />} />
+
+          {/* Módulo: Directores Técnicos */}
+          <Route path="/club/coach-behaviors" element={<CoachBehaviorList />} />
+          <Route path="/club/coach-behaviors/new" element={<CreateCoachBehavior />} />
+          <Route path="/club/coach-behaviors/:id" element={<CoachBehaviorDetail />} />
 
           {/* Módulo: Partidos */}
           <Route path="/matches/:matchId" element={<MatchPage />} />
