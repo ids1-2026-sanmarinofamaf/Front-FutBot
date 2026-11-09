@@ -5,9 +5,11 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
+import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague, cancelLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
 import TablaTab from "../components/TablaTab";
+import LeagueCancelled from "../components/LeagueCancelled";
+import CancelLeague from "../components/CancelLeague";
 import ChangeRoster from "../components/ChangeRoster";
 
 /**
@@ -33,6 +35,12 @@ export function LeagueLobby() {
   const [starting, setStarting] = useState(false)
   // Hook para cambiar alineación
   const [changeRoster, setChangeRoster] = useState(false)
+
+  // Estados para confirmar y procesar la cancelación de la liga
+  const [showCancelLeague, setShowCancelLeague] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+  const cancelPending = useRef(false);
 
   /** 
    * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinL):
@@ -86,7 +94,13 @@ export function LeagueLobby() {
    * @returns Lista actualizada de acuerdo al evento procesado
    */
   function applyLeagueEvent(lobby, msg, data) {
+    // Una cancelación es definitiva aunque lleguen eventos anteriores fuera de orden.
+    if (lobby.cancelled) return lobby;
+
     switch (msg.type) {
+      case "league_cancelled":
+        return { ...lobby, cancelled: true };
+
       case "lobby_state": { // foto completa: reemplaza todo
         const activeRound = data?.active_round ?? (
           data?.fixture ? (data.fixture.find((m) => m.state === "JUGANDO")?.round ?? 0) : 0
@@ -337,6 +351,48 @@ export function LeagueLobby() {
     }
   }, [lobby.state])
 
+  const handleCancelLeague = async () => {
+    if (!isCreator || lobby.cancelled || lobby.state !== "POR_COMENZAR" || cancelPending.current) return;
+
+    cancelPending.current = true;
+    setCancelling(true);
+    setCancelError(null);
+    hideToast();
+
+    try {
+      await cancelLeague(numericId);
+      setShowCancelLeague(false);
+      leaveL(numericId);
+      navigate("/league", {
+        replace: true,
+        state: { cancelledLeagueId: numericId },
+      });
+
+    } catch (error) {
+      if (error.status === 401) return;
+
+      switch (error.status) {
+        case 403:
+          setCancelError("No tenés permisos para cancelar la liga.");
+          break;
+        case 404:
+          setCancelError("La liga no existe.");
+          break;
+        case 409:
+          setCancelError("La liga ya comenzó o no puede cancelarse en su estado actual.");
+          break;
+        default:
+          setCancelError("No se pudo cancelar la liga. Intentá nuevamente.");
+      }
+
+      showToast();
+
+    } finally {
+      cancelPending.current = false;
+      setCancelling(false);
+    }
+  };
+
   // Avisos de inicio de liga y entretiempo entre rondas
   const prevEventsLength = useRef((messages[numericId] || []).length);
   useEffect(() => {
@@ -413,6 +469,24 @@ export function LeagueLobby() {
       leaveL(numericId);
     }
   }, [lobby.state, numericId, leaveL]);
+
+  // Reemplazar el lobby impide acceder a sus controles, incluso mediante teclado.
+  if (lobby.cancelled) {
+    return (
+      <div className="min-h-screen mi-fuente bg-slate-900">
+        {session && !isCreator ? (
+          <LeagueCancelled
+            onBack={() => navigate("/league", {
+              replace: true,
+              state: { cancelledLeagueId: numericId, cancelledByCreator: true },
+            })}
+          />
+        ) : (
+          <p className="p-6 text-slate-300">La liga fue cancelada.</p>
+        )}
+      </div>
+    );
+  }
 
   return (
 
@@ -531,6 +605,23 @@ export function LeagueLobby() {
           />
         )}
 
+        {showCancelLeague && (
+          <CancelLeague
+            onCancel={() => setShowCancelLeague(false)}
+            onConfirm={handleCancelLeague}
+            cancelling={cancelling}
+          />
+        )}
+
+        {cancelError && toast && (
+          <RightDownAlert
+            key={toast.id}
+            errorTitle="No pudiste cancelar la liga"
+            errorDescription={cancelError}
+            color="red"
+          />
+        )}
+
         {/** Alerta: Aviso al iniciar liga para ir al fixture */}
         {alert === "La liga ha iniciado, dirígete a Fixture para ver los partidos." && toast && (
           <RightDownAlert
@@ -559,14 +650,41 @@ export function LeagueLobby() {
           {/* Encabezado: Boton para volver a la lista de ligas, Info de liga y botones para ver componentes principales */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-8">
 
-            {/* Boton para volver */}
-            <button
-              type="button"
-              onClick={() => navigate("/league")}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-            >
-              Volver
-            </button>
+            {/* Nombre de liga y cantidad de jugadores */}
+            <div>
+              <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider
+                            text-transparent bg-clip-text
+                            bg-gradient-to-r from-blue-400 to-emerald-400">
+                {leagueName}
+              </h1>
+              <p className=" text-slate-400">
+                Jugadores: {lobby.currentUsers}
+              </p>
+            </div>
+
+
+            {isCreator && lobby.state === "POR_COMENZAR" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelError(null);
+                  hideToast();
+                  setShowCancelLeague(true);
+                }}
+                className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cancelar liga
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLeave}
+                disabled={lobby.state !== "POR_COMENZAR"}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
+              >
+                Abandonar
+              </button>
+            )}
 
             {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
             {lobby.state === "POR_COMENZAR" && (
@@ -605,15 +723,7 @@ export function LeagueLobby() {
                 )
             )}
 
-            {/* Boton para cancelar liga */}
-            <button
-              type="button"
-              onClick={handleLeave}
-              disabled={lobby.state !== "POR_COMENZAR"}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
-            >
-              Abandonar
-            </button>
+            
 
             {lobby.state === "INICIADA" && (
               <button
@@ -625,41 +735,39 @@ export function LeagueLobby() {
               </button>
             )}
 
-            {/* Nombre de liga y cantidad de jugadores */}
-            <div>
-              <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider
-                            text-transparent bg-clip-text
-                            bg-gradient-to-r from-blue-400 to-emerald-400">
-                {leagueName}
-              </h1>
-              <p className=" text-slate-400">
-                Jugadores: {lobby.currentUsers}
-              </p>
-            </div>
+            {/* Boton para volver */}
+            <button
+              type="button"
+              onClick={() => navigate("/league")}
+              className="ml-auto shrink-0 px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              Volver
+            </button>
 
-            {/* Tabs */}
-            <ul className="flex flex-wrap ml-auto">
+
+          </div>
+
+          {/* Pestañas distribuidas a lo largo de la barra */}
+          <ul className="mt-6 flex w-full gap-2 border-b border-slate-700">
               {TABS.map((tab) => (
-                <li key={tab.id} className="me-2">
+                <li key={tab.id} className="min-w-0 flex-1">
                   <button
                     type="button"
                     disabled={tab.disabled}
                     onClick={() => setActiveTab(tab.id)}
                     aria-current={activeTab === tab.id ? "page" : undefined}
-                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${tab.disabled
+                    className={`w-full h-full py-3 px-2 text-[1.75rem] leading-[2.125rem] font-semibold border-b-2 transition-colors ${tab.disabled
                         ? "border-transparent text-slate-600 cursor-not-allowed"
                         : activeTab === tab.id
-                          ? "text-emerald-400 border-emerald-400"
-                          : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
+                          ? "border-[#5BB5D9] text-[#5BB5D9]"
+                          : "border-transparent text-slate-400 hover:text-slate-200"
                       }`}
                   >
                     {tab.label}
                   </button>
                 </li>
               ))}
-            </ul>
-
-          </div>
+          </ul>
 
         </div>
 

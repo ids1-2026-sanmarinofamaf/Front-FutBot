@@ -448,3 +448,86 @@ describe("LeaguesSocketProvider", () => {
     });
 });
 
+
+describe("cancelación de liga", () => {
+    it("conserva el evento, cierra solo su socket y evita recuperar una liga cancelada", () => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 7]));
+        const { result } = setup();
+        const cancelledSocket = socketFor(3);
+
+        act(() => cancelledSocket.onMessage({ type: "league_cancelled" }));
+
+        expect(result.current.messages[3]).toEqual([{ type: "league_cancelled" }]);
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(storedIds()).toEqual([7]);
+        expect(wasClosed(3)).toBe(true);
+        expect(wasClosed(7)).toBe(false);
+        expect(cancelledSocket.reconnect).toBe(false);
+
+        act(() => {
+            cancelledSocket.onClose({ code: 1000 });
+            cancelledSocket.onMessage({ type: "league_cancelled" });
+            result.current.joinL(3);
+            result.current.replaceJoinedLIds([3, 7]);
+        });
+
+        expect(countOpened(3)).toBe(1);
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(storedIds()).toEqual([7]);
+        expect(result.current.messages[3]).toHaveLength(1);
+    });
+});
+
+    it.each([1000, 1006, 4404])("el cierre %s posterior a cancelar no reabre conexiones ni afecta otras ligas", (code) => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 7]));
+        const { result, rerender } = setup();
+        const cancelledSocket = socketFor(3);
+
+        act(() => {
+            cancelledSocket.onMessage({ type: "league_cancelled", league_id: 3 });
+            cancelledSocket.onClose({ code });
+        });
+        rerender();
+
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(storedIds()).toEqual([7]);
+        expect(result.current.messages[3]).toEqual([{ type: "league_cancelled", league_id: 3 }]);
+        expect(socketFor(3)).toBeUndefined();
+        expect(socketFor(7)).toBeDefined();
+        expect(countOpened(3)).toBe(1);
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("la limpieza del creador antes del evento tardío es idempotente", () => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 7]));
+        const { result } = setup();
+        const cancelledSocket = socketFor(3);
+
+        act(() => result.current.leaveL(3));
+        act(() => {
+            cancelledSocket.onMessage({ type: "league_cancelled" });
+            cancelledSocket.onMessage({ type: "league_cancelled" });
+            cancelledSocket.onClose({ code: 1000 });
+            result.current.leaveL(3);
+        });
+
+        expect(result.current.joinedLIds).toEqual([7]);
+        expect(result.current.messages[3]).toEqual([{ type: "league_cancelled" }]);
+        expect(storedIds()).toEqual([7]);
+        expect(countOpened(3)).toBe(1);
+        expect(closed.filter((url) => url.includes(socketPath(3)))).toHaveLength(1);
+    });
+
+    it("una recarga no recupera el socket cancelado desde sessionStorage", () => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([3, 7]));
+        const first = setup();
+
+        emit(3, { type: "league_cancelled" });
+        first.unmount();
+        const second = setup();
+
+        expect(second.result.current.joinedLIds).toEqual([7]);
+        expect(socketFor(3)).toBeUndefined();
+        expect(socketFor(7)).toBeDefined();
+        expect(countOpened(3)).toBe(1);
+    });

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LeagueLobby } from "./LeagueRoom";
 
@@ -44,9 +44,11 @@ const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
 const mockGetLeagueInfo = vi.fn();
 const mockLeaveLeagueAsPlayer = vi.fn();
+const mockCancelLeague = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
+  cancelLeague: (...args) => mockCancelLeague(...args),
   startLeague: (...args) => mockStartLeague(...args),
   getLeagueInfo: (...args) => mockGetLeagueInfo(...args),
   leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
@@ -768,11 +770,8 @@ describe("LeagueLobby Component", () => {
 
       await renderLobby();
 
-      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalled();
-      });
+      expect(screen.queryByRole("button", { name: /abandonar/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cancelar liga" })).toBeInTheDocument();
 
       expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
       expect(mockSocketState.leaveL).not.toHaveBeenCalled();
@@ -1042,4 +1041,224 @@ describe("LeagueLobby Component", () => {
       ).not.toBeInTheDocument();
     });
   });
+});
+describe("Confirmación de cancelación", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockToastState = { id: 1 };
+    mockParams = { id: "10", leagueName: "Liga Master" };
+    mockSocketState = {
+      messages: {},
+      joinL: vi.fn(),
+      leaveL: vi.fn(),
+      joinedLIds: [10],
+    };
+    mockGetCurrentUser.mockResolvedValue({ user_name: "Club 1" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
+    comoCreador();
+    setEvents([lobbyState([u(1, { is_creator: true }), u(2), u(3)])]);
+  });
+
+  it("ofrece cancelar únicamente al creador de una liga pendiente", async () => {
+    const { rerender } = await renderLobby();
+
+    expect(screen.getByRole("button", { name: "Cancelar liga" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abandonar" })).not.toBeInTheDocument();
+
+    for (const state of ["INICIADA", "FINALIZADA"]) {
+      setEvents([lobbyConCreador(3, state)]);
+      rerender(<LeagueLobby />);
+      expect(screen.queryByRole("button", { name: "Cancelar liga" })).not.toBeInTheDocument();
+    }
+  });
+
+  it("mantiene abandonar y oculta cancelar para participantes", async () => {
+    comoParticipante();
+
+    await renderLobby();
+
+    expect(screen.getByRole("button", { name: "Abandonar" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Cancelar liga" })).not.toBeInTheDocument();
+  });
+
+  it("rechaza la confirmación sin llamar a la API", async () => {
+    await renderLobby();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    const confirmation = screen.getByRole("button", { name: "Confirmar cancelación" }).closest(".fixed");
+    expect(mockCancelLeague).not.toHaveBeenCalled();
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Volver" }));
+
+    expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
+    expect(mockCancelLeague).not.toHaveBeenCalled();
+  });
+
+  it("muestra carga y evita duplicados hasta finalizar la petición", async () => {
+    let resolveCancel;
+    mockCancelLeague.mockReturnValue(new Promise((resolve) => { resolveCancel = resolve; }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+
+    const confirm = screen.getByRole("button", { name: "Confirmar cancelación" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText("Cancelando liga...")).toBeInTheDocument();
+    expect(mockCancelLeague).toHaveBeenCalledExactlyOnceWith(10);
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await act(async () => { resolveCancel(); });
+
+    expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
+    expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+    expect(mockNavigate).toHaveBeenCalledWith("/league", {
+      replace: true,
+      state: { cancelledLeagueId: 10 },
+    });
+  });
+
+  it.each([
+    [403, "No tenés permisos para cancelar la liga."],
+    [404, "La liga no existe."],
+    [409, "La liga ya comenzó o no puede cancelarse en su estado actual."],
+    [500, "No se pudo cancelar la liga. Intentá nuevamente."],
+  ])("informa el error %s sin salir del lobby y permite reintentar", async (status, message) => {
+    mockCancelLeague.mockRejectedValueOnce(Object.assign(new Error("Error"), { status }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    expect(await screen.findByTestId("alert-error")).toHaveTextContent(message);
+    expect(screen.getByTestId("alert-error")).toHaveTextContent("No pudiste cancelar la liga");
+    expect(mockShowToast).toHaveBeenCalled();
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Confirmar cancelación" })).toBeEnabled();
+
+    mockCancelLeague.mockResolvedValueOnce(null);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    await waitFor(() => expect(mockSocketState.leaveL).toHaveBeenCalledWith(10));
+  });
+
+  it("delega el error 401 al cliente autenticado sin mostrar un error genérico", async () => {
+    mockCancelLeague.mockRejectedValueOnce(Object.assign(new Error("Unauthorized"), { status: 401 }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirmar cancelación" })).toBeEnabled());
+    expect(screen.queryByText("No se pudo cancelar la liga. Intentá nuevamente.")).not.toBeInTheDocument();
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+  });
+});
+
+describe("Participantes de una liga cancelada", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockParams = { id: "10", leagueName: "Liga Master" };
+    mockSocketState = { messages: {}, joinL: vi.fn(), leaveL: vi.fn(), joinedLIds: [10] };
+    mockGetCurrentUser.mockResolvedValue({ user_name: "Club 2" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
+    comoParticipante();
+    setEvents([lobbyConCreador(3)]);
+  });
+
+  it("reemplaza el lobby por un modal obligatorio y espera el regreso manual", async () => {
+    const { rerender } = await renderLobby();
+
+    setEvents([lobbyConCreador(3), { type: "league_cancelled" }]);
+    rerender(<LeagueLobby />);
+
+    expect(await screen.findByText(/El creador canceló la liga/)).toBeInTheDocument();
+    expect(screen.queryByTestId("lobby-users")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abandonar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByText(/El creador canceló la liga/).closest(".fixed"));
+
+    expect(screen.getByRole("button", { name: "Volver al listado de ligas" })).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver al listado de ligas" }));
+
+    expect(mockNavigate).toHaveBeenCalledExactlyOnceWith("/league", {
+      replace: true,
+      state: { cancelledLeagueId: 10, cancelledByCreator: true },
+    });
+  });
+
+  it("no muestra al creador el modal de participantes ni duplica la navegación", async () => {
+    comoCreador();
+    const { rerender } = await renderLobby();
+
+    let resolveCancel;
+    mockCancelLeague.mockReturnValue(new Promise((resolve) => { resolveCancel = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    setEvents([lobbyConCreador(3), { type: "league_cancelled" }]);
+    rerender(<LeagueLobby />);
+
+    expect(screen.queryByText(/El creador canceló la liga/)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await act(async () => { resolveCancel(); });
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+  it("conserva el bloqueo ante eventos repetidos o un estado tardío del lobby", async () => {
+    const { rerender } = await renderLobby();
+    mockShowToast.mockClear();
+
+    setEvents([
+      lobbyConCreador(3),
+      { type: "league_cancelled" },
+      { type: "league_cancelled" },
+      lobbyConCreador(3),
+    ]);
+    mockSocketState.joinedLIds = [];
+    rerender(<LeagueLobby />);
+
+    expect(screen.getAllByText(/El creador canceló la liga/)).toHaveLength(1);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryByTestId("lobby-users")).not.toBeInTheDocument();
+    expect(mockShowToast).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("procesa una cancelación previa al estado inicial sin dejar accesible el lobby", async () => {
+    setEvents([{ type: "league_cancelled" }]);
+
+    await renderLobby();
+
+    expect(screen.getByText(/El creador canceló la liga/)).toBeInTheDocument();
+    expect(screen.queryByText("Esperando estado del servidor")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("no duplica la salida si el evento llega después de la respuesta exitosa", async () => {
+    comoCreador();
+    mockCancelLeague.mockResolvedValueOnce(null);
+    const { rerender } = await renderLobby();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+
+    setEvents([lobbyConCreador(3), { type: "league_cancelled" }]);
+    rerender(<LeagueLobby />);
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/El creador canceló la liga/)).not.toBeInTheDocument();
+  });
+
 });

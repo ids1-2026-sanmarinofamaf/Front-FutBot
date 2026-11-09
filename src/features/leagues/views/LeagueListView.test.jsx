@@ -15,8 +15,9 @@ vi.mock("../LeaguesProvider", () => ({
 }));
 vi.mock("../api", () => ({ getMyLeagueIds }));
 
+let mockLocation = { pathname: "/league", state: null };
 const navigate = vi.fn();
-vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
+vi.mock("react-router-dom", () => ({ useNavigate: () => navigate, useLocation: () => mockLocation }));
 
 vi.mock("../../auth/SessionSocketProvider", () => ({
   useSessionSocket: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock("../../roster/components/RosterBuilder", () => ({
 }));
 
 beforeEach(() => {
+  mockLocation = { pathname: "/league", state: null };
   navigate.mockClear();
   replaceJoinedLIds.mockReset();
   getMyLeagueIds.mockReset().mockResolvedValue([]);
@@ -271,4 +273,34 @@ describe("Buscador de ligas", () => {
     expect(screen.getByRole("searchbox", { name: "Buscar ligas" }))
       .toHaveValue("norte");
   });
+});
+
+it("notifica la cancelación y excluye la liga de la lista y de la recuperación de participaciones", async () => {
+  mockLocation = { pathname: "/league", state: { cancelledLeagueId: 1 } };
+  getMyLeagueIds.mockResolvedValue([1, 2]);
+  useSessionSocket.mockReturnValue({ messages: { leagues } });
+
+  render(<LeagueListView />);
+
+  expect(await screen.findByText("La liga fue cancelada correctamente.")).toBeInTheDocument();
+  expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+  expect(screen.getByTestId("card-2")).toBeInTheDocument();
+  await waitFor(() => expect(replaceJoinedLIds).toHaveBeenCalledWith([2]));
+  expect(navigate).toHaveBeenCalledWith("/league", { replace: true, state: null });
+});
+
+it("al volver por cancelación del creador informa el motivo y mantiene oculta la liga ante actualizaciones", async () => {
+  mockLocation = { pathname: "/league", state: { cancelledLeagueId: 1, cancelledByCreator: true } };
+  useSessionSocket.mockReturnValue({ messages: { leagues } });
+  const { rerender } = render(<LeagueListView />);
+
+  expect(await screen.findByText("El creador canceló la liga.")).toBeInTheDocument();
+
+  mockLocation = { pathname: "/league", state: null };
+  useSessionSocket.mockReturnValue({ messages: { leagues: [...leagues] } });
+  rerender(<LeagueListView />);
+
+  expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+  expect(screen.getByTestId("card-2")).toBeInTheDocument();
+  expect(screen.getByText("El creador canceló la liga.")).toBeInTheDocument();
 });

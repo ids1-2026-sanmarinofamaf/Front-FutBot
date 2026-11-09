@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { LeagueCard } from "../components/LeagueCard";
 import { useEffect, useState } from "react";
@@ -7,8 +7,25 @@ import { getMyLeagueIds } from "../api";
 import CreateL from "../components/CreateL";
 import { RosterBuilder } from "../../roster/components/RosterBuilder";
 
+import { useToast } from "../../../shared/hooks";
+import RightDownAlert from "../../../shared/components/RightDownAlert";
+
 export default function LeagueListView() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Conservar la liga cancelada aunque se limpie el estado de navegación.
+  const [cancelledLeagueId] = useState(location.state?.cancelledLeagueId ?? null);
+  const [cancelledByCreator] = useState(location.state?.cancelledByCreator ?? false);
+  const { toast, showToast } = useToast();
+
+  useEffect(() => {
+    if (!location.state?.cancelledLeagueId) return;
+
+    showToast();
+    navigate(location.pathname, { replace: true, state: null });
+
+  }, [location, navigate, showToast]);
 
   // Lógica para consultar ID's al backend al ingresar a vista
   const { replaceJoinedLIds } = useLeaguesSocket();
@@ -22,7 +39,9 @@ export default function LeagueListView() {
 
     getMyLeagueIds()
       .then((ids) => {
-        if (active) replaceJoinedLIds(ids);
+        if (active) {
+          replaceJoinedLIds(cancelledLeagueId === null ? ids : ids.filter((id) => Number(id) !== cancelledLeagueId));
+        }
       })
       .catch((error) => {
         // Si falla la consulta o su validación, se conserva la participación local.
@@ -34,7 +53,7 @@ export default function LeagueListView() {
       window.removeEventListener("auth:expired", cancel);
       window.removeEventListener("auth:logout", cancel);
     };
-  }, [replaceJoinedLIds]);
+  }, [replaceJoinedLIds, cancelledLeagueId]);
 
   {/* Busca mensajes de ws de sesión y filtra las ligas */}
   const { messages } = useSessionSocket();
@@ -43,7 +62,8 @@ export default function LeagueListView() {
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const filteredLeagues = leagues.filter(
-    (league) => (league.name ?? "").toLowerCase().includes(query)
+    (league) => Number(league.league_id) !== cancelledLeagueId &&
+      (league.name ?? "").toLowerCase().includes(query)
   );
 
 
@@ -55,6 +75,15 @@ export default function LeagueListView() {
 
   return (
     <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8">
+      {cancelledLeagueId !== null && toast && (
+        <RightDownAlert
+          key={toast.id}
+          errorTitle="Liga cancelada"
+          errorDescription={cancelledByCreator ? "El creador canceló la liga." : "La liga fue cancelada correctamente."}
+          color="green"
+        />
+      )}
+
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Encabezado */}
