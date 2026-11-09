@@ -73,6 +73,24 @@ describe('ExitMatchButton', () => {
     expect(navigate).toHaveBeenCalledWith('/friendly', { replace: true })
   })
 
+  it('redirige al lobby de la liga si proviene desde fixture de liga con state.from', async () => {
+    useLocation.mockReturnValue({
+      state: { from: '/league/lobby/10/Liga%20San%20Marino' }
+    })
+    const user = userEvent.setup()
+
+    render(<svg><ExitMatchButton /></svg>)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Salir del partido' })
+    )
+
+    expect(navigate).toHaveBeenCalledWith(
+      '/league/lobby/10/Liga%20San%20Marino',
+      { replace: true }
+    )
+  })
+
   it('es un botón de tipo button', () => {
     render(<svg><ExitMatchButton /></svg>)
 
