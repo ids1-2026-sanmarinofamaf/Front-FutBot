@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { Match } from './Match'
 import { getPlayerById } from '../../player/api.js'
 import { getBehaviors } from '../../behaviors/api.js'
-import { changeBehavior, makeSubstitution } from '../api.js'
+import { changeBehavior, makeSubstitution, } from '../api.js'
 
 vi.mock('../../player/api.js', () => ({
   getPlayerById: vi.fn()
@@ -16,7 +16,8 @@ vi.mock('../../behaviors/api.js', () => ({
 
 vi.mock('../api.js', () => ({
   changeBehavior: vi.fn(),
-  makeSubstitution: vi.fn()
+  makeSubstitution: vi.fn(),
+  submitPenaltyChoice: vi.fn(),
 }))
 
 const defaultMatchInfo = {

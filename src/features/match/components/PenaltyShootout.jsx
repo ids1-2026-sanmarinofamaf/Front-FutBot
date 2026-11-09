@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { submitPenaltyChoice } from "../api.js"
 
 export function PenaltyShootout({
   matchInfo = null,
@@ -8,6 +9,7 @@ export function PenaltyShootout({
   const turn = penalties?.data?.turn
   const initialRemainingSeconds =
     penalties?.data?.remaining_seconds ?? 0
+  const [choice, setChoice] = useState(null)
 
   const [remainingSeconds, setRemainingSeconds] = useState(0)
 
@@ -33,6 +35,59 @@ export function PenaltyShootout({
       clearInterval(interval)
     }
   }, [phase, turn, initialRemainingSeconds])
+
+  const myClubID = matchInfo?.my_club_id ?? null
+
+  const isParticipant =
+    myClubID !== null &&
+    (
+      myClubID === matchInfo?.team_a?.club_id ||
+      myClubID === matchInfo?.team_b?.club_id
+    )
+
+  const currentChoice = choice?.turn === turn ? choice : null
+
+  const canChoose =
+    phase === "choosing" &&
+    isParticipant &&
+    remainingSeconds > 0 &&
+    (!currentChoice || currentChoice.status === "error")
+
+  async function handleChoose(side) {
+    if (!canChoose) return
+
+    setChoice({
+      turn,
+      side,
+      status: "sending",
+      error: null,
+    })
+
+    try {
+      await submitPenaltyChoice(matchInfo.match_id, turn, side)
+
+      setChoice(function (previous) {
+        if (previous?.turn !== turn) return previous
+
+        return {
+          ...previous,
+          status: "sent",
+        }
+      })
+    } catch (error) {
+      setChoice(function (previous) {
+        if (previous?.turn !== turn) return previous
+
+        return {
+          ...previous,
+          status: error.status === 409 ? "closed" : "error",
+          error: error.status === 409
+            ? "Este turno ya no admite elecciones."
+            : "No se pudo enviar la elección. Vuelve a intentarlo"
+        }
+      })
+    }
+  }
 
   const teams = [
     {
@@ -177,7 +232,10 @@ export function PenaltyShootout({
           <button
             type="button"
             aria-label="Elegir izquierda"
-            disabled
+            disabled={!canChoose}
+            onClick={function () {
+              handleChoose("LEFT")
+            }}
             className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
           >
             <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
@@ -190,7 +248,10 @@ export function PenaltyShootout({
           <button
             type="button"
             aria-label="Elegir centro"
-            disabled
+            disabled={!canChoose}
+            onClick={function () {
+              handleChoose("CENTER")
+            }}
             className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
           >
             <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
@@ -203,7 +264,10 @@ export function PenaltyShootout({
           <button
             type="button"
             aria-label="Elegir derecha"
-            disabled
+            disabled={!canChoose}
+            onClick={function () {
+              handleChoose("RIGHT")
+            }}
             className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
           >
             <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
@@ -211,6 +275,21 @@ export function PenaltyShootout({
             </svg>
           </button>
         </foreignObject>
+
+        {phase === "choosing" && currentChoice && (
+          <foreignObject x={260} y={515} width={800} height={55}>
+            <p
+              role={currentChoice.error ? "alert" : "status"}
+              className="text-center text-base text-white"
+            >
+              {currentChoice.error ?? (
+                currentChoice.status === "sending"
+                ? "Enviando elección..."
+                : "Elección enviada"
+              )}
+            </p>
+          </foreignObject>
+        )}
 
         <text x={660} y={785} textAnchor="middle" fill="white" fontSize={36}>
           {kicker?.name ?? ""}

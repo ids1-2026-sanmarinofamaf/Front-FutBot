@@ -1,9 +1,16 @@
-import { render, screen, act } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, screen, act, fireEvent, } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, } from 'vitest'
 import { PenaltyShootout } from './PenaltyShootout'
+import { submitPenaltyChoice } from '../api.js'
+
+vi.mock('../api.js', () => ({
+  submitPenaltyChoice: vi.fn(),
+}))
 
 describe('PenaltyShootout', () => {
   const matchInfo = {
+    match_id: 42,
+    my_club_id: 1,
     team_a: { club_id: 1, club_name: 'Club A' },
     team_b: { club_id: 2, club_name: 'Club B' },
     players: [
@@ -11,6 +18,22 @@ describe('PenaltyShootout', () => {
       { player_id: 7, name: 'Player 7' },
     ],
   }
+
+  const choosingPenalties = {
+    phase: 'choosing',
+    data: {
+      turn: 1,
+      club_id: 1,
+      kicker: 1,
+      remaining_seconds: 5,
+    },
+    results: [],
+  }
+
+  beforeEach(() => {
+    submitPenaltyChoice.mockReset()
+    submitPenaltyChoice.mockResolvedValue(null)
+  })
 
   it('muestra los nombres reales y seis casilleros pendientes al comenzar', () => {
     const { container } = render(
@@ -312,5 +335,294 @@ describe('PenaltyShootout', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it.each([
+    [1, 'Elegir izquierda', 'LEFT'],
+    [1, 'Elegir centro', 'CENTER'],
+    [1, 'Elegir derecha', 'RIGHT'],
+    [2, 'Elegir izquierda', 'LEFT'],
+    [2, 'Elegir centro', 'CENTER'],
+    [2, 'Elegir derecha', 'RIGHT'],
+  ])(
+    'el club %i envía mediante %s el lado %s y queda bloqueado',
+    async (clubId, buttonName, side) => {
+      render(
+        <PenaltyShootout
+          matchInfo={{ ...matchInfo, my_club_id: clubId }}
+          penalties={choosingPenalties}
+        />
+      )
+
+      const button = screen.getByRole('button', { name: buttonName })
+
+      expect(button).toBeEnabled()
+
+      fireEvent.click(button)
+
+      expect(
+        await screen.findByText('Elección enviada')
+      ).toBeInTheDocument()
+
+      expect(submitPenaltyChoice).toHaveBeenCalledTimes(1)
+      expect(submitPenaltyChoice).toHaveBeenCalledWith(42, 1, side)
+
+      screen.getAllByRole('button').forEach(function (button) {
+        expect(button).toBeDisabled()
+      })
+
+      fireEvent.click(screen.getByRole('button', {
+        name: 'Elegir centro',
+      }))
+
+      expect(submitPenaltyChoice).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it.each([null, 999])(
+    'bloquea las elecciones cuando el club del usuario es %s',
+    (clubId) => {
+      render(
+        <PenaltyShootout
+          matchInfo={{ ...matchInfo, my_club_id: clubId }}
+          penalties={choosingPenalties}
+        />
+      )
+
+      screen.getAllByRole('button').forEach(function (button) {
+        expect(button).toBeDisabled()
+      })
+
+      fireEvent.click(screen.getByRole('button', {
+        name: 'Elegir izquierda',
+      }))
+
+      expect(submitPenaltyChoice).not.toHaveBeenCalled()
+    }
+  )
+
+  it('bloquea las flechas al agotarse el tiempo y fuera de la fase de elección', () => {
+    vi.useFakeTimers()
+
+    try {
+      const { rerender, unmount } = render(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={choosingPenalties}
+        />
+      )
+
+      expect(
+        screen.getByRole('button', { name: 'Elegir izquierda' })
+      ).toBeEnabled()
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      screen.getAllByRole('button').forEach(function (button) {
+        expect(button).toBeDisabled()
+      })
+
+      fireEvent.click(screen.getByRole('button', {
+        name: 'Elegir izquierda',
+      }))
+
+      expect(submitPenaltyChoice).not.toHaveBeenCalled()
+
+      const nextTurn = {
+        ...choosingPenalties,
+        data: {
+          ...choosingPenalties.data,
+          turn: 2,
+          club_id: 2,
+          kicker: 7,
+        },
+      }
+
+      rerender(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={nextTurn}
+        />
+      )
+
+      expect(
+        screen.getByRole('button', { name: 'Elegir izquierda' })
+      ).toBeEnabled()
+
+      rerender(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{ ...nextTurn, phase: 'result' }}
+        />
+      )
+
+      screen.getAllByRole('button').forEach(function (button) {
+        expect(button).toBeDisabled()
+      })
+
+      unmount()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('permite reintentar cuando falla el envío', async () => {
+    submitPenaltyChoice.mockRejectedValueOnce(
+      new Error('Sin conexión')
+    )
+
+    render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={choosingPenalties}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir izquierda',
+    }))
+
+    expect(
+      await screen.findByRole('alert')
+    ).toHaveTextContent('No se pudo enviar la elección')
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeEnabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir centro',
+    }))
+
+    expect(
+      await screen.findByText('Elección enviada')
+    ).toBeInTheDocument()
+
+    expect(submitPenaltyChoice).toHaveBeenCalledTimes(2)
+    expect(submitPenaltyChoice).toHaveBeenNthCalledWith(1, 42, 1, 'LEFT')
+    expect(submitPenaltyChoice).toHaveBeenNthCalledWith(2, 42, 1, 'CENTER')
+  })
+
+  it('mantiene bloqueado el turno cuando el servidor devuelve HTTP 409', async () => {
+    const error = new Error('Turn closed')
+    error.status = 409
+    submitPenaltyChoice.mockRejectedValueOnce(error)
+
+    render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={choosingPenalties}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir izquierda',
+    }))
+
+    expect(
+      await screen.findByRole('alert')
+    ).toHaveTextContent('Este turno ya no admite elecciones.')
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir derecha',
+    }))
+
+    expect(submitPenaltyChoice).toHaveBeenCalledTimes(1)
+  })
+
+  it('bloquea mientras envía y conserva la elección del nuevo turno ante una respuesta anterior', async () => {
+    let resolveFirst
+    let resolveSecond
+
+    const firstRequest = new Promise(function (resolve) {
+      resolveFirst = resolve
+    })
+
+    const secondRequest = new Promise(function (resolve) {
+      resolveSecond = resolve
+    })
+
+    submitPenaltyChoice
+      .mockReturnValueOnce(firstRequest)
+      .mockReturnValueOnce(secondRequest)
+
+    const { rerender } = render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={choosingPenalties}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir izquierda',
+    }))
+
+    expect(
+      screen.getByRole('status')
+    ).toHaveTextContent('Enviando elección...')
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Elegir centro',
+    }))
+
+    expect(submitPenaltyChoice).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          ...choosingPenalties,
+          data: {
+            ...choosingPenalties.data,
+            turn: 2,
+            club_id: 2,
+            kicker: 7,
+          },
+        }}
+      />
+    )
+
+    const rightButton = screen.getByRole('button', {
+      name: 'Elegir derecha',
+    })
+
+    expect(rightButton).toBeEnabled()
+
+    fireEvent.click(rightButton)
+
+    expect(submitPenaltyChoice).toHaveBeenCalledTimes(2)
+    expect(submitPenaltyChoice).toHaveBeenNthCalledWith(2, 42, 2, 'RIGHT')
+
+    await act(async () => {
+      resolveFirst(null)
+      await firstRequest
+    })
+
+    expect(
+      screen.getByRole('status')
+    ).toHaveTextContent('Enviando elección...')
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeDisabled()
+    })
+
+    await act(async () => {
+      resolveSecond(null)
+      await secondRequest
+    })
+
+    expect(
+      screen.getByRole('status')
+    ).toHaveTextContent('Elección enviada')
   })
 })
