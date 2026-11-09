@@ -607,14 +607,41 @@ export function LeagueLobby() {
           {/* Encabezado: Boton para volver a la lista de ligas, Info de liga y botones para ver componentes principales */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-8">
 
-            {/* Boton para volver */}
-            <button
-              type="button"
-              onClick={() => navigate("/league")}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
-            >
-              Volver
-            </button>
+            {/* Nombre de liga y cantidad de jugadores */}
+            <div>
+              <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider
+                            text-transparent bg-clip-text
+                            bg-gradient-to-r from-blue-400 to-emerald-400">
+                {leagueName}
+              </h1>
+              <p className=" text-slate-400">
+                Jugadores: {lobby.currentUsers}
+              </p>
+            </div>
+
+
+            {isCreator && lobby.state === "POR_COMENZAR" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelError(null);
+                  hideToast();
+                  setShowCancelLeague(true);
+                }}
+                className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cancelar liga
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLeave}
+                disabled={lobby.state !== "POR_COMENZAR"}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
+              >
+                Abandonar
+              </button>
+            )}
 
             {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
             {lobby.state === "POR_COMENZAR" && (
@@ -653,28 +680,7 @@ export function LeagueLobby() {
                 )
             )}
 
-            {isCreator && lobby.state === "POR_COMENZAR" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCancelError(null);
-                  hideToast();
-                  setShowCancelLeague(true);
-                }}
-                className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
-              >
-                Cancelar liga
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleLeave}
-                disabled={lobby.state !== "POR_COMENZAR"}
-                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
-              >
-                Abandonar
-              </button>
-            )}
+            
 
             {lobby.state === "INICIADA" && (
               <button
@@ -686,41 +692,39 @@ export function LeagueLobby() {
               </button>
             )}
 
-            {/* Nombre de liga y cantidad de jugadores */}
-            <div>
-              <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider
-                            text-transparent bg-clip-text
-                            bg-gradient-to-r from-blue-400 to-emerald-400">
-                {leagueName}
-              </h1>
-              <p className=" text-slate-400">
-                Jugadores: {lobby.currentUsers}
-              </p>
-            </div>
+            {/* Boton para volver */}
+            <button
+              type="button"
+              onClick={() => navigate("/league")}
+              className="ml-auto shrink-0 px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              Volver
+            </button>
 
-            {/* Tabs */}
-            <ul className="flex flex-wrap ml-auto">
+
+          </div>
+
+          {/* Pestañas distribuidas a lo largo de la barra */}
+          <ul className="mt-6 flex w-full gap-2 border-b border-slate-700">
               {TABS.map((tab) => (
-                <li key={tab.id} className="me-2">
+                <li key={tab.id} className="min-w-0 flex-1">
                   <button
                     type="button"
                     disabled={tab.disabled}
                     onClick={() => setActiveTab(tab.id)}
                     aria-current={activeTab === tab.id ? "page" : undefined}
-                    className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${tab.disabled
+                    className={`w-full h-full py-3 px-2 text-[1.75rem] leading-[2.125rem] font-semibold border-b-2 transition-colors ${tab.disabled
                         ? "border-transparent text-slate-600 cursor-not-allowed"
                         : activeTab === tab.id
-                          ? "text-emerald-400 border-emerald-400"
-                          : "border-transparent hover:text-emerald-400 hover:border-emerald-400/50"
+                          ? "border-[#5BB5D9] text-[#5BB5D9]"
+                          : "border-transparent text-slate-400 hover:text-slate-200"
                       }`}
                   >
                     {tab.label}
                   </button>
                 </li>
               ))}
-            </ul>
-
-          </div>
+          </ul>
 
         </div>
 
