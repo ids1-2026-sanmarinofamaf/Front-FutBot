@@ -288,3 +288,19 @@ it("notifica la cancelación y excluye la liga de la lista y de la recuperación
   await waitFor(() => expect(replaceJoinedLIds).toHaveBeenCalledWith([2]));
   expect(navigate).toHaveBeenCalledWith("/league", { replace: true, state: null });
 });
+
+it("al volver por cancelación del creador informa el motivo y mantiene oculta la liga ante actualizaciones", async () => {
+  mockLocation = { pathname: "/league", state: { cancelledLeagueId: 1, cancelledByCreator: true } };
+  useSessionSocket.mockReturnValue({ messages: { leagues } });
+  const { rerender } = render(<LeagueListView />);
+
+  expect(await screen.findByText("El creador canceló la liga.")).toBeInTheDocument();
+
+  mockLocation = { pathname: "/league", state: null };
+  useSessionSocket.mockReturnValue({ messages: { leagues: [...leagues] } });
+  rerender(<LeagueListView />);
+
+  expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+  expect(screen.getByTestId("card-2")).toBeInTheDocument();
+  expect(screen.getByText("El creador canceló la liga.")).toBeInTheDocument();
+});
