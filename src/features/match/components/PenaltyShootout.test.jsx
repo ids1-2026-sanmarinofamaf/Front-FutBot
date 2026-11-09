@@ -625,4 +625,119 @@ describe('PenaltyShootout', () => {
       screen.getByRole('status')
     ).toHaveTextContent('Elección enviada')
   })
+
+  it.each([
+    ['Club A', 1, 3, 1],
+    ['Club B', 2, 1, 3],
+  ])('muestra a %s como ganador y el marcador final', (
+    winnerName,
+    winnerClubId,
+    scoreClubA,
+    scoreClubB,
+  ) => {
+    render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          phase: 'finished',
+          data: {
+            winner_club_id: winnerClubId,
+            score_club_a: scoreClubA,
+            score_club_b: scoreClubB,
+          },
+          results: [],
+        }}
+      />
+    )
+
+    const panel = screen.getByRole('status', {
+      name: 'Resultado de la tanda de penales',
+    })
+
+    expect(panel).toHaveTextContent('¡PARTIDO FINALIZADO!')
+    expect(panel).toHaveTextContent(`Ganador: ${winnerName}`)
+    expect(panel).toHaveTextContent(
+      `Penales: ${scoreClubA} - ${scoreClubB}`
+    )
+
+    expect(
+      screen.queryByText('Victoria definida por sorteo')
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole('img', {
+        name: /^Tiempo para elegir:/,
+      })
+    ).not.toBeInTheDocument()
+
+    screen.getAllByRole('button').forEach(function (button) {
+      expect(button).toBeDisabled()
+    })
+
+    expect(submitPenaltyChoice).not.toHaveBeenCalled()
+  })
+
+  it('espera el evento final y muestra al ganador del sorteo enviado por el servidor', () => {
+    const { rerender } = render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          phase: 'result',
+          data: {
+            turn: 6,
+            club_id: 2,
+            kicker: 7,
+            kick_side: 'LEFT',
+            save_side: 'RIGHT',
+            is_goal: true,
+            score_club_a: 2,
+            score_club_b: 2,
+            duration: 5,
+          },
+          results: [],
+        }}
+      />
+    )
+
+    expect(
+      screen.queryByRole('status', {
+        name: 'Resultado de la tanda de penales',
+      })
+    ).not.toBeInTheDocument()
+
+    rerender(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          phase: 'finished',
+          data: {
+            winner_club_id: 2,
+            score_club_a: 2,
+            score_club_b: 2,
+          },
+          results: [],
+        }}
+      />
+    )
+
+    expect(
+      screen.getByText('DEFINIENDO POR SORTEO...')
+    ).toBeInTheDocument()
+
+    expect(
+      screen.queryByText('Ganador: Club B')
+    ).not.toBeInTheDocument()
+
+    fireEvent.animationEnd(
+      screen.getByRole('img', { name: 'Moneda del sorteo' })
+    )
+
+    const panel = screen.getByRole('status', {
+      name: 'Resultado de la tanda de penales',
+    })
+
+    expect(panel).toHaveTextContent('Ganador: Club B')
+    expect(panel).toHaveTextContent('Penales: 2 - 2')
+    expect(panel).toHaveTextContent('Victoria definida por sorteo')
+  })
 })

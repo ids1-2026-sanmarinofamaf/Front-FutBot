@@ -13,6 +13,8 @@ export function PenaltyShootout({
 
   const [remainingSeconds, setRemainingSeconds] = useState(0)
 
+  const [coinFinished, setCoinFinished] = useState(false)
+
   useEffect(function () {
     if (phase !== "choosing") return
 
@@ -119,6 +121,20 @@ export function PenaltyShootout({
   const kicker = matchInfo?.players?.find(function (player) {
     return player.player_id === penalties?.data?.kicker
   })
+
+  const winner = teams.find(function (team) {
+    return team.clubId === penalties?.data?.winner_club_id
+  })
+
+  const isCoinToss =
+    phase === "finished" &&
+    penalties.data.score_club_a ===
+    penalties.data.score_club_b
+
+  const isCoinSpinning = isCoinToss && !coinFinished
+
+  const coinFinalAngle =
+    winner?.clubId === teams[0].clubId ? "1080deg" : "1260deg"
 
   const isResult = phase === "result"
 
@@ -506,6 +522,73 @@ export function PenaltyShootout({
             >
               Prepárate para patear o atajar
             </text>
+          </g>
+        )}
+
+        {phase === "finished" && (
+          <g role="status" aria-label="Resultado de la tanda de penales">
+            <rect
+              width={1320}
+              height={800}
+              fill="#063343"
+              opacity={0.94}
+            />
+
+            <foreignObject x={110} y={100} width={1100} height={600}>
+              <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                <p className="text-4xl text-sm-gold">
+                  {isCoinSpinning
+                    ? "DEFINIENDO POR SORTEO..."
+                    : "¡PARTIDO FINALIZADO!"}
+                </p>
+
+                {isCoinToss && (
+                  <div className="penalty-coin-scene">
+                    <div
+                      className="penalty-coin"
+                      role="img"
+                      aria-label="Moneda del sorteo"
+                      style={{ "--coin-final-angle": coinFinalAngle }}
+                      onAnimationEnd={() => setCoinFinished(true)}
+                    >
+                      {teams.map(function (team, index) {
+                        return (
+                          <div
+                            key={team.clubId}
+                            className={
+                              "penalty-coin-face " +
+                              (index === 0
+                                ? "penalty-coin-front"
+                                : "penalty-coin-back")
+                            }
+                          >
+                            <span>{team.name}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {!isCoinSpinning && (
+                  <p className="max-w-full break-words text-3xl text-white">
+                    Ganador: {winner?.name ?? "Equipo desconocido"}
+                  </p>
+                )}
+
+                <p className="text-3xl text-white">
+                  Penales: {penalties.data.score_club_a}
+                  {" - "}
+                  {penalties.data.score_club_b}
+                </p>
+
+                {isCoinToss && !isCoinSpinning && (
+                  <p className="text-xl text-sm-gold">
+                    VICTORIA POR SORTEO
+                  </p>
+                )}
+              </div>
+            </foreignObject>
           </g>
         )}
       </svg>
