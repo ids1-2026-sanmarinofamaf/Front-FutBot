@@ -27,8 +27,7 @@ describe('PlayOption UI', () => {
     expect(screen.getByRole('button', { name: /Cerrar opciones/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Partidos Amistosos/i })).toBeInTheDocument();
     
-    // Verificamos que el botón de Ligas no esté en el DOM (ya que está comentado)
-    expect(screen.queryByRole('button', { name: /Ligas/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ligas/i })).toBeInTheDocument();
   });
 
   it('ejecuta onClose al hacer clic en el botón de cerrar', async () => {
@@ -56,5 +55,18 @@ describe('PlayOption UI', () => {
     // 3. Assert
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/friendly');
+  });
+
+  it('navega a "/league" al hacer clic en "Ligas"', async () => {
+    // 1. Arrange
+    const user = userEvent.setup();
+    render(<PlayOption onClose={mockOnClose} />);
+
+    // 2. Act
+    await user.click(screen.getByRole('button', { name: /Ligas/i }));
+
+    // 3. Assert
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/league');
   });
 });

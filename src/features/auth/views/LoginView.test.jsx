@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook,render, screen,  waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import useWebSocket from "../../../shared/hooks";
-import { AuthProvider } from "../AuthProvider.jsx";
+import { AuthContext, AuthProvider } from "../AuthProvider.jsx";
+import { MemoryRouter } from "react-router-dom";
+import Login from "./LoginView.jsx";
+import { checkSession } from "../api.js";
 import { SessionSocketProvider } from "../SessionSocketProvider.jsx";
 import AppRouter from "../../../app/AppRouter.jsx";
 
@@ -138,6 +141,71 @@ describe("Formulario y endpoint", () => {
             });
             });
 })
+
+describe("Notificaciones de inicio de sesión", () => {
+    const renderLogin = () => {
+        const setIsAuthenticated = vi.fn();
+        render(
+            <MemoryRouter>
+                <AuthContext.Provider value={{ setIsAuthenticated }}>
+                    <Login />
+                </AuthContext.Provider>
+            </MemoryRouter>
+        );
+        return setIsAuthenticated;
+    };
+
+    const submitLogin = async (user) => {
+        await user.type(screen.getByLabelText("Email:"), "test@test.com");
+        await user.type(screen.getByLabelText("Contraseña:"), "123456");
+        await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    };
+
+    it.each([400, 401, 422])("muestra una alerta para HTTP %s y permite reintentar", async (status) => {
+        const user = userEvent.setup();
+        fetch.mockResolvedValue({ ok: false, status });
+        const setIsAuthenticated = renderLogin();
+
+        await submitLogin(user);
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("Email o contraseña incorrectos.");
+        expect(setIsAuthenticated).not.toHaveBeenCalled();
+        expect(checkSession).not.toHaveBeenCalled();
+
+        await user.type(screen.getByLabelText("Contraseña:"), "7");
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Email o contraseña incorrectos.");
+    });
+
+    it.each(["servidor", "red"])("notifica un error de %s", async (failure) => {
+        const user = userEvent.setup();
+        vi.spyOn(console, "log").mockImplementation(() => {});
+        if (failure === "red") {
+            fetch.mockRejectedValue(new TypeError("Failed to fetch"));
+        } else {
+            fetch.mockResolvedValue({ ok: false, status: 500 });
+        }
+        const setIsAuthenticated = renderLogin();
+
+        await submitLogin(user);
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("Intentá nuevamente más tarde.");
+        expect(setIsAuthenticated).not.toHaveBeenCalled();
+    });
+
+    it("mantiene el inicio de sesión exitoso sin alertas", async () => {
+        const user = userEvent.setup();
+        const setIsAuthenticated = renderLogin();
+
+        await submitLogin(user);
+
+        await waitFor(() => expect(setIsAuthenticated).toHaveBeenCalledWith(true));
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(localStorage.getItem("token")).toBe("mock-token-123");
+        localStorage.removeItem("token");
+    });
+});
 
 describe("useWebSocket para ws de sesiones", () => {
 

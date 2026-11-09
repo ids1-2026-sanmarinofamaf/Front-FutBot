@@ -17,7 +17,8 @@ export default function CreateFG({ onClose, roster: initialRoster = {} }) {
         roster: initialRoster ?? {}
     })
     const rosterLoaded = newFG.roster?.players?.length === 6;
-    const Verification = newFG.duration < 1 || !rosterLoaded || newFG.duration > 300;
+    const isOddDuration = Number.isInteger(newFG.duration) && newFG.duration > 0 && newFG.duration % 2 !== 0;
+    const Verification = newFG.duration < 1 || !rosterLoaded || newFG.duration > 300 || isOddDuration;
 
     {/** Estado para crear roaster */}
     const [builderR, setBuilderR] = useState(false) 
@@ -68,7 +69,7 @@ export default function CreateFG({ onClose, roster: initialRoster = {} }) {
         setAlert("");
         hideToast();
     }
-    console.log(newFG)
+    //console.log(newFG)
     
     return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm">
@@ -125,6 +126,11 @@ export default function CreateFG({ onClose, roster: initialRoster = {} }) {
               
             />
           </div>
+          {isOddDuration && (
+            <p className="text-red-500 font-semibold mb-4">
+              La duración del partido debe ser un número par.
+            </p>
+          )}
           
 
           {/* Constructor de plantilla */}

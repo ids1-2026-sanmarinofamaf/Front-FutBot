@@ -74,17 +74,31 @@ describe("FGCard Component", () => {
     expect(button).toBeDisabled();
   });
 
-  it("Navega directamente al lobby si el estado es JUGANDO (sin llamar a la API)", async () => {
-    const playingGame = { ...defaultGame, state: "JUGANDO" };
+  it("Navega a la vista del partido como espectador si el estado es JUGANDO (sin llamar a la API)", () => {
+    const playingGame = { ...defaultGame, state: "JUGANDO", match_id: 99 };
+    render(<FGCard game={playingGame} roster={invalidRoster} />);
+
+    const button = screen.getByRole("button", { name: /Ver partido|Espectador/i });
+    expect(button).not.toBeDisabled();
+
+    fireEvent.click(button);
+
+    expect(joinFGAsPlayer).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/matches/99", {
+      replace: true,
+      state: { from: "/friendly" },
+    });
+  });
+
+  it("Muestra 'Espectador' si el partido está JUGANDO y el usuario no pertenece", async () => {
+    const playingGame = { ...defaultGame, state: "JUGANDO", match_id: 99 };
     render(<FGCard game={playingGame} roster={invalidRoster} />);
     
-    const button = screen.getByRole("button", { name: /Reconectar \/ Ver/i });
-    expect(button).not.toBeDisabled();
+    const spectatorButton = screen.getByRole("button", { name: "Espectador" });
+    expect(spectatorButton).toBeInTheDocument();
     
-    fireEvent.click(button);
-    
-    expect(joinFGAsPlayer).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/friendly/lobby/10");
+    fireEvent.click(spectatorButton);
+    expect(mockNavigate).toHaveBeenCalledWith("/matches/99", { replace: true, state: { from: "/friendly" } });
   });
 
   it("Navega directamente si el usuario ya está unido (ID presente en el Provider)", () => {

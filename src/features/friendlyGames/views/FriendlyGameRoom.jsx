@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useFriendlyGamesSocket } from "../FriendlyGamesProvider";
+import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { getCurrentUser, startFriendlyGame } from "../api";
 import { useToast } from "../../../shared/hooks";
 import RightDownAlert from "../../../shared/components/RightDownAlert";
@@ -11,15 +12,33 @@ export function FriendlyGameRoom() {
   const navigate = useNavigate();
   const numericId = Number(id);
 
-  const { messages, joinFG } = useFriendlyGamesSocket();
+  const { messages, joinFG, leaveFG, joinedFGIds } = useFriendlyGamesSocket();
+  const sessionSocket = useSessionSocket();
   const { toast, showToast, hideToast } = useToast();
+
+  // Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinFG).
+  // Si estaba → el usuario llegó por la UI (FGCard llamó joinFG antes de navegar).
+  // Si no estaba → el usuario escribió la URL directamente → acceso no permitido.
+  const wasAlreadyJoined = useRef(
+    joinedFGIds.some((i) => Number(i) === numericId)
+  );
+  const wasSeenInSession = useRef(false);
   
   const [localUserName, setLocalUserName] = useState(null);
   const [isStarting, setIsStarting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // 1. Inicialización
+  // Protección de acceso temprana: antes de conectar el WebSocket,
+  // si el usuario llegó por URL directa (no pasó por la UI) redirigir de inmediato.
   useEffect(() => {
+    if (!wasAlreadyJoined.current) {
+      navigate("/friendly", { replace: true });
+    }
+  }, []);
+
+  // 1. Inicialización (solo si el acceso es legítimo)
+  useEffect(() => {
+    if (!wasAlreadyJoined.current) return;
     if (isNaN(numericId)) return;
     joinFG(numericId);
 
@@ -50,7 +69,37 @@ export function FriendlyGameRoom() {
   // NUEVO: Bandera combinada para saber si el usuario que mira es uno de los jugadores
   const isParticipant = isLocalUserCreator || isLocalUserOpponent;
   
-  const isMatchReady = roomState?.state === "JUGANDO" || roomState?.match_id != null;
+  const isMatchReady = roomState?.match_id != null;
+  const matchId = roomState?.match_id ?? null;
+
+  const sessionFriendlyGames = sessionSocket?.messages?.friendly_games;
+  const sessionGame = useMemo(() => {
+    if (!Array.isArray(sessionFriendlyGames)) return null;
+    return (
+      sessionFriendlyGames.find(
+        (g) => Number(g.friendly_game_id) === numericId
+      ) ?? null
+    );
+  }, [sessionFriendlyGames, numericId]);
+
+  if (sessionGame) {
+    wasSeenInSession.current = true;
+  }
+
+  // Cuando el partido finaliza en el backend, su estado pasa a FINALIZADO y deja de emitirse
+  // en la lista de friendly_games del socket de sesión (el socket del lobby ya se cerró al iniciar).
+  const isMatchFinished =
+    roomState?.state === "FINALIZADO" ||
+    sessionGame?.state === "FINALIZADO" ||
+    Boolean(
+      isMatchReady &&
+        Array.isArray(sessionFriendlyGames) &&
+        (wasSeenInSession.current || sessionSocket?.isConnected) &&
+        !sessionGame
+    );
+
+  // Si el acceso no fue legítimo, no renderizar nada (el efecto ya redirigió)
+  if (!wasAlreadyJoined.current) return null;
 
   // 3. Handlers
   const handleStartMatch = async () => {
@@ -130,7 +179,7 @@ export function FriendlyGameRoom() {
         <div className="flex justify-end items-center mt-8 pt-6 border-t border-slate-700 min-h-[60px]">
           {isMatchReady ? (
             isParticipant ? (
-              <JoinMatchButton matchId={roomState.match_id} />
+              <JoinMatchButton matchId={matchId} disabled={isMatchFinished} />
             ) : (
               <span className="px-6 py-2 bg-slate-700 text-slate-300 rounded font-semibold animate-pulse">
                 Modo Espectador

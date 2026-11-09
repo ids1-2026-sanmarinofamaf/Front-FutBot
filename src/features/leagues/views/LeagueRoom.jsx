@@ -1,0 +1,808 @@
+import { useNavigate, useParams } from "react-router-dom";
+import { useToast } from "../../../shared/hooks";
+import { useLeaguesSocket } from "../LeaguesProvider"
+import { getCurrentUser } from "../../friendlyGames/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LobbyUsers } from "../components/LobbyUsers";
+import RightDownAlert from "../../auth/components/RightDownAlert";
+import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague, cancelLeague } from "../api";
+import FixtureTab from "../components/FixtureTab";
+import TablaTab from "../components/TablaTab";
+import LeagueCancelled from "../components/LeagueCancelled";
+import CancelLeague from "../components/CancelLeague";
+import ChangeRoster from "../components/ChangeRoster";
+
+/**
+ * Integración de componenetes:
+ * - Información de liga
+ * - Lista de participantes
+ * - Fixture en formato lista
+ * - Mock de tabla de puntaje 
+ */
+export function LeagueLobby() {
+  // Hook para leer parametros de la dirección
+  const { id, leagueName } = useParams();
+  const numericId = Number(id);
+
+  // Hook para manejar estados recibidos por el websocket
+  const { messages, joinL, leaveL, joinedLIds } = useLeaguesSocket();
+  // Hook para mostrar notificaciones  
+  const { toast, showToast, hideToast } = useToast();
+  const [alert, setAlert] = useState("");
+  // Hook para navegación
+  const navigate = useNavigate();
+  // Hook para manejar estado de carga al iniciar
+  const [starting, setStarting] = useState(false)
+  // Hook para cambiar alineación
+  const [changeRoster, setChangeRoster] = useState(false)
+
+  // Estados para confirmar y procesar la cancelación de la liga
+  const [showCancelLeague, setShowCancelLeague] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+  const cancelPending = useRef(false);
+
+  /** 
+   * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinL):
+   * - Si estaba → el usuario llegó por la UI (lCard llamó joinl antes de navegar).
+   * - Si no estaba → el usuario escribió la URL directamente → acceso no permitido.
+  */
+  const wasAlreadyJoined = useRef(
+    joinedLIds.some((i) => Number(i) === numericId) ||
+    Boolean(messages[numericId]?.length)
+  );
+
+  // Protección de acceso temprana: antes de conectar el WebSocket,  si el usuario llegó por URL directa (no pasó por la UI) redirigir de inmediato.
+  useEffect(() => {
+    if (!wasAlreadyJoined.current) {
+      navigate("/league", { replace: true });
+    }
+  }, [navigate]);
+
+  const [localUserName, setLocalUserName] = useState(null);
+
+  // 1. Inicialización (solo si el acceso es legítimo)
+  useEffect(() => {
+    if (!wasAlreadyJoined.current) return;
+    if (isNaN(numericId)) return;
+    joinL(numericId);
+
+    const fetchIdentity = async () => {
+      try {
+        const userData = await getCurrentUser();
+        setLocalUserName(userData.user_name);
+      } catch (err) {
+        //VER SI PONER ALERTA TOAST
+        console.error("Error al obtener identidad:", err);
+      }
+    };
+    fetchIdentity();
+  }, [numericId, joinL]);
+
+  /**
+   * Obtener datos de la liga mediante endpoint REST, se usa useEffect para evitar nuevos renders
+   */
+  const [dataREST, setDataREST] = useState(null)
+  useEffect(() => {
+    getLeagueInfo({ league_id:id }).then(setDataREST)
+  }, [id])
+
+  /**
+   * 2. Procesamiento de un evento
+   * @param {*} lobby : información previa del lobby
+   * @param {*} msg : mensaje a procesar
+   * @returns Lista actualizada de acuerdo al evento procesado
+   */
+  function applyLeagueEvent(lobby, msg, data) {
+    // Una cancelación es definitiva aunque lleguen eventos anteriores fuera de orden.
+    if (lobby.cancelled) return lobby;
+
+    switch (msg.type) {
+      case "league_cancelled":
+        return { ...lobby, cancelled: true };
+
+      case "lobby_state": { // foto completa: reemplaza todo
+        const activeRound = data?.active_round ?? (
+          data?.fixture ? (data.fixture.find((m) => m.state === "JUGANDO")?.round ?? 0) : 0
+        );
+        const activeMatchIds = Array.isArray(data?.active_match_ids)
+          ? data.active_match_ids
+          : (data?.fixture ? data.fixture.filter((m) => m.state === "JUGANDO").map((m) => m.match_id) : []);
+
+        const initialResults = data?.fixture
+          ? data.fixture.filter((m) => m.state === "FINALIZADO" || m.score != null).map((m) => ({
+              match_id: m.match_id,
+              score: m.score,
+              state: m.state,
+            }))
+          : [];
+
+        const fixture = data?.fixture
+          ? data.fixture.map((match) =>
+              activeMatchIds.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            )
+          : [];
+
+        return {
+          ready: true,
+          leagueID: msg.league_id,
+          currentUsers: msg.current_users,
+          state: data?.state ?? msg.state,
+          users: msg.users,
+          fixture,
+          standings: data?.standings ?? [],
+          round: activeRound,
+          matchIDs: activeMatchIds, //Lista de matchs ejecutados en la ronda actual
+          results: initialResults // resultados de partidos finalizados
+        };
+      }
+
+      case "user_joined": // cambio: se aplica sobre lo anterior
+        if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
+        if (lobby.users.some((u) => u.club_id === msg.user.club_id)) return lobby; // duplicado
+        {
+          const users = [...lobby.users, msg.user];
+          return { ...lobby, users, currentUsers: users.length };
+        }
+
+      case "user_left": {
+        if (!lobby.ready) return lobby;
+        const users = lobby.users.filter((u) => u.club_id !== msg.user.club_id);
+        return { ...lobby, users, currentUsers: users.length };
+      }
+
+      case "league_started": // el creador inició la liga: se guardan fixture y tabla tal cual llegan
+        if (!lobby.ready) return lobby; // llegó antes del lobby_state: se descarta
+        return {
+          ...lobby,
+          state: "INICIADA",
+          fixture: msg.fixture,
+          standings: msg.standings,
+        };
+
+      case "league_round_started": {
+        // Verifica que el evento pertenezca a esta liga 
+        if (id == msg.league_id) {
+          return {
+            ...lobby,
+            round: msg.round,
+            matchIDs: msg.match_ids,
+            fixture: lobby.fixture?.map((match) =>
+              msg.match_ids.includes(match.match_id) ? { ...match, state: "JUGANDO" } : match
+            ),
+          }
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_round_finished": {
+        // Verifica que el evento pertenezca a esta liga y la liga actualizada sea la última
+        if (id == msg.league_id && (lobby.round == msg.round || lobby.round === 0)) {
+          return {
+            ...lobby,
+            round: 0,
+            standings: msg.standings,
+            matchIDs: [],
+            results: [ //result acumula los mensajes recibidos y reemplaza duplicados
+              ...(lobby.results ?? []).filter((r) => !msg.results.some((n) => n.match_id === r.match_id)),
+              ...msg.results,
+            ],
+            fixture: lobby.fixture?.map((match) => {
+              const res = msg.results?.find((r) => r.match_id === match.match_id);
+              return res ? { ...match, state: "FINALIZADO", score: res.score ?? match.score } : match;
+            }),
+          }
+
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      case "league_finished": {
+        if (id == msg.league_id) {
+          return { ...lobby, state: "FINALIZADA" }
+        } else {
+          console.log("Se esta recibiendo información de otra liga")
+          return lobby
+        }
+      }
+
+      default:
+        console.log("Se intentó procesar un evento no reconocido")
+        return lobby;
+    }
+  }
+
+  /**
+   * 2.1 Procesamientos de eventos 
+   * 
+   * Se utiliza el hook `useMemo` para guardar el resultado de la función y **solo lo vuelve a calcular cuando cambian sus dependencias**.
+   * 
+   * Se utiliza `reduce` para recorrer la lista de eventos y acumular los resultados de cada aplicación de `applyLeagueEvent`
+   * 
+   * @returns booleano para activar/descativar funcionalidades de UI 
+   * @returns estado de la liga 
+   * @returns lista de usuarios (cada uno con sus detalles)
+   */
+  const lobby = useMemo(() => {
+    const events = messages[numericId] || [];
+    return events.reduce( // "reduce" llama al callback con (acumulador, elementoActual), acá son (lobby, msg)
+      (lobby, msg) => applyLeagueEvent(lobby, msg, dataREST),
+      {
+        ready: false,
+        leagueID: id,
+        currentUsers: 0,
+        state: null,
+        users: [],
+        fixture: [],
+        standings: [],
+        round: 0,
+        matchIDs: [],
+        results: [],
+      }
+    );
+  }, [messages, numericId, dataREST]);
+
+  /**
+   * Logica para identificar si el usuario de la sesion actual es el creador de la liga
+   */
+  const [session, setSession] = useState(null); // Hook para manejo de datos de la sesión
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const data = await getUserSessionInfo();
+        setSession(data);
+      } catch (err) {
+        setAlert("Error al obtener datos de sesión.");
+        showToast();
+      }
+    };
+    fetchSession();
+  }, []);
+
+  const isCreator = useMemo(() => { //se usa useMemo para guardar resultados entre render a no ser que cambien 
+    const creator = lobby?.users?.find((u) => u.is_creator === true);
+    if (!creator || !session) {
+      return false;
+    } else {
+      return Number(creator.club_id) === Number(session.user_id);
+    }
+  }, [lobby?.users, session]); //todo lo que la funcion lee debe estar en las dependencias
+
+  /**
+   * Logica para manejo de componentes principales
+   * - TABS: Lista de id-label
+   * - activeTab: Hook para modificar el componente activo
+   */
+  const TABS = [
+    { id: "usuarios", label: "Usuarios", disabled: false },
+    { id: "fixture", label: "Fixture", disabled: lobby.state === "POR_COMENZAR" },
+    { id: "tabla", label: "Tabla de posiciones", disabled: lobby.state === "POR_COMENZAR" },
+  ];
+  const [activeTab, setActiveTab] = useState("usuarios");
+
+  /**
+   * Handle para iniciar la liga, solo se implementó el manejo de error al iniciar liga sin ser creador
+   * @precondition league.state === "POR_COMENZAR"
+   */
+  const handleStartLeague = async () => {
+    if (lobby.currentUsers >= 3 && lobby.state === "POR_COMENZAR") {
+      setStarting(true)
+      try {
+        await startLeague(numericId)
+        setAlert("La liga ha iniciado, dirígete a Fixture para ver los partidos.")
+        showToast()
+      } catch (err) {
+        switch (err.detail) {
+
+          case "Only the league creator can start the league": {
+            setAlert("No eres el creador.")
+            showToast()
+            break
+          }
+
+          case "League does not exist": {
+            setAlert("La liga no existe.")
+            showToast()
+            break;
+          }
+
+          case "League cannot be started": {
+            setAlert("La liga ya estaba iniciada.")
+            showToast()
+            break
+          }
+
+          case "Invalid state transition": {
+            setAlert("La liga no estaba en estado de comenzar.")
+            showToast()
+            break
+          }
+
+          case "League does not have enough participants": {
+            setAlert("Se necesitan tres participantes para iniciar.")
+            showToast()
+            break
+          }
+
+          default:
+            setAlert("Error desconocido.")
+            showToast()
+            break
+
+        }
+
+        setStarting(false)
+
+      }
+    }
+  }
+
+  /**
+   * Logica para manejar estado de carga, se activa previamente al intentar iniciar la liga
+   */
+  useEffect(() => {
+    if (lobby.state !== "POR_COMENZAR") {
+      setStarting(false)
+    }
+  }, [lobby.state])
+
+  const handleCancelLeague = async () => {
+    if (!isCreator || lobby.cancelled || lobby.state !== "POR_COMENZAR" || cancelPending.current) return;
+
+    cancelPending.current = true;
+    setCancelling(true);
+    setCancelError(null);
+    hideToast();
+
+    try {
+      await cancelLeague(numericId);
+      setShowCancelLeague(false);
+      leaveL(numericId);
+      navigate("/league", {
+        replace: true,
+        state: { cancelledLeagueId: numericId },
+      });
+
+    } catch (error) {
+      if (error.status === 401) return;
+
+      switch (error.status) {
+        case 403:
+          setCancelError("No tenés permisos para cancelar la liga.");
+          break;
+        case 404:
+          setCancelError("La liga no existe.");
+          break;
+        case 409:
+          setCancelError("La liga ya comenzó o no puede cancelarse en su estado actual.");
+          break;
+        default:
+          setCancelError("No se pudo cancelar la liga. Intentá nuevamente.");
+      }
+
+      showToast();
+
+    } finally {
+      cancelPending.current = false;
+      setCancelling(false);
+    }
+  };
+
+  // Avisos de inicio de liga y entretiempo entre rondas
+  const prevEventsLength = useRef((messages[numericId] || []).length);
+  useEffect(() => {
+    const events = messages[numericId] || [];
+    if (events.length > prevEventsLength.current) {
+      const newEvents = events.slice(prevEventsLength.current);
+      prevEventsLength.current = events.length;
+      for (const msg of newEvents) {
+        if (msg.type === "league_started") {
+          setAlert("La liga ha iniciado, dirígete a Fixture para ver los partidos.");
+          showToast();
+        } else if (msg.type === "league_round_finished" && msg.break_ends_at !== null) {
+          setAlert("En 60 segundos larga la otra ronda.");
+          showToast();
+        }
+      }
+    }
+  }, [messages, numericId, showToast]);
+
+  /**
+   * Handle para abandonar una liga pendiente como participante.
+   * @precondition league.state === "POR_COMENZAR"
+   */
+  const handleLeave = async () => {
+    if (lobby.state !== "POR_COMENZAR") return;
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      setAlert("El ID de la liga no es válido.");
+      showToast();
+      return;
+    }
+
+    if (isCreator) {
+      setAlert("El creador no puede abandonar su propia liga.");
+      showToast();
+      return;
+    }
+
+    try {
+      await leaveLeagueAsPlayer(numericId);
+
+      leaveL(numericId);
+      navigate("/league", { replace: true });
+    } catch (err) {
+      console.error("Error al abandonar la liga:", err);
+
+      switch (err?.code) {
+        case "CREATOR_CANNOT_LEAVE":
+          setAlert("El creador no puede abandonar su propia liga.");
+          break;
+        case "LEAGUE_ALREADY_STARTED":
+          setAlert("No podés abandonar una liga que ya comenzó.");
+          break;
+        case "LEAGUE_NOT_FOUND":
+          setAlert("La liga no existe.");
+          break;
+        case "NOT_PARTICIPATING":
+          setAlert("No participás en esta liga.");
+          break;
+        default:
+          setAlert(err?.message || "Ocurrió un error al abandonar la liga.");
+      }
+
+      showToast();
+    }
+  };
+
+  /**
+   * Lógica para ventana de notificación de final de liga
+   */
+  const [showFinished, setShowFinished] = useState(false);
+  useEffect(() => {
+    if (lobby.state === "FINALIZADA") {
+      setShowFinished(true);
+      leaveL(numericId);
+    }
+  }, [lobby.state, numericId, leaveL]);
+
+  // Reemplazar el lobby impide acceder a sus controles, incluso mediante teclado.
+  if (lobby.cancelled) {
+    return (
+      <div className="min-h-screen mi-fuente bg-slate-900">
+        {session && !isCreator ? (
+          <LeagueCancelled
+            onBack={() => navigate("/league", {
+              replace: true,
+              state: { cancelledLeagueId: numericId, cancelledByCreator: true },
+            })}
+          />
+        ) : (
+          <p className="p-6 text-slate-300">La liga fue cancelada.</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+
+    lobby.ready ?
+      <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
+
+        {changeRoster && lobby.state === "INICIADA" && (
+          <ChangeRoster
+            leagueId={numericId}
+            onSaveSuccess={() => {
+              setAlert("Alineación actualizada correctamente.")
+              showToast()
+            }}
+            onClose={() => setChangeRoster(false)}
+            onLoadError={(message) => {
+              setAlert(message)
+              showToast()
+            }}
+          />
+        )}
+
+        {showFinished && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finished-title"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          >
+            <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4">
+              <h2 id="finished-title" className="text-2xl font-bold text-slate-100">
+                Liga finalizada
+              </h2>
+              <p className="text-slate-300">
+                La liga ha finalizado, gracias por jugar.
+              </p>
+              <p className="text-slate-300">
+                Revisa los resultados antes de salir (una vez cerrada la conexión con el servidor no podrás acceder nuevamente a ellos)
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowFinished(false)}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/league")}
+                className="px-10 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Volver a ligas
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "No eres el creador." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga no existe." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga ya estaba iniciada." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "La liga no estaba en estado de comenzar." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "Se necesitan tres participantes para iniciar." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Error al usar apiClient */}
+        {alert === "Error desconocido." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste iniciar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {alert === "El creador no puede abandonar su propia liga." && toast && (
+          <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
+          />
+        )}
+        
+        {/** Alerta: Error al cargar datos en componente de cambio de alineacion */}
+        {alert === "Error al cargar la alineación y los comportamientos." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="No pudiste cargar la alineación"
+            errorDescription={alert}
+            color="red"
+          />
+        )}
+
+        {alert === "Alineación actualizada correctamente." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Alineación guardada"
+            errorDescription={alert}
+            color="green"
+          />
+        )}
+
+        {showCancelLeague && (
+          <CancelLeague
+            onCancel={() => setShowCancelLeague(false)}
+            onConfirm={handleCancelLeague}
+            cancelling={cancelling}
+          />
+        )}
+
+        {cancelError && toast && (
+          <RightDownAlert
+            key={toast.id}
+            errorTitle="No pudiste cancelar la liga"
+            errorDescription={cancelError}
+            color="red"
+          />
+        )}
+
+        {/** Alerta: Aviso al iniciar liga para ir al fixture */}
+        {alert === "La liga ha iniciado, dirígete a Fixture para ver los partidos." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Liga iniciada"
+            errorDescription={alert}
+            color="green"
+          />
+        )}
+
+        {/** Alerta: Espera 60 segundos cada vez que una ronda finaliza */}
+        {alert === "En 60 segundos larga la otra ronda." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Fin de ronda"
+            errorDescription={alert}
+            color="orange"
+          />
+        )}
+
+        {/* Componente: info de liga */}
+        <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
+
+          {/* Encabezado: Boton para volver a la lista de ligas, Info de liga y botones para ver componentes principales */}
+          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
+
+            {/* Nombre de liga y cantidad de jugadores */}
+            <div>
+              <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider
+                            text-transparent bg-clip-text
+                            bg-gradient-to-r from-blue-400 to-emerald-400">
+                {leagueName}
+              </h1>
+              <p className=" text-slate-400">
+                Jugadores: {lobby.currentUsers}
+              </p>
+            </div>
+
+
+            {isCreator && lobby.state === "POR_COMENZAR" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelError(null);
+                  hideToast();
+                  setShowCancelLeague(true);
+                }}
+                className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cancelar liga
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLeave}
+                disabled={lobby.state !== "POR_COMENZAR"}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
+              >
+                Abandonar
+              </button>
+            )}
+
+            {/* Logica para ocultar boton de inicio a participantes no creadores o una vez iniciada/terminada la liga */}
+            {lobby.state === "POR_COMENZAR" && (
+              isCreator ? (
+                /* Boton para iniciar liga, solo visible para el creador */
+                <> {/* En JSX, una expresión solo puede devolver un único elemento */}
+                  <button
+                    type="button"
+                    disabled={lobby.currentUsers < 3 || starting}
+                    onClick={handleStartLeague}
+                    className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500
+                    disabled:border-gray-500
+                    disabled:text-gray-300
+                    disabled:hover:bg-gray-500
+                    disabled:hover:text-gray-300
+                    disabled:active:text-gray-300
+                    disabled:focus:ring-0
+                    disabled:cursor-not-allowed"
+                  >
+                    {starting ? "Iniciando..." : "Iniciar liga"}
+                  </button>
+
+                  {lobby.currentUsers < 3 && (
+                    <p className="px-4 py-2 text-slate-400">
+                      Se necesitan al menos 3 integrantes
+                    </p>
+                  )}
+                </>
+              )
+                :
+                (
+                  /* Mensaje de espera a inicio de liga, solo visible para los demas participantes*/
+                  <p className="px-4 py-2 text-slate-400">
+                    Esperando que el creador inicie la liga
+                  </p>
+                )
+            )}
+
+            
+
+            {lobby.state === "INICIADA" && (
+              <button
+                type="button"
+                onClick={() => setChangeRoster(true)}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cambiar alineación
+              </button>
+            )}
+
+            {/* Boton para volver */}
+            <button
+              type="button"
+              onClick={() => navigate("/league")}
+              className="ml-auto shrink-0 px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              Volver
+            </button>
+
+
+          </div>
+
+          {/* Pestañas distribuidas a lo largo de la barra */}
+          <ul className="mt-6 flex w-full gap-2 border-b border-slate-700">
+              {TABS.map((tab) => (
+                <li key={tab.id} className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    disabled={tab.disabled}
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-current={activeTab === tab.id ? "page" : undefined}
+                    className={`w-full h-full py-3 px-2 text-[1.75rem] leading-[2.125rem] font-semibold border-b-2 transition-colors ${tab.disabled
+                        ? "border-transparent text-slate-600 cursor-not-allowed"
+                        : activeTab === tab.id
+                          ? "border-[#5BB5D9] text-[#5BB5D9]"
+                          : "border-transparent text-slate-400 hover:text-slate-200"
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                </li>
+              ))}
+          </ul>
+
+        </div>
+
+        {/* Contenido */}
+        <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
+          {activeTab === "usuarios" && <LobbyUsers users={lobby.users} />}
+          {activeTab === "fixture" && (
+            <FixtureTab
+              rawFixture={lobby.fixture}
+              actualRound={lobby.round}
+              roundMatchIDs={lobby.matchIDs}
+              resultsMatchs={lobby.results}
+            />
+          )}
+          {activeTab === "tabla" && <TablaTab standings={lobby.standings} />}
+        </div>
+
+      </div>
+      :
+      <div className="min-h-screen mi-fuente bg-slate-900 flex flex-col items-center justify-center gap-5">
+        {/* Boton para volver */}
+        <button
+          type="button"
+          onClick={() => navigate("/league")}
+          className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+        >
+          Volver
+        </button>
+        <div className="w-16 h-16 border-8 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
+        <span className="text-slate-400 text-4xl">
+          Esperando estado del servidor
+        </span>
+        <span className="text-slate-400 text-2xl">
+          La reconexión automática está desactivada hasta nuevo aviso. Si recargaste la página volvé a unirte desde la lista de liga.
+        </span>
+      </div>
+  )
+}

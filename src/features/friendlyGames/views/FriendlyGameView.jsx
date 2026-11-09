@@ -13,6 +13,14 @@ export default function FriendlyGames() {
   const { messages } = useSessionSocket();
   const friendlyGames = messages?.friendly_games ?? []; // [] dsp del test
 
+  // Hook para busqueda y filtrado de lista
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
+  const filteredFGs = friendlyGames.filter(
+    (game) => (game.creator_club_name ?? "").toLowerCase().includes(query)
+  );
+
+
   {/** Estados para crear roaster */}
   const [roster, setRoster] = useState(null)
   
@@ -99,13 +107,28 @@ export default function FriendlyGames() {
               Partidos disponibles
             </h2>
             <span className="text-sm text-slate-400">
-              {friendlyGames.length} disponibles
+              {filteredFGs.length} disponibles
             </span>
           </div>
 
-          {friendlyGames.length > 0 ? (
+          {/* Buscador de partidos amistosos */}
+          <label className="block text-slate-300 mb-2" htmlFor="list-search">
+            Buscar partidos amistosos
+          </label>
+          <input
+            id="list-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Nombre del club creador"
+            className="w-full mb-6 rounded-lg border border-slate-600 bg-slate-900 px-4 py-3
+                       text-slate-100 placeholder:text-slate-500 focus:outline-none
+                       focus:ring-2 focus:ring-emerald-500"
+          />
+
+          {filteredFGs.length > 0 ? (
             <div className="grid grid-cols-1 xl:grid-cols-1 gap-4">
-              {friendlyGames.map(game => (
+              {filteredFGs.map(game => (
                 <FGCard
                   key={game.friendly_game_id}
                   game={game}
@@ -115,7 +138,7 @@ export default function FriendlyGames() {
             </div>
           ) : (
             <p className="py-8 text-center text-slate-400">
-              No hay partidos amistosos disponibles.
+              {query ? "No se encontraron resultados." : "No hay partidos amistosos disponibles."}
             </p>
           )}
         </section>

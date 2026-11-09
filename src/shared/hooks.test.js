@@ -252,6 +252,22 @@ describe('useWebSocket', () => {
         vi.useRealTimers();
     });
 
+    test('no reintenta cuando el servidor cierra con código 4404', () => {
+        vi.useFakeTimers();
+
+        renderHook(() => useWebSocket('ws://localhost:8000/ws', { reconnect: true }));
+        const socket = MockWebSocket.instance;
+
+        act(() => {
+            socket.triggerClose(4404);
+            vi.advanceTimersByTime(30000);
+        });
+
+        expect(MockWebSocket.instance).toBe(socket);
+
+        vi.useRealTimers();
+    });
+
     test('ignora eventos de un socket reemplazado', () => {
         const onMessage = vi.fn();
         const authExpired = vi.fn();

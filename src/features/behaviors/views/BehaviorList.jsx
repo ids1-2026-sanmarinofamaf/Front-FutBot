@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBehaviors } from '../api';
+import { getBehaviors, deleteBehavior } from '../api';
 import { BehaviorCard } from '../components/BehaviorCard';
 
 export function BehaviorList() {
   const [behaviors, setBehaviors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -27,16 +28,27 @@ export function BehaviorList() {
     fetchBehaviors();
   }, []);
 
-  console.log(behaviors)
-
   const handleCreateNew = () => {
-    console.info('Endpoint de creación de comportamiento no implementado en el sprint actual.');
+    navigate('/club/behaviors/new');
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      setDeletingId(id);
+      setError(null);
+      await deleteBehavior(id);
+      setBehaviors((prev) => prev.filter((item) => item.behavior_id !== id));
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el comportamiento.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
     return (
       <div className="flex justify-center p-12">
-        <span className="text-slate-400 font-mono animate-pulse">Cargando comportamientos...</span>
+        <span className="text-slate-400 animate-pulse">Cargando comportamientos...</span>
       </div>
     );
   }
@@ -50,16 +62,15 @@ export function BehaviorList() {
         ← Volver a Mi Club
       </button>
 
-      {/* <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-100">Mis Comportamientos</h2>
         <button 
           onClick={handleCreateNew}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-sm transition-colors cursor-not-allowed opacity-80"
-          title="No disponible en este sprint"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-sm transition-colors"
         >
           Crear Nuevo
         </button>
-      </div> */}
+      </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/30 border border-red-500 rounded text-red-400">
@@ -77,7 +88,10 @@ export function BehaviorList() {
             <BehaviorCard 
               key={behavior.behavior_id} 
               behavior={behavior} 
-              onView={(id) => navigate(`/club/behaviors/${id}`)} 
+              onView={(id) => navigate(`/club/behaviors/${id}`)}
+              onEdit={(id) => navigate(`/club/behaviors/${id}/edit`)}
+              onDelete={handleDelete}
+              isDeleting={deletingId === behavior.behavior_id}
             />
           ))}
         </div>

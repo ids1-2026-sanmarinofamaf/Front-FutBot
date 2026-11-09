@@ -3,6 +3,49 @@
 @tailwind components;
 @tailwind utilities;
 
+@theme {
+  --font-sans: "BitPotion", sans-serif;
+  --text-xs: 1.25rem;
+  --text-xs--line-height: 1.625rem;
+  --text-sm: 1.5rem;
+  --text-sm--line-height: 1.875rem;
+  --text-base: 1.75rem;
+  --text-base--line-height: 2.125rem;
+  --text-lg: 2rem;
+  --text-lg--line-height: 2.375rem;
+  --text-xl: 2.25rem;
+  --text-xl--line-height: 2.625rem;
+  --text-2xl: 2.5rem;
+  --text-2xl--line-height: 2.875rem;
+
+  /* Paleta de la bandera y escudo de San Marino */
+  --color-sm-celeste: #5BB5D9;
+  --color-sm-green: #678C5D;
+  --color-sm-gold: #F2B035;
+  --color-sm-amber: #D98E32;
+  --color-sm-white: #F2F2F2;
+
+  /* Adaptación de tokens de color a la paleta de San Marino */
+  --color-blue-400: #5BB5D9;
+  --color-blue-500: #5BB5D9;
+  --color-blue-600: #499dbd;
+  --color-blue-700: #3b84a0;
+
+  --color-emerald-300: #7fa475;
+  --color-emerald-400: #678C5D;
+  --color-emerald-500: #678C5D;
+  --color-emerald-600: #56774d;
+  --color-emerald-700: #45613e;
+  --color-emerald-900: #23321f;
+
+  --color-yellow-400: #F2B035;
+  --color-yellow-500: #F2B035;
+  --color-amber-400: #F2B035;
+  --color-amber-500: #D98E32;
+  --color-orange-400: #D98E32;
+  --color-orange-500: #D98E32;
+}
+
 /* Añadir fondo oscuro y color de texto base a toda la aplicación */
 @layer base {
   body {
@@ -27,4 +70,67 @@
 }
 .toast-enter {
   animation: slide-in-right 0.3s ease-out;
+}
+
+
+/* Perspective gives the two coin faces depth while they rotate. */
+.penalty-coin-scene {
+  width: 200px;
+  height: 200px;
+  perspective: 800px;
+}
+
+/* Keep the faces in 3D and retain the final angle supplied by PenaltyShootout. */
+.penalty-coin {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(var(--coin-final-angle));
+  animation: penalty-coin-flip 3s ease-out forwards;
+}
+
+/* Overlapping circular faces; hide their backs so club names never appear mirrored. */
+.penalty-coin-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 8px solid var(--color-sm-gold);
+  border-radius: 50%;
+  backface-visibility: hidden;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.penalty-coin-front {
+  background: var(--color-sm-celeste);
+}
+
+/* Start the second club on the opposite side of the coin. */
+.penalty-coin-back {
+  background: var(--color-sm-amber);
+  transform: rotateY(180deg);
+}
+
+/* Animate toward the winning face already selected from the backend result. */
+@keyframes penalty-coin-flip {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(var(--coin-final-angle));
+  }
+}
+
+/* Keep animationend firing so the winner is revealed even with reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .penalty-coin {
+    animation-duration: 0.01ms;
+  }
 }

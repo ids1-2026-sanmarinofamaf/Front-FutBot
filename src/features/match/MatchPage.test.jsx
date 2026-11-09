@@ -1,6 +1,9 @@
+
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MatchPage } from "./MatchPage";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 const mockUseWebSocket = vi.fn();
 
@@ -13,6 +16,16 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
+// Para último test
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={["/matches/1"]}>
+      <Routes>
+        <Route path="/matches/:matchId" element={<MatchPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
 
 vi.mock("../../shared/hooks.js", () => ({
   default: (...args) => mockUseWebSocket(...args),
@@ -23,8 +36,31 @@ vi.mock("./useAnimatedMatchState.js", () => ({
 }));
 
 vi.mock("./views/Match", () => ({
-  Match: ({ estado_partido }) => (
-    <div data-testid="match">
+  Match: ({
+    estado_partido,
+    matchId,
+    matchInfo,
+    pausa,
+    ventanaSustitucionesAbierta,
+    penalties,
+    coachChanges,
+    coachSubstitutions,
+  }) => (
+    <div
+      data-testid="match"
+      data-match-id={matchId}
+      data-pause-type={pausa?.pause_type ?? ""}
+      data-my-club-id={matchInfo?.my_club_id ?? ""}
+      data-substitutions-open={String(ventanaSustitucionesAbierta)}
+      data-penalties={JSON.stringify(penalties)}
+      data-coach-changes={coachChanges ? JSON.stringify(coachChanges.changes) : ""}
+      data-coach-substitutions={
+        coachSubstitutions ? JSON.stringify(coachSubstitutions.changes) : ""
+      }
+      data-first-player-behavior={
+        estado_partido.players?.[0]?.current_behavior_name ?? ""
+      }
+    >
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
       {estado_partido.user1_goals}-{estado_partido.user2_goals}
@@ -32,11 +68,11 @@ vi.mock("./views/Match", () => ({
   ),
 }));
 
-import { useParams } from "react-router-dom";
 
 describe("MatchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
 
     vi.stubEnv(
       "VITE_WS_SESSION_URL",
@@ -56,7 +92,7 @@ describe("MatchPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("crea la conexión WebSocket con el matchId", () => {
+  it("crea la conexión WebSocket con el matchId sin token en modo espectador", () => {
     render(<MatchPage />);
 
     expect(mockUseWebSocket).toHaveBeenCalledTimes(1);
@@ -66,6 +102,51 @@ describe("MatchPage", () => {
     expect(url).toBe(
       "wss://test-server:8000/ws/matches/123"
     );
+  });
+
+  it("crea la conexión WebSocket con el token cuando el usuario está autenticado", () => {
+    localStorage.setItem("token", "mi-token-secreto");
+
+    render(<MatchPage />);
+
+    expect(mockUseWebSocket).toHaveBeenCalledTimes(1);
+
+    const [url] = mockUseWebSocket.mock.calls[0];
+
+    expect(url).toBe(
+      "wss://test-server:8000/ws/matches/123?token=mi-token-secreto"
+    );
+  });
+
+  it("recibe match_info y pasa los datos estáticos al componente Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "match_info",
+        match_id: 123,
+        my_club_id: 7,
+        team_a: { club_id: 7, club_name: "Mi Club" },
+        team_b: { club_id: 8, club_name: "Rival" },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 0,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute("data-my-club-id", "7");
   });
 
   it("recibe un estado y muestra el partido", () => {
@@ -92,6 +173,10 @@ describe("MatchPage", () => {
     expect(
       screen.getByTestId("match")
     ).toHaveTextContent("25/600 - 2-1");
+
+    expect(
+      screen.getByTestId("match")
+    ).toHaveAttribute("data-match-id", "123");
   });
 
   it("actualiza el partido cuando recibe un nuevo estado", () => {
@@ -189,8 +274,8 @@ describe("MatchPage", () => {
     ).toHaveTextContent("50/600 - 3-2");
   });
 
-  it("muestra un mensaje de error si el partido no existe", () => {
-    render(<MatchPage />);
+  it("muestra un mensaje de error y el botón de salir si el partido no existe", () => {
+    renderPage();
 
     const [, options] = mockUseWebSocket.mock.calls[0];
 
@@ -199,7 +284,605 @@ describe("MatchPage", () => {
     });
 
     expect(
-      screen.getByText("El partido no existe")
+      screen.getByRole("heading", { name: "El partido no existe" })
     ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: "Salir del partido" })
+    ).toBeInTheDocument();
+  });
+
+  it("activa la pausa de hidratación cuando recibe pause_started", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: {
+          x: 20,
+          y: 10,
+          speed_x: 0,
+          speed_y: 0,
+        },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "hydration",
+        duration: 10,
+        planning_duration: 5,
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-pause-type", "hydration");
+  });
+
+  it("activa la pausa de entretiempo cuando recibe pause_started", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 300,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: {
+          x: 20,
+          y: 10,
+          speed_x: 0,
+          speed_y: 0,
+        },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "halftime",
+        duration: 20,
+        planning_duration: 15,
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-pause-type", "halftime");
+  });
+
+  it("desactiva la pausa cuando recibe pause_finished", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: {
+          x: 20,
+          y: 10,
+          speed_x: 0,
+          speed_y: 0,
+        },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "hydration",
+        duration: 10,
+        planning_duration: 5,
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-pause-type", "hydration");
+
+    act(() => {
+      options.onMessage({
+        event: "pause_finished",
+        pause_type: "hydration",
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-pause-type", "");
+  });
+
+  it("sigue actualizando el estado del partido durante una pausa", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: {
+          x: 20,
+          y: 10,
+          speed_x: 0,
+          speed_y: 0,
+        },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "hydration",
+        duration: 10,
+        planning_duration: 5,
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: {
+          x: 22,
+          y: 10,
+          speed_x: 0,
+          speed_y: 0,
+        },
+        players: [],
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-pause-type", "hydration");
+
+    expect(screen.getByTestId("match"))
+      .toHaveTextContent("150/600 - 1-0");
+  });
+
+  it("abre la ventana de sustituciones en pause_started y la cierra en substitution_window_closed", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "pause_started",
+        pause_type: "hydration",
+        duration: 10,
+        planning_duration: 5,
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-substitutions-open", "true");
+
+    act(() => {
+      options.onMessage({
+        event: "substitution_window_closed",
+        pause_type: "hydration",
+      });
+    });
+
+    expect(screen.getByTestId("match"))
+      .toHaveAttribute("data-substitutions-open", "false");
+  });
+
+  it("gestiona las fases de penales y conserva el historial al finalizar", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toBeNull();
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_shootout_started",
+        duration: 5,
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "intro",
+      data: { event: "penalty_shootout_started", duration: 5 },
+      results: [],
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_turn_started",
+        turn: 1,
+        club_id: 7,
+        kicker: 10,
+        score_club_a: 0,
+        score_club_b: 0,
+        remaining_seconds: 5,
+      });
+    });
+
+    let penalties = JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    );
+
+    expect(penalties.phase).toBe("choosing");
+    expect(penalties.data.turn).toBe(1);
+    expect(penalties.results).toEqual([]);
+
+    const firstResult = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage(firstResult);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: firstResult,
+      results: [firstResult],
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "penalty_turn_started",
+        turn: 2,
+        club_id: 8,
+        kicker: 20,
+        score_club_a: 1,
+        score_club_b: 0,
+        remaining_seconds: 5,
+      });
+    });
+
+    penalties = JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    );
+
+    expect(penalties.phase).toBe("choosing");
+    expect(penalties.data.turn).toBe(2);
+    expect(penalties.results).toEqual([firstResult]);
+
+    const secondResult = {
+      event: "penalty_result",
+      turn: 2,
+      club_id: 8,
+      kicker: 20,
+      kick_side: "LEFT",
+      save_side: "LEFT",
+      is_goal: false,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    const finished = {
+      event: "penalty_shootout_finished",
+      winner_club_id: 7,
+      score_club_a: 1,
+      score_club_b: 0,
+    };
+
+    act(() => {
+      options.onMessage(secondResult);
+      options.onMessage(finished);
+      options.onClose({ code: 1000 });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "finished",
+      data: finished,
+      results: [firstResult, secondResult],
+    });
+
+    expect(screen.getByTestId("match")).toHaveTextContent(
+      "600/600 - 1-1"
+    );
+  });
+
+  it("no duplica el resultado de un mismo turno", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const result = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage(result);
+      options.onMessage({ ...result });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: result,
+      results: [result],
+    });
+  });
+
+  it("recibe un turno al reconectar sin haber recibido la introduccion", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const turn = {
+      event: "penalty_turn_started",
+      turn: 3,
+      club_id: 7,
+      kicker: 11,
+      score_club_a: 1,
+      score_club_b: 1,
+      remaining_seconds: 2,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 1,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage(turn);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "choosing",
+      data: turn,
+      results: [],
+    });
+  });
+
+  it("recupera el historial y conserva los resultados al continuar la tanda", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    const firstResult = {
+      event: "penalty_result",
+      turn: 1,
+      club_id: 7,
+      kicker: 10,
+      kick_side: "LEFT",
+      save_side: "RIGHT",
+      is_goal: true,
+      score_club_a: 1,
+      score_club_b: 0,
+      duration: 0,
+    };
+
+    const secondResult = {
+      ...firstResult,
+      turn: 2,
+      club_id: 8,
+      kicker: 20,
+      save_side: "LEFT",
+      is_goal: false,
+    };
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 600,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+
+      options.onMessage({
+        event: "penalty_history",
+        results: [firstResult, secondResult],
+      });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "waiting",
+      data: null,
+      results: [firstResult, secondResult],
+    });
+
+    const turn = {
+      event: "penalty_turn_started",
+      turn: 3,
+      club_id: 7,
+      kicker: 11,
+      score_club_a: 1,
+      score_club_b: 0,
+      remaining_seconds: 2,
+    };
+
+    act(() => {
+      options.onMessage(turn);
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "choosing",
+      data: turn,
+      results: [firstResult, secondResult],
+    });
+
+    const thirdResult = {
+      ...firstResult,
+      turn: 3,
+      kicker: 11,
+      score_club_a: 2,
+      duration: 5,
+    };
+
+    act(() => {
+      options.onMessage(thirdResult);
+      options.onMessage({ ...thirdResult });
+    });
+
+    expect(JSON.parse(
+      screen.getByTestId("match").getAttribute("data-penalties")
+    )).toEqual({
+      phase: "result",
+      data: thirdResult,
+      results: [firstResult, secondResult, thirdResult],
+    });
+  });
+
+  it("procesa coach_changes actualizando current_behavior_name con change.behavior y pasa coachChanges a Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 5,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [
+          {
+            player_id: 10,
+            x: 10,
+            y: 10,
+            is_on_field: true,
+            team: "A",
+            current_behavior_name: "Midfielder",
+          },
+        ],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "coach_changes",
+        from_tic: 6,
+        changes: [{ club_id: 1, player_id: 10, behavior: "Defender" }],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-first-player-behavior",
+      "Defender"
+    );
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-coach-changes",
+      JSON.stringify([{ club_id: 1, player_id: 10, behavior: "Defender" }])
+    );
+  });
+
+  it("procesa coach_substitutions y pasa el evento a Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "coach_substitutions",
+        changes: [{ club_id: 1, player_id_out: undefined, player_out_id: 1, player_in_id: 4 }],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-coach-substitutions",
+      JSON.stringify([{ club_id: 1, player_out_id: 1, player_in_id: 4 }])
+    );
   });
 });

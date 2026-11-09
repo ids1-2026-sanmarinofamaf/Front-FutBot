@@ -1,15 +1,27 @@
 import { useState, useEffect } from 'react';
 import { getPlayers } from '../../player/api';
 import { getBehaviors } from '../../behaviors/api';
+import { getCoachBehaviors } from '../../coachBehaviors/api';
 
+/**
+ * Formulario para configurar la plantilla del club antes de un partido o liga.
+ * Permite elegir formación, 3 jugadores titulares con sus comportamientos,
+ * 3 suplentes y opcionalmente un comportamiento de Director Técnico (DT).
+ *
+ * @param {Object} props
+ * @param {(rosterPayload: Object) => void} props.onSubmit - Callback invocado con la plantilla confirmada.
+ * @param {() => void} [props.onCancel] - Callback opcional para cancelar el armado de plantilla.
+ */
 export function RosterBuilder({ onSubmit, onCancel }) {
   const [playersList, setPlayersList] = useState([]);
   const [behaviorsList, setBehaviorsList] = useState([]);
+  const [coachBehaviorsList, setCoachBehaviorsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Estado del formulario
   const [formation, setFormation] = useState('');
+  const [selectedCoachId, setSelectedCoachId] = useState('');
   const [starters, setStarters] = useState([
     { player_id: '', initial_behavior_id: '' },
     { player_id: '', initial_behavior_id: '' },
@@ -25,13 +37,14 @@ export function RosterBuilder({ onSubmit, onCancel }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [playersData, behaviorsData] = await Promise.all([
+        const [playersData, behaviorsData, coachBehaviorsData] = await Promise.all([
           getPlayers(),
-          getBehaviors()
+          getBehaviors(),
+          getCoachBehaviors(),
         ]);
         setPlayersList(playersData);
-        // Filtramos solo los comportamientos válidos.
-        setBehaviorsList(behaviorsData.filter(b => b.is_valid !== false));
+        setBehaviorsList(behaviorsData);
+        setCoachBehaviorsList(coachBehaviorsData);
       } catch (err) {
         setError('Error al cargar datos del club. ' + err.message);
       } finally {
@@ -65,9 +78,15 @@ export function RosterBuilder({ onSubmit, onCancel }) {
     if (!isValid()) return;
 
     const slots = ['left', 'center', 'right'];
+    let coachBehaviorId = null;
+    if (selectedCoachId !== '') {
+      coachBehaviorId = Number(selectedCoachId);
+    }
+
     // Empaquetar según documento API
     const rosterPayload = {
       formation,
+      coach_behavior_id: coachBehaviorId,
       players: [
         ...starters.map((s, index) => ({
           player_id: parseInt(s.player_id, 10),
@@ -185,6 +204,29 @@ export function RosterBuilder({ onSubmit, onCancel }) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Director Técnico (Opcional) */}
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="coach-behavior-select"
+            className="text-slate-300 font-semibold"
+          >
+            Director Técnico (Opcional)
+          </label>
+          <select
+            id="coach-behavior-select"
+            value={selectedCoachId}
+            onChange={(e) => setSelectedCoachId(e.target.value)}
+            className="bg-slate-900 border border-slate-600 text-slate-200 p-2 rounded focus:ring focus:ring-blue-500"
+          >
+            <option value="">Sin Director Técnico</option>
+            {coachBehaviorsList.map((cb) => (
+              <option key={cb.coach_behavior_id} value={cb.coach_behavior_id}>
+                {cb.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Acciones */}

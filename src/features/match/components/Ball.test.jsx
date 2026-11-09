@@ -12,8 +12,8 @@ describe("Ball", () => {
 
     const circle = container.querySelector("circle");
 
-    const expectedX = 300 + ((20.7 + 0.5) / 40) * 1320;
-    const expectedY = 150 + ((10.2 + 0.5) / 20) * 800;
+    const expectedX = 300 + (20.7 / 40) * 1320;
+    const expectedY = 150 + (10.2 / 20) * 800;
 
     expect(circle).toHaveAttribute("cx", String(expectedX));
     expect(circle).toHaveAttribute("cy", String(expectedY));
@@ -28,9 +28,9 @@ describe("Ball", () => {
 
     const circle = container.querySelector("circle");
 
-    expect(circle).toHaveAttribute("fill", "white");
-    expect(circle).toHaveAttribute("stroke", "black");
-    expect(circle).toHaveAttribute("r", "3.3");
+    expect(circle).toHaveAttribute("fill", "#E6ECEF");
+    expect(circle).toHaveAttribute("stroke", "#0F172A");
+    expect(circle).toHaveAttribute("r", "9");
   });
 
   it("calcula bien la posición cuando la coordenada es un número entero", () => {
@@ -42,8 +42,8 @@ describe("Ball", () => {
 
     const circle = container.querySelector("circle");
 
-    const expectedX = 300 + ((20 + 0.5) / 40) * 1320;
-    const expectedY = 150 + ((10 + 0.5) / 20) * 800;
+    const expectedX = 300 + (20 / 40) * 1320;
+    const expectedY = 150 + (10 / 20) * 800;
 
     expect(circle).toHaveAttribute("cx", String(expectedX));
     expect(circle).toHaveAttribute("cy", String(expectedY));
@@ -58,8 +58,8 @@ describe("Ball", () => {
 
     const circle = container.querySelector("circle");
 
-    const expectedX = 300 + (0.5 / 40) * 1320;
-    const expectedY = 150 + (0.5 / 20) * 800;
+    const expectedX = 300;
+    const expectedY = 150;
 
     expect(circle).toHaveAttribute("cx", String(expectedX));
     expect(circle).toHaveAttribute("cy", String(expectedY));

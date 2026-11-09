@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { FriendlyGameRoom } from './FriendlyGameRoom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFriendlyGamesSocket } from '../FriendlyGamesProvider';
+import { useSessionSocket } from '../../auth/SessionSocketProvider';
 import * as api from '../api';
 
 // Intercepciones
@@ -14,6 +15,10 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../FriendlyGamesProvider', () => ({
   useFriendlyGamesSocket: vi.fn(),
+}));
+
+vi.mock('../../auth/SessionSocketProvider', () => ({
+  useSessionSocket: vi.fn(),
 }));
 
 vi.mock('../api', () => ({
@@ -30,6 +35,7 @@ describe('FriendlyGameRoom', () => {
     useParams.mockReturnValue({ id: '15' });
     useNavigate.mockReturnValue(mockNavigate);
     useFriendlyGamesSocket.mockReturnValue({ messages: {}, joinFG: mockJoinFG });
+    useSessionSocket.mockReturnValue({ isConnected: false, messages: '' });
   });
 
   it('renderiza la vista para el creador esperando un oponente', async () => {
@@ -38,6 +44,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -64,6 +71,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -92,6 +100,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -118,6 +127,7 @@ describe('FriendlyGameRoom', () => {
     
     useFriendlyGamesSocket.mockReturnValue({
       joinFG: mockJoinFG,
+      joinedFGIds: [15],
       messages: {
         15: [{
           friendly_game_id: 15,
@@ -134,7 +144,82 @@ describe('FriendlyGameRoom', () => {
     render(<FriendlyGameRoom />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /ENTRAR A LA CANCHA/i })).toBeInTheDocument();
+      const button = screen.getByRole('button', { name: /ENTRAR A LA CANCHA/i });
+      expect(button).toBeInTheDocument();
+      expect(button).not.toBeDisabled();
+    });
+  });
+
+  it('mantiene habilitado JoinMatchButton para el rival mientras el partido está JUGANDO', async () => {
+    api.getCurrentUser.mockResolvedValue({ user_name: 'Oponente FC' });
+
+    useFriendlyGamesSocket.mockReturnValue({
+      joinFG: mockJoinFG,
+      joinedFGIds: [15],
+      messages: {
+        15: [{
+          friendly_game_id: 15,
+          state: 'JUGANDO',
+          match_id: 99,
+          users: [
+            { user_name: 'Club Local', is_creator: true },
+            { user_name: 'Oponente FC', is_creator: false }
+          ]
+        }]
+      }
+    });
+
+    useSessionSocket.mockReturnValue({
+      isConnected: true,
+      messages: {
+        friendly_games: [
+          { friendly_game_id: 15, state: 'JUGANDO', match_id: 99 }
+        ]
+      }
+    });
+
+    render(<FriendlyGameRoom />);
+
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: /ENTRAR A LA CANCHA/i });
+      expect(button).toBeInTheDocument();
+      expect(button).not.toBeDisabled();
+    });
+  });
+
+  it('deshabilita JoinMatchButton cuando el partido finaliza y desaparece de friendly_games en sesión', async () => {
+    api.getCurrentUser.mockResolvedValue({ user_name: 'Oponente FC' });
+
+    useFriendlyGamesSocket.mockReturnValue({
+      joinFG: mockJoinFG,
+      joinedFGIds: [15],
+      messages: {
+        15: [{
+          friendly_game_id: 15,
+          state: 'JUGANDO',
+          match_id: 99,
+          users: [
+            { user_name: 'Club Local', is_creator: true },
+            { user_name: 'Oponente FC', is_creator: false }
+          ]
+        }]
+      }
+    });
+
+    // El partido finalizó en el backend y ya no aparece en la lista de activos del socket de sesión
+    useSessionSocket.mockReturnValue({
+      isConnected: true,
+      messages: {
+        friendly_games: []
+      }
+    });
+
+    render(<FriendlyGameRoom />);
+
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: /ENTRAR A LA CANCHA/i });
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
     });
   });
 });
