@@ -77,7 +77,7 @@ it('muestra la carga inicial y permite cerrar el modal', async () => {
   const onClose = vi.fn();
   render(<SearchClubsModal onClose={onClose} />);
   expect(screen.getByText('Cargando clubes…')).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button', { name: 'X' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Salir' }));
   expect(onClose).toHaveBeenCalledOnce();
 });
 
@@ -127,4 +127,33 @@ it('muestra un mensaje cuando el perfil no incluye estadísticas', async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Talleres 100 puntos' }));
 
   expect(await screen.findByText('No hay estadísticas disponibles para este club.')).toBeInTheDocument();
+});
+
+it('muestra RightDownAlert ante un error de servidor y permite volver sin consultar el ranking', async () => {
+  getClub.mockRejectedValue(Object.assign(new Error('Error'), { status: 500 }));
+
+  render(<SearchClubsModal onClose={vi.fn()} />);
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Talleres 100 puntos' }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar el club.');
+
+  await userEvent.click(screen.getByRole('button', { name: 'Volver' }));
+
+  expect(screen.getByText('Belgrano')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(getRankingREST).toHaveBeenCalledTimes(1);
+});
+
+it('permite cerrar desde el perfil', async () => {
+  const onClose = vi.fn();
+  getClub.mockResolvedValue({ club_name: 'Talleres' });
+
+  render(<SearchClubsModal onClose={onClose} />);
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Talleres 100 puntos' }));
+  await screen.findByText('No hay estadísticas disponibles para este club.');
+  await userEvent.click(screen.getByRole('button', { name: 'Salir' }));
+
+  expect(onClose).toHaveBeenCalledOnce();
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../shared/api/client';
-import { getMyClub, updateMyClub } from './api';
+import { getMyClub, getClub, updateMyClub } from './api';
 import { getCurrentUser } from '../friendlyGames/api';
 
 vi.mock('../../shared/api/client', () => ({ apiClient: vi.fn() }));
@@ -16,6 +16,14 @@ describe('club API', () => {
     expect(await request()).toBe(data);
     expect(apiClient).toHaveBeenLastCalledWith(endpoint, { method: 'GET' });
   });
+  it('consulta el club seleccionado mediante el cliente autenticado', async () => {
+    apiClient.mockResolvedValueOnce({ club_name: 'Talleres' });
+
+    await getClub(42);
+
+    expect(apiClient).toHaveBeenCalledExactlyOnceWith('/clubes/42', { method: 'GET' });
+  });
+
   it('envía las modificaciones al club mediante PUT y admite respuesta sin contenido', async () => {
     apiClient.mockResolvedValueOnce(null);
     expect(await updateMyClub({ new_name: 'Nuevo club' })).toBeNull();
@@ -34,7 +42,7 @@ describe('club API', () => {
     });
   });
 
-  it.each([getMyClub, updateMyClub])('propaga el error del cliente autenticado sin ocultarlo', async (request) => {
+  it.each([getMyClub, getClub, updateMyClub])('propaga el error del cliente autenticado sin ocultarlo', async (request) => {
     const error = new Error('Error del servidor');
     apiClient.mockRejectedValueOnce(error);
     await expect(request({ new_name: 'Otro club' })).rejects.toBe(error);
