@@ -120,6 +120,26 @@ export function PenaltyShootout({
     return player.player_id === penalties?.data?.kicker
   })
 
+  const isResult = phase === "result"
+
+  const sideOffsets = {
+    LEFT: -240,
+    CENTER: 0,
+    RIGHT: 240,
+  }
+
+  const ballOffset = sideOffsets[penalties?.data?.kick_side] ?? 0
+
+  const keeperOffset = sideOffsets[penalties?.data?.save_side] ?? 0
+
+  const keeperAngles = {
+    LEFT: -35,
+    CENTER: 0,
+    RIGHT: 35,
+  }
+
+  const keeperRotation = keeperAngles[penalties?.data?.save_side] ?? 0
+
   return (
     <div className="w-full h-full overflow-hidden bg-sm-green text-white">
       <svg
@@ -199,33 +219,108 @@ export function PenaltyShootout({
           />
         </g>
 
+        {/* Goalkeeper */}
         <g transform="translate(160 0)">
-          <ellipse cx={500} cy={388} rx={65} ry={12} fill="black" opacity={0.2} />
-          <path
-            d="M 480 338 L 465 383 M 520 338 L 535 383"
-            stroke="#0F172A"
-            strokeWidth={20}
-            strokeLinecap="round"
+          <ellipse
+            cx={500}
+            cy={388}
+            rx={65}
+            ry={12}
+            fill="black"
+            opacity={isResult ? 0 : 0.2}
           />
-          <path
-            d="M 480 293 L 440 318 M 520 293 L 560 318"
-            stroke="#D98E32"
-            strokeWidth={20}
-            strokeLinecap="round"
-          />
-          <circle cx={435} cy={321} r={12} fill="white" />
-          <circle cx={565} cy={321} r={12} fill="white" />
-          <rect x={475} y={283} width={50} height={65} rx={10} fill="#D98E32" />
-          <text x={500} y={325} textAnchor="middle" fill="#0F172A" fontSize={30} fontWeight="bold">
-            1
-          </text>
-          <circle cx={500} cy={260} r={23} fill="#E8BE95" />
+
+          <g
+            className={
+              isResult
+                ? "transition-transform duration-500 ease-out motion-reduce:transition-none"
+                : ""
+            }
+            style={{
+              transformOrigin: "500px 300px",
+              transform: isResult
+                ? `translate(${keeperOffset}px, 0px) rotate(${keeperRotation}deg)`
+                : "translate(0px, 0px) rotate(0deg)",
+            }}
+          >
+            <path
+              d="M 480 338 L 465 383 M 520 338 L 535 383"
+              stroke="#0F172A"
+              strokeWidth={20}
+              strokeLinecap="round"
+            />
+
+            <path
+              d="M 480 293 L 440 318 M 520 293 L 560 318"
+              stroke="#D98E32"
+              strokeWidth={20}
+              strokeLinecap="round"
+            />
+
+            <circle cx={435} cy={321} r={12} fill="white" />
+            <circle cx={565} cy={321} r={12} fill="white" />
+
+            <rect
+              x={475}
+              y={283}
+              width={50}
+              height={65}
+              rx={10}
+              fill="#D98E32"
+            />
+
+            <text
+              x={500}
+              y={325}
+              textAnchor="middle"
+              fill="#0F172A"
+              fontSize={30}
+              fontWeight="bold"
+            >
+              1
+            </text>
+
+            <circle cx={500} cy={260} r={23} fill="#E8BE95" />
+          </g>
         </g>
 
         <g>
-          <ellipse cx={660} cy={738} rx={36} ry={8} fill="black" opacity={0.2} />
-          <circle cx={660} cy={710} r={28} fill="white" stroke="#0F172A" strokeWidth={2} />
-          <path d="M 660 694 L 674 704 L 669 720 H 651 L 646 704 Z" fill="#0F172A" />
+          <ellipse
+            cx={660}
+            cy={738}
+            rx={36}
+            ry={8}
+            fill="black"
+            opacity={isResult ? 0 : 0.2}
+          />
+
+          <g
+            className={
+              isResult
+                ? "transition-transform duration-700 ease-in motion-reduce:transition-none"
+                : ""
+            }
+            style={{
+              transformOrigin: "660px 710px",
+              transform: isResult
+                ? `translate(${ballOffset}px, -390px) scale(0.55)`
+                : "translate(0px, 0px) scale(1)",
+            }}
+          >
+            <circle
+              cx={660}
+              cy={710}
+              r={28}
+              fill="white"
+              stroke="#0F172A"
+              strokeWidth={2}
+            />
+
+            <path
+              d="M 660 694 L 674 704 L 669 720 H 651 L 646 704 Z"
+              fill="#0F172A"
+            />
+          </g>
         </g>
 
         <foreignObject x={495} y={660} width={100} height={100} className="group">
