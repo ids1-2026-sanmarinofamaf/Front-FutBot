@@ -276,6 +276,8 @@ export function LeagueLobby() {
       setStarting(true)
       try {
         await startLeague(numericId)
+        setAlert("La liga ha iniciado, dirígete a Fixture para ver los partidos.")
+        showToast()
       } catch (err) {
         switch (err.detail) {
 
@@ -330,6 +332,25 @@ export function LeagueLobby() {
       setStarting(false)
     }
   }, [lobby.state])
+
+  // Avisos de inicio de liga y entretiempo entre rondas
+  const prevEventsLength = useRef((messages[numericId] || []).length);
+  useEffect(() => {
+    const events = messages[numericId] || [];
+    if (events.length > prevEventsLength.current) {
+      const newEvents = events.slice(prevEventsLength.current);
+      prevEventsLength.current = events.length;
+      for (const msg of newEvents) {
+        if (msg.type === "league_started") {
+          setAlert("La liga ha iniciado, dirígete a Fixture para ver los partidos.");
+          showToast();
+        } else if (msg.type === "league_round_finished" && msg.break_ends_at !== null) {
+          setAlert("En 60 segundos larga la otra ronda.");
+          showToast();
+        }
+      }
+    }
+  }, [messages, numericId, showToast]);
 
   /**
    * Handle para abandonar una liga pendiente como participante.
@@ -467,6 +488,28 @@ export function LeagueLobby() {
 
         {alert === "El creador no puede abandonar su propia liga." && toast && (
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
+          />
+        )}
+
+        {/** Alerta: Aviso al iniciar liga para ir al fixture */}
+        {alert === "La liga ha iniciado, dirígete a Fixture para ver los partidos." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Liga iniciada"
+            errorDescription={alert}
+            color="green"
+          />
+        )}
+
+        {/** Alerta: Espera 60 segundos cada vez que una ronda finaliza */}
+        {alert === "En 60 segundos larga la otra ronda." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Fin de ronda"
+            errorDescription={alert}
+            color="orange"
           />
         )}
 
