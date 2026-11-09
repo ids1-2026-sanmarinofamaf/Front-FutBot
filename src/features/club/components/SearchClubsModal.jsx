@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getRankingREST } from '../../mainMenu/api';
 import { getClub } from '../api';
+import { Avatar } from '../../../shared/components/Avatar';
+import { ClubStatsTab } from './ClubStatsTab';
 
 export function SearchClubsModal({ onClose }) {
 
@@ -175,7 +177,30 @@ export function SearchClubsModal({ onClose }) {
         )}
 
         {!loading && club && (
-          <p className="font-bold">{club.club_name}</p>
+          <div className="flex flex-col gap-6">
+
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Avatar
+                avatar={club.club_avatar}
+                name={club.club_name}
+                className="w-32 h-32 sm:w-40 sm:h-40"
+              />
+
+              <h2 className="max-w-full break-words text-[2.5rem] leading-[2.875rem] font-bold">
+                {club.club_name}
+              </h2>
+            </div>
+
+            {club.club_stats || club.statistics ? (
+              <ClubStatsTab
+                statistics={club.club_stats ?? club.statistics}
+                includeFriendlies
+              />
+            ) : (
+              <p className="text-slate-400">No hay estadísticas disponibles para este club.</p>
+            )}
+
+          </div>
         )}
 
         {selectedId !== null && (
