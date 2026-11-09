@@ -643,4 +643,63 @@ describe('MatchPlayerOut', () => {
     ).not.toBeInTheDocument()
     expect(makeSubstitution).not.toHaveBeenCalled()
   })
+
+  it('muestra el cartel de sustitución cuando llega coachSubstitutions del propio club e ignora las del rival', () => {
+    const { rerender } = render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          coachSubstitutions={{
+            event: 'coach_substitutions',
+            changes: [{ club_id: 2, player_out_id: 7, player_in_id: 10 }],
+          }}
+        />
+      </svg>
+    )
+
+    expect(screen.queryByTestId('substitution-message')).not.toBeInTheDocument()
+
+    rerender(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          coachSubstitutions={{
+            event: 'coach_substitutions',
+            changes: [{ club_id: 1, player_out_id: 1, player_in_id: 4 }],
+          }}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('substitution-message')).toHaveTextContent(
+      'Sustitución realizada: Player 1 salió y Player 4 ingresó.'
+    )
+  })
+
+  it('muestra en el botón del titular el nombre del suplente cuando el servidor informa una sustitución pendiente del DT', () => {
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          serverPendingSubstitution={{ player_out_id: 2, player_in_id: 5 }}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('substitution-button-2')).toHaveTextContent(
+      'Player 5'
+    )
+    expect(screen.getByTestId('substitution-button-1')).toHaveTextContent(
+      'Cambiar jugador'
+    )
+  })
 })

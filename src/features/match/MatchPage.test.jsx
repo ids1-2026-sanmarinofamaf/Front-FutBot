@@ -43,6 +43,8 @@ vi.mock("./views/Match", () => ({
     pausa,
     ventanaSustitucionesAbierta,
     penalties,
+    coachChanges,
+    coachSubstitutions,
   }) => (
     <div
       data-testid="match"
@@ -51,6 +53,13 @@ vi.mock("./views/Match", () => ({
       data-my-club-id={matchInfo?.my_club_id ?? ""}
       data-substitutions-open={String(ventanaSustitucionesAbierta)}
       data-penalties={JSON.stringify(penalties)}
+      data-coach-changes={coachChanges ? JSON.stringify(coachChanges.changes) : ""}
+      data-coach-substitutions={
+        coachSubstitutions ? JSON.stringify(coachSubstitutions.changes) : ""
+      }
+      data-first-player-behavior={
+        estado_partido.players?.[0]?.current_behavior_name ?? ""
+      }
     >
       {estado_partido.actual_tic}/{estado_partido.total_tic}
       {" - "}
@@ -801,5 +810,79 @@ describe("MatchPage", () => {
       data: thirdResult,
       results: [firstResult, secondResult, thirdResult],
     });
+  });
+
+  it("procesa coach_changes actualizando current_behavior_name con change.behavior y pasa coachChanges a Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 5,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 1,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [
+          {
+            player_id: 10,
+            x: 10,
+            y: 10,
+            is_on_field: true,
+            team: "A",
+            current_behavior_name: "Midfielder",
+          },
+        ],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "coach_changes",
+        from_tic: 6,
+        changes: [{ club_id: 1, player_id: 10, behavior: "Defender" }],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-first-player-behavior",
+      "Defender"
+    );
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-coach-changes",
+      JSON.stringify([{ club_id: 1, player_id: 10, behavior: "Defender" }])
+    );
+  });
+
+  it("procesa coach_substitutions y pasa el evento a Match", () => {
+    render(<MatchPage />);
+
+    const [, options] = mockUseWebSocket.mock.calls[0];
+
+    act(() => {
+      options.onMessage({
+        event: "estado_partido",
+        actual_tic: 150,
+        total_tic: 600,
+        user1_goals: 0,
+        user2_goals: 0,
+        ball: { x: 20, y: 10, speed_x: 0, speed_y: 0 },
+        players: [],
+      });
+    });
+
+    act(() => {
+      options.onMessage({
+        event: "coach_substitutions",
+        changes: [{ club_id: 1, player_id_out: undefined, player_out_id: 1, player_in_id: 4 }],
+      });
+    });
+
+    expect(screen.getByTestId("match")).toHaveAttribute(
+      "data-coach-substitutions",
+      JSON.stringify([{ club_id: 1, player_out_id: 1, player_in_id: 4 }])
+    );
   });
 });

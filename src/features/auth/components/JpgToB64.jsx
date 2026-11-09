@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const MAX_BYTES = 1024 * 1024; // 1 MB
 
-export default function JpgInput({ id, onChange, onError}) {
+export default function JpgInput({ id, onChange, onError, disabled = false}) {
     const [error, setError] = useState("");
+    const selection = useRef(0);
 
     const handleChange = (e) => {
+        const currentSelection = ++selection.current;
         const file = e.target.files[0];
         if (!file) return;
 
@@ -27,12 +29,17 @@ export default function JpgInput({ id, onChange, onError}) {
             return;
         }
 
-        const reader = new FileReader();
+        onChange(null);
+        const reader = new FileReader(); //LECTURA ASINCRONA
         reader.onload = () => {
+            //Se descarta cambio si se elige una nueva imagen
+            if (currentSelection !== selection.current) return;
             setError("");
             onChange(reader.result.split(",")[1]); // sin "data:image/jpeg;base64,"
         }
         reader.onerror = () => {
+            if (currentSelection !== selection.current) return;
+            onChange(null);
             const message = "No se pudo leer el archivo"
             setError(message);
             onError?.(message)
@@ -46,12 +53,12 @@ export default function JpgInput({ id, onChange, onError}) {
         <div className="min-w-0">
             <input
                 type="file"
+                disabled={disabled}
                 accept="image/jpeg"
                 id={id}
                 className="w-full border-2 py-2 px-3 rounded-md text-base text-emerald-400"
                 onChange={handleChange}
             />
-            {/** {error && <p className="text-orange-400 text-xl mt-1">{error}</p>} */}
         </div>
     );
 }

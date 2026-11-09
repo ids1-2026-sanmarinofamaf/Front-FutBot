@@ -1,47 +1,191 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMyClub, updateMyClub } from '../api';
+import { getCurrentUser } from '../../friendlyGames/api'; 
+import { ClubInfoTab } from '../components/ClubInfoTab';
+import { ClubStatsTab } from '../components/ClubStatsTab';
+import { EditClubNameModal } from '../components/EditClubNameModal';
+import { EditClubAvatarModal } from '../components/EditClubAvatarModal';
+import { useToast } from '../../../shared/hooks';
+import RightDownAlert from '../../../shared/components/RightDownAlert';
 
 export function MyClub() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('info');
+
+  // Hooks para guardar informacion de club y de usuario
+  const [user, setUser] = useState(null);
+  const [club, setClub] = useState(null);
+  // Hook para manejo de caso de cierre de sesión luego de llamado a API
+  const [loading, setLoading] = useState(true);
+  // Hooks para manejar modales de cambio de nombre u avatar
+  const [modal, setModal] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // Hooks para manejo de alertas
+  const [alert, setAlert] = useState(null);
+  const { toast, showToast } = useToast();
+  const notify = (message, color) => {
+    setAlert({ message, color });
+    showToast();
+  };
+
+  const saveClub = async (changes) => {
+    setSaving(true);
+
+    // Envío de datos
+    try {
+      await updateMyClub(changes);
+    } catch (error) {
+      setSaving(false);
+      if (error.status === 401) return;
+
+      let message = 'Respuesta inválida del servidor';
+      if (error.status === 404 && error.message === 'Club not found') {
+        message = 'No se encontró el club';
+      } else if (error.status === 422) {
+        message = 'Revisá el nombre o la imagen del club e intentá nuevamente';
+      } else if (error instanceof TypeError && !error.status) {
+        message = 'No se pudo establecer conexión con el servidor';
+      }
+      notify(message, 'red');
+      return;
+    }
+
+    setModal(null);
+    setSaving(false);
+    setRefreshing(true);
+    notify('Club actualizado correctamente', 'green');
+
+    // Actualización de datos
+    try {
+      setClub(await getMyClub());
+    } catch (error) {
+      if (error.status === 401) return;
+
+      let message = 'Respuesta inválida del servidor';
+      if (error.status === 404 && error.message === 'Club not found') {
+        message = 'No se encontró el club';
+      } else if (error instanceof TypeError && !error.status) {
+        message = 'No se pudo establecer conexión con el servidor';
+      }
+      notify(message, 'red');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+
+    let active = true;
+
+    const loadClub = async () => {
+
+      try {
+
+        // Ejecución en paralelo de llamados a API
+        const [userData, clubData] = await Promise.all([
+          getCurrentUser(),
+          getMyClub(),
+        ]);
+
+        if (!active) return;
+        setUser(userData);
+        setClub(clubData);
+        setLoading(false);
+
+      } catch (error) {
+        if (!active) return;
+
+        if (error.status === 401) return;
+
+        let message = 'Respuesta inválida del servidor';
+        if (error.status === 404 && error.message === 'Club not found') {
+          message = 'No se encontró el club';
+        } else if (error instanceof TypeError && !error.status) {
+          message = 'No se pudo establecer conexión con el servidor';
+        }
+
+        navigate('/', { state: { clubLoadError: message } });
+      }
+    };
+
+    loadClub();
+    return () => { active = false; };
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full flex flex-col gap-6">
-        <h1 className="text-3xl font-bold text-slate-100 text-center mb-8">Mi Club</h1>
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center p-6">
+      
+      {alert && toast && (
+        <RightDownAlert key={toast.id} errorTitle={alert.color === 'red' ? 'No se pudo actualizar el club' : 'Mi club'}
+          errorDescription={alert.message} color={alert.color} />
+      )}
 
-        <button 
-          onClick={() => navigate('/club/players')}
-          className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-        >
-          Gestión de Jugadores
-        </button>
-        
-        <button 
-          onClick={() => navigate('/club/behaviors')}
-          className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-        >
-          Gestión de Comportamientos
-        </button>
+      {/* Componentes para cambiar nombre y avatar */}
+      {modal === 'name' && <EditClubNameModal name={club.club_name} onSave={saveClub} onCancel={() => setModal(null)} saving={saving} />}
+      {modal === 'avatar' && <EditClubAvatarModal club={club} onSave={saveClub} onCancel={() => setModal(null)} saving={saving} />}
 
-        {/* <button 
-          onClick={() => navigate('/club/roster')}
-          className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-        >
-          Preparar mi plantilla
-        </button>
+      <div className="max-w-7xl w-full flex flex-col gap-6">
 
-        <button 
-          onClick={() => navigate('/club/stats')}
-          className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
-        >
-          Estadísticas
-        </button> */}
+        <div className="flex items-center justify-between">
 
-        <button 
-          onClick={() => navigate('/')}
-          className="w-full mt-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 text-sm font-medium rounded-xl transition-colors"
-        >
-          Volver al Menú Principal
-        </button>
+          <h1 className="text-[5rem] leading-[3.375rem] font-bold text-[#F2F2F2] text-center mb-8">Mi Club</h1>
+
+          <button
+            onClick={() => navigate('/')}
+            className="py-3 px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 text-[1.5rem] leading-[1.875rem] font-medium rounded-xl transition-colors"
+          >
+            Volver al Menú Principal
+          </button>
+
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center gap-4 py-12">
+            <div className="w-12 h-12 border-4 border-slate-600 border-t-[#5BB5D9] rounded-full animate-spin" />
+            <p className="text-[1.75rem] leading-[2.125rem] text-slate-400">Cargando información del club…</p>
+          </div>
+        ) : (
+          <>
+            {/* Selector de pestañas */}
+            <div className="flex gap-2 border-b border-slate-700">
+              {[
+                ['info', 'Información'],
+                ['stats', 'Estadísticas'],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex-1 py-3 text-[1.75rem] leading-[2.125rem] font-semibold border-b-2 transition-colors ${activeTab === id
+                      ? 'border-[#5BB5D9] text-[#5BB5D9]'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Contenido de pestañas */}
+            <div className="flex flex-col gap-6">
+              {activeTab === 'info' ? (
+                <>
+                  <ClubInfoTab user={user} club={club} editingDisabled={refreshing}
+                    onEditName={() => setModal('name')} onEditAvatar={() => setModal('avatar')} />
+                  <button
+                    onClick={() => navigate('/club/coach-behaviors')}
+                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-[#F2F2F2] text-[1.75rem] leading-[2.125rem] font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
+                  >
+                    Gestión de Directores Técnicos
+                  </button>
+                </>
+              ) : (
+                <ClubStatsTab statistics={club.statistics} />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

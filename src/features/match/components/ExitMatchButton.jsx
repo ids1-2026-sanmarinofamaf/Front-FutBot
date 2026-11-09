@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from "react-router-dom"
 
-export function ExitMatchButton({ x = 30, y = 980, width = 220, height = 55 }) {
+export function ExitMatchButton({ x = 30, y = 865, width = 220, height = 55 }) {
   const navigate = useNavigate()
   const location = useLocation()
 
   const handleExit = () => {
-    //se usa useLocation para detectar el state del navigate de FGCard
-    if (location.state?.from === "/friendly") {
-      navigate("/friendly", { replace: true })
+    // Si proviene con ruta de origen (ej. /friendly o /league/lobby/:id/:leagueName), volvemos a ella
+    if (location.state?.from) {
+      navigate(location.state.from, { replace: true })
       return
     }
 

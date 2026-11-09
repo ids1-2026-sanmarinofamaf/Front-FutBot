@@ -60,6 +60,8 @@ export function MatchPlayerOut({
   onSelectStarter,
   behaviorChangesDisabled = false,
   ventanaSustitucionesAbierta = true,
+  coachSubstitutions = null,
+  serverPendingSubstitution = null,
 }) {
   const [selectedStarterId, setSelectedStarterId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -68,6 +70,88 @@ export function MatchPlayerOut({
   const [substitutionMessage, setSubstitutionMessage] = useState(null)
 
   const playersInfo = getPlayersInfo(matchInfo)
+
+  // Sincroniza la sustitución pendiente informada por el servidor (por ej. pedida por el DT)
+  // para que el botón del titular muestre el nombre del suplente que va a ingresar.
+  useEffect(
+    function () {
+      if (
+        !serverPendingSubstitution ||
+        serverPendingSubstitution.player_out_id === undefined ||
+        serverPendingSubstitution.player_in_id === undefined
+      ) {
+        return
+      }
+
+      const currentPlayersInfo = getPlayersInfo(matchInfo)
+      const outgoingInfo =
+        currentPlayersInfo[String(serverPendingSubstitution.player_out_id)]
+      const incomingInfo =
+        currentPlayersInfo[String(serverPendingSubstitution.player_in_id)]
+
+      const outgoingName =
+        outgoingInfo?.Name || outgoingInfo?.name || "Jugador"
+      const incomingName =
+        incomingInfo?.Name || incomingInfo?.name || "Jugador"
+
+      setPendingSubstitution(function (previous) {
+        if (
+          previous &&
+          String(previous.starterId) ===
+            String(serverPendingSubstitution.player_out_id) &&
+          String(previous.substituteId) ===
+            String(serverPendingSubstitution.player_in_id)
+        ) {
+          return previous
+        }
+
+        return {
+          starterId: String(serverPendingSubstitution.player_out_id),
+          substituteId: String(serverPendingSubstitution.player_in_id),
+          outgoingName: outgoingName,
+          name: incomingName,
+        }
+      })
+    },
+    [serverPendingSubstitution, matchInfo]
+  )
+
+  // Muestra el aviso cuando el WebSocket notifica una sustitución ejecutada por el DT propio.
+  useEffect(
+    function () {
+      if (
+        !coachSubstitutions?.changes ||
+        !Array.isArray(coachSubstitutions.changes)
+      ) {
+        return
+      }
+
+      const ownChange = coachSubstitutions.changes.find(function (change) {
+        return (
+          matchInfo?.my_club_id !== null &&
+          matchInfo?.my_club_id !== undefined &&
+          Number(change.club_id) === Number(matchInfo.my_club_id)
+        )
+      })
+
+      if (!ownChange) return
+
+      const currentPlayersInfo = getPlayersInfo(matchInfo)
+      const outgoingInfo = currentPlayersInfo[String(ownChange.player_out_id)]
+      const incomingInfo = currentPlayersInfo[String(ownChange.player_in_id)]
+
+      const outgoingName =
+        outgoingInfo?.Name || outgoingInfo?.name || "Jugador"
+      const incomingName =
+        incomingInfo?.Name || incomingInfo?.name || "Jugador"
+
+      setSubstitutionMessage(
+        `Sustitución realizada: ${outgoingName} salió y ${incomingName} ingresó.`
+      )
+      setPendingSubstitution(null)
+    },
+    [coachSubstitutions, matchInfo]
+  )
 
   // Confirma la sustitución únicamente cuando el WebSocket
   // informa que el titular salió y el suplente ingresó.

@@ -24,6 +24,8 @@ export function MatchPage() {
   const [pausa, setPausa] = useState(null);
   const [ventanaSustitucionesAbierta, setVentanaSustitucionesAbierta] =
     useState(false);
+  const [coachChanges, setCoachChanges] = useState(null);
+  const [coachSubstitutions, setCoachSubstitutions] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [penalties, setPenalties] = useState(null);
 
@@ -50,6 +52,7 @@ export function MatchPage() {
       case "coach_changes":
       case "coach_change":
         if (data.changes && Array.isArray(data.changes)) {
+          setCoachChanges(data);
           setEstadoPartido(function (previous) {
             if (!previous) return previous;
             const updatedPlayers = previous.players.map(function (player) {
@@ -57,11 +60,21 @@ export function MatchPage() {
                 (c) => String(c.player_id) === String(player.player_id)
               );
               return change
-                ? { ...player, current_behavior_name: change.behavior_name }
+                ? {
+                    ...player,
+                    current_behavior_name:
+                      change.behavior ?? change.behavior_name,
+                  }
                 : player;
             });
             return { ...previous, players: updatedPlayers };
           });
+        }
+        break;
+
+      case "coach_substitutions":
+        if (data.changes && Array.isArray(data.changes)) {
+          setCoachSubstitutions(data);
         }
         break;
 
@@ -186,6 +199,8 @@ export function MatchPage() {
       pausa={pausa}
       ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       penalties={penalties}
+      coachChanges={coachChanges}
+      coachSubstitutions={coachSubstitutions}
     />
   );
 }

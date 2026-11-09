@@ -9,13 +9,13 @@ import { Avatar } from "../../../shared/components/Avatar"
  * @param is_creator: booleano para indicar si el usuario es el creador de la sala  
  * @returns componente que contiene toda la información de un usuario
  */
-function LobbyUserCard({ user_name, avatar, club_id, is_creator }) {
+function LobbyUserCard({ user_name, avatar, is_creator }) {
   return (
     <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg shadow-sm">
       <div className="flex items-center justify-between gap-4 min-w-0">
         <div className="flex items-center gap-4 min-w-0">
           <div className="shrink-0">
-            <Avatar avatar={avatar} name={user_name} clubId={club_id} />
+            <Avatar avatar={avatar} name={user_name} />
           </div>
           <span
             title={user_name}

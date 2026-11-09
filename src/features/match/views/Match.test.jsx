@@ -685,4 +685,86 @@ describe('Match', () => {
     expect(changeBehavior).not.toHaveBeenCalled()
     expect(makeSubstitution).not.toHaveBeenCalled()
   })
+
+  it('muestra el cartel temporal coach-changes-message cuando llega coachChanges del club propio y lo oculta a los 4 segundos', () => {
+    vi.useFakeTimers()
+
+    try {
+      render(
+        <MemoryRouter>
+          <Match
+            estado_partido={estado_partido}
+            matchId="42"
+            matchInfo={defaultMatchInfo}
+            coachChanges={{
+              event: 'coach_changes',
+              from_tic: 10,
+              changes: [
+                { club_id: 1, player_id: 1, behavior: 'Defender' },
+                { club_id: 1, player_id: 2, behavior: 'Defender' },
+              ],
+            }}
+          />
+        </MemoryRouter>
+      )
+
+      const banner = screen.getByTestId('coach-changes-message')
+      expect(banner).toHaveTextContent(
+        'DT asignó: Player 1 → Defender, Player 2 → Defender'
+      )
+
+      act(() => {
+        vi.advanceTimersByTime(4000)
+      })
+
+      expect(screen.queryByTestId('coach-changes-message')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sincroniza el comportamiento cuando el DT cambia un jugador que antes tenía un cambio manual', async () => {
+    getBehaviors.mockResolvedValue([
+      { behavior_id: 1, name: 'Default', is_default: true },
+      { behavior_id: 5, name: 'Ataque Total', is_default: false },
+    ])
+    changeBehavior.mockResolvedValue(null)
+
+    const result = renderMatch(estado_partido, '77')
+
+    await screen.findByText('Player 1')
+
+    fireEvent.click(screen.getByTestId('starter-card-1'))
+    fireEvent.click(await screen.findByRole('option', { name: /Ataque Total/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Ataque Total')
+    })
+
+    // Luego el DT cambia el comportamiento del jugador 1 a Defender
+    const stateAfterCoach = {
+      ...estado_partido,
+      players: estado_partido.players.map((p) =>
+        p.player_id === 1 ? { ...p, current_behavior_name: 'Defender' } : p
+      ),
+    }
+
+    result.rerender(
+      <MemoryRouter>
+        <Match
+          estado_partido={stateAfterCoach}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          coachChanges={{
+            event: 'coach_changes',
+            from_tic: 460,
+            changes: [{ club_id: 1, player_id: 1, behavior: 'Defender' }],
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('starter-behavior-1')).toHaveTextContent('Defender')
+  })
 })

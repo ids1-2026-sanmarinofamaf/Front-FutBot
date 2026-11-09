@@ -2,6 +2,19 @@ import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import FriendlyGames from "./FriendlyGameView";
+import { useSessionSocket } from "../../auth/SessionSocketProvider";
+
+vi.mock("../../auth/SessionSocketProvider", () => ({
+    useSessionSocket: vi.fn(),
+}));
+
+vi.mock("../components/FGCard", () => ({
+    FGCard: ({ game }) => (
+        <div data-testid={`card-${game.friendly_game_id}`}>
+            {game.creator_club_name}
+        </div>
+    ),
+}));
 
 const navigate = vi.fn();
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
@@ -27,7 +40,10 @@ vi.mock("../../roster/components/RosterBuilder", () => ({
     ),
 }));
 
-beforeEach(() => navigate.mockClear());
+beforeEach(() => {
+    navigate.mockClear();
+    useSessionSocket.mockReturnValue({ messages: { friendly_games: [] } });
+});
 afterEach(cleanup);
 
 describe("FriendlyGames", () => {
@@ -146,5 +162,47 @@ describe("FriendlyGames", () => {
 
             expect(screen.queryByText("La plantilla todavía no ha sido cargada.")).not.toBeInTheDocument();
         });
+    });
+});
+
+describe("Buscador de amistosos", () => {
+    const games = [
+        { friendly_game_id: 1, creator_club_name: "Club Norte" },
+        { friendly_game_id: 2, creator_club_name: "Club Sur" },
+    ];
+
+    it("filtra coincidencias parciales sin distinguir mayúsculas y restaura la lista al borrar", async () => {
+        useSessionSocket.mockReturnValue({ messages: { friendly_games: games } });
+        const user = userEvent.setup();
+        render(<FriendlyGames />);
+        expect(screen.getByText("2 disponibles")).toBeInTheDocument();
+        const input = screen.getByRole("searchbox", { name: "Buscar partidos amistosos" });
+        await user.type(input, "nOr");
+        expect(screen.getByTestId("card-1")).toHaveTextContent("Club Norte");
+        expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+        expect(screen.getByText("1 disponibles")).toBeInTheDocument();
+        await user.clear(input);
+        expect(screen.getByTestId("card-1")).toBeInTheDocument();
+        expect(screen.getByTestId("card-2")).toBeInTheDocument();
+        expect(screen.getByText("2 disponibles")).toBeInTheDocument();
+        await user.type(input, "inexistente");
+        expect(screen.getByText("No se encontraron resultados.")).toBeInTheDocument();
+    });
+
+    it("mantiene el filtro al recibir actualizaciones del WebSocket", async () => {
+        useSessionSocket.mockReturnValue({ messages: { friendly_games: games } });
+        const user = userEvent.setup();
+        const { rerender } = render(<FriendlyGames />);
+        await user.type(screen.getByRole("searchbox", { name: "Buscar partidos amistosos" }), "norte");
+        useSessionSocket.mockReturnValue({
+            messages: {
+                friendly_games: [games[1], { friendly_game_id: 3, creator_club_name: "Norte Unido" }],
+            },
+        });
+        rerender(<FriendlyGames />);
+        expect(screen.getByTestId("card-3")).toHaveTextContent("Norte Unido");
+        expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+        expect(screen.getByRole("searchbox", { name: "Buscar partidos amistosos" })).toHaveValue("norte");
     });
 });
