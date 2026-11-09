@@ -30,7 +30,7 @@ export function BehaviorCard({ behavior, onView, onEdit, onDelete, isDeleting = 
           {behavior.name}
         </span>
         {isDefault && (
-          <span className="text-xs px-2 py-1 rounded font-mono border bg-slate-700/60 text-slate-300 border-slate-600">
+          <span className="text-xs px-2 py-1 rounded border bg-slate-700/60 text-slate-300 border-slate-600">
             Por defecto
           </span>
         )}

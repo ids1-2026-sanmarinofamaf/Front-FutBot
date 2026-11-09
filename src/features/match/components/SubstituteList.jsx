@@ -13,7 +13,7 @@ export function SubstituteList({
     <foreignObject
       x={x}
       y={y}
-      width={230}
+      width={250}
       height={1}
       className="overflow-visible"
     >
@@ -22,10 +22,10 @@ export function SubstituteList({
         onClick={function (event) {
           event.stopPropagation()
         }}
-        className="w-[230px] rounded-md border-2 border-white bg-slate-800 p-1.5 text-white shadow-lg flex flex-col gap-1.5"
+        className="w-[250px] rounded-md border-2 border-white bg-slate-800 p-2 text-white shadow-lg flex flex-col gap-2"
       >
         {substitutes.length === 0 && (
-          <p className="py-2 text-center text-sm text-white">
+          <p className="py-2 text-center text-base text-white">
             Sin suplentes
           </p>
         )}
@@ -47,7 +47,7 @@ export function SubstituteList({
                 event.stopPropagation()
                 onSelect(substitute)
               }}
-              className="w-full rounded bg-slate-700 py-2 px-2 text-center text-[15px] text-white hover:bg-slate-600 disabled:cursor-default disabled:opacity-50 truncate"
+              className="w-full rounded bg-slate-700 py-2 px-3 text-center text-lg font-bold text-white hover:bg-slate-600 disabled:cursor-default disabled:opacity-50 truncate"
             >
               {name}
             </button>
@@ -55,13 +55,13 @@ export function SubstituteList({
         })}
 
         {isSubmitting && (
-          <p className="px-1 text-center text-[13px] text-white">
+          <p className="px-1 text-center text-base text-white">
             Realizando sustitución...
           </p>
         )}
 
         {error && (
-          <p className="px-1 text-center text-xs text-red-300 break-words">
+          <p className="px-1 text-center text-sm text-red-300 break-words">
             {error}
           </p>
         )}
@@ -74,7 +74,7 @@ export function SubstituteList({
             event.stopPropagation()
             onCancel()
           }}
-          className="w-full rounded bg-red-800 py-1.5 px-2 text-center text-sm font-bold text-white hover:bg-red-700 disabled:cursor-default disabled:opacity-50"
+          className="w-full rounded bg-red-800 py-2 px-3 text-center text-base font-bold text-white hover:bg-red-700 disabled:cursor-default disabled:opacity-50"
         >
           Cancelar
         </button>

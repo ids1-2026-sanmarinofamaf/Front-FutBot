@@ -170,8 +170,16 @@ export function MyClub() {
             {/* Contenido de pestañas */}
             <div className="flex flex-col gap-6">
               {activeTab === 'info' ? (
-                <ClubInfoTab user={user} club={club} editingDisabled={refreshing}
-                  onEditName={() => setModal('name')} onEditAvatar={() => setModal('avatar')} />
+                <>
+                  <ClubInfoTab user={user} club={club} editingDisabled={refreshing}
+                    onEditName={() => setModal('name')} onEditAvatar={() => setModal('avatar')} />
+                  <button
+                    onClick={() => navigate('/club/coach-behaviors')}
+                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-[#F2F2F2] text-[1.75rem] leading-[2.125rem] font-semibold rounded-xl border border-slate-700 transition-colors shadow-md"
+                  >
+                    Gestión de Directores Técnicos
+                  </button>
+                </>
               ) : (
                 <ClubStatsTab statistics={club.statistics} />
               )}

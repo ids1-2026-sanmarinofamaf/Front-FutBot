@@ -86,6 +86,7 @@ describe('MyClub', () => {
       expect(screen.queryByText('Estadísticas del club')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Gestión de Jugadores/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Gestión de Comportamientos/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Gestión de Directores Técnicos/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Volver al Menú Principal/i })).toBeInTheDocument();
 
       // Verificamos que los botones de features futuras no se rendericen
@@ -125,6 +126,16 @@ describe('MyClub', () => {
   });
 
   describe('Navegación', () => {
+    it('navega a "/club/coach-behaviors" al hacer clic en "Gestión de Directores Técnicos"', async () => {
+      const user = userEvent.setup();
+      await renderLoadedClub();
+
+      await user.click(screen.getByRole('button', { name: 'Gestión de Directores Técnicos' }));
+
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/club/coach-behaviors');
+    });
+
     it('navega a "/club/players" al hacer clic en "Gestión de Jugadores"', async () => {
       const user = userEvent.setup();
       await renderLoadedClub();

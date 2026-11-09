@@ -113,10 +113,10 @@ describe('MatchPlayerInMatch', () => {
     expect(groups).toHaveLength(2)
 
     expect(groups[0].querySelector('circle'))
-      .toHaveAttribute('fill', 'blue')
+      .toHaveAttribute('fill', '#5BB5D9')
 
     expect(groups[1].querySelector('circle'))
-      .toHaveAttribute('fill', 'red')
+      .toHaveAttribute('fill', '#D98E32')
   })
 
   it('calcula la posición del jugador con el offset de media unidad', () => {
@@ -145,8 +145,8 @@ describe('MatchPlayerInMatch', () => {
 
     const circle = container.querySelector('circle')
 
-    const expectedX = 300 + ((5.8 + 0.5) / 40) * 1320
-    const expectedY = 150 + ((10.3 + 0.5) / 20) * 800
+    const expectedX = 300 + (5.8 / 40) * 1320
+    const expectedY = 150 + (10.3 / 20) * 800
 
     expect(circle).toHaveAttribute('cx', String(expectedX))
     expect(circle).toHaveAttribute('cy', String(expectedY))
@@ -178,8 +178,8 @@ describe('MatchPlayerInMatch', () => {
 
     const circle = container.querySelector('circle')
 
-    const expectedX = 300 + ((39.5 + 0.5) / 40) * 1320
-    const expectedY = 150 + ((19.5 + 0.5) / 20) * 800
+    const expectedX = 300 + (39.5 / 40) * 1320
+    const expectedY = 150 + (19.5 / 20) * 800
 
     expect(circle).toHaveAttribute('cx', String(expectedX))
     expect(circle).toHaveAttribute('cy', String(expectedY))
@@ -301,7 +301,7 @@ describe('MatchPlayerInMatch', () => {
     expect(screen.getByText('9')).toBeInTheDocument()
   })
 
-  it('pinta con el color distintivo #62B5E5 al jugador indicado en highlightedPlayerId', () => {
+  it('pinta con el color distintivo #F2B035 al jugador indicado en highlightedPlayerId', () => {
     const players = [
       { player_id: 1, x: 5, y: 5, team: 'A', is_on_field: true },
       { player_id: 2, x: 10, y: 10, team: 'A', is_on_field: true },
@@ -320,8 +320,8 @@ describe('MatchPlayerInMatch', () => {
 
     const circles = container.querySelectorAll('circle')
     expect(circles).toHaveLength(3)
-    expect(circles[0]).toHaveAttribute('fill', 'blue')
-    expect(circles[1]).toHaveAttribute('fill', '#62B5E5')
-    expect(circles[2]).toHaveAttribute('fill', 'red')
+    expect(circles[0]).toHaveAttribute('fill', '#5BB5D9')
+    expect(circles[1]).toHaveAttribute('fill', '#F2B035')
+    expect(circles[2]).toHaveAttribute('fill', '#D98E32')
   })
 })

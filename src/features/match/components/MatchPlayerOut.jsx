@@ -59,6 +59,8 @@ export function MatchPlayerOut({
   matchInfo,
   onSelectStarter,
   ventanaSustitucionesAbierta = true,
+  coachSubstitutions = null,
+  serverPendingSubstitution = null,
 }) {
   const [selectedStarterId, setSelectedStarterId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,6 +69,88 @@ export function MatchPlayerOut({
   const [substitutionMessage, setSubstitutionMessage] = useState(null)
 
   const playersInfo = getPlayersInfo(matchInfo)
+
+  // Sincroniza la sustitución pendiente informada por el servidor (por ej. pedida por el DT)
+  // para que el botón del titular muestre el nombre del suplente que va a ingresar.
+  useEffect(
+    function () {
+      if (
+        !serverPendingSubstitution ||
+        serverPendingSubstitution.player_out_id === undefined ||
+        serverPendingSubstitution.player_in_id === undefined
+      ) {
+        return
+      }
+
+      const currentPlayersInfo = getPlayersInfo(matchInfo)
+      const outgoingInfo =
+        currentPlayersInfo[String(serverPendingSubstitution.player_out_id)]
+      const incomingInfo =
+        currentPlayersInfo[String(serverPendingSubstitution.player_in_id)]
+
+      const outgoingName =
+        outgoingInfo?.Name || outgoingInfo?.name || "Jugador"
+      const incomingName =
+        incomingInfo?.Name || incomingInfo?.name || "Jugador"
+
+      setPendingSubstitution(function (previous) {
+        if (
+          previous &&
+          String(previous.starterId) ===
+            String(serverPendingSubstitution.player_out_id) &&
+          String(previous.substituteId) ===
+            String(serverPendingSubstitution.player_in_id)
+        ) {
+          return previous
+        }
+
+        return {
+          starterId: String(serverPendingSubstitution.player_out_id),
+          substituteId: String(serverPendingSubstitution.player_in_id),
+          outgoingName: outgoingName,
+          name: incomingName,
+        }
+      })
+    },
+    [serverPendingSubstitution, matchInfo]
+  )
+
+  // Muestra el aviso cuando el WebSocket notifica una sustitución ejecutada por el DT propio.
+  useEffect(
+    function () {
+      if (
+        !coachSubstitutions?.changes ||
+        !Array.isArray(coachSubstitutions.changes)
+      ) {
+        return
+      }
+
+      const ownChange = coachSubstitutions.changes.find(function (change) {
+        return (
+          matchInfo?.my_club_id !== null &&
+          matchInfo?.my_club_id !== undefined &&
+          Number(change.club_id) === Number(matchInfo.my_club_id)
+        )
+      })
+
+      if (!ownChange) return
+
+      const currentPlayersInfo = getPlayersInfo(matchInfo)
+      const outgoingInfo = currentPlayersInfo[String(ownChange.player_out_id)]
+      const incomingInfo = currentPlayersInfo[String(ownChange.player_in_id)]
+
+      const outgoingName =
+        outgoingInfo?.Name || outgoingInfo?.name || "Jugador"
+      const incomingName =
+        incomingInfo?.Name || incomingInfo?.name || "Jugador"
+
+      setSubstitutionMessage(
+        `Sustitución realizada: ${outgoingName} salió y ${incomingName} ingresó.`
+      )
+      setPendingSubstitution(null)
+    },
+    [coachSubstitutions, matchInfo]
+  )
 
   // Confirma la sustitución únicamente cuando el WebSocket
   // informa que el titular salió y el suplente ingresó.
@@ -233,15 +317,15 @@ export function MatchPlayerOut({
         })
     : -1
 
-  const selectedStarterX = selectedStarter?.team === "A" ? 40 : 1790
-  const selectedStarterY = 150 + selectedStarterIndex * 100
+  const selectedStarterX = selectedStarter?.team === "A" ? 30 : 1755
+  const selectedStarterY = 160 + selectedStarterIndex * 250
 
   const menuX =
     selectedStarter?.team === "A"
-      ? selectedStarterX + 100
-      : selectedStarterX - 240
+      ? selectedStarterX + 145
+      : selectedStarterX - 260
 
-  const menuY = selectedStarterY + 65
+  const menuY = selectedStarterY + 70
 
   return (
     <>
@@ -249,21 +333,23 @@ export function MatchPlayerOut({
         <g data-testid="substitution-message">
           <rect
             x={610}
-            y={35}
+            y={175}
             width={700}
             height={55}
-            rx={8}
-            fill="#166534"
-            stroke="white"
+            rx={10}
+            fill="#0f172a"
+            fillOpacity="0.82"
+            stroke="#5BB5D9"
             strokeWidth="2"
           />
 
           <text
             x={960}
-            y={68}
+            y={208}
             textAnchor="middle"
-            fill="white"
-            fontSize="20"
+            dominantBaseline="middle"
+            fill="#F2F2F2"
+            fontSize="22"
             fontWeight="bold"
           >
             {substitutionMessage}
@@ -273,7 +359,7 @@ export function MatchPlayerOut({
 
       <StarterColumn
         players={teamAStarters}
-        x={40}
+        x={30}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
@@ -284,7 +370,7 @@ export function MatchPlayerOut({
 
       <StarterColumn
         players={teamBStarters}
-        x={1790}
+        x={1755}
         playerNumbers={playerNumbers}
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
@@ -295,14 +381,14 @@ export function MatchPlayerOut({
 
       <BenchRow
         players={teamASubstitutes}
-        startX={320}
+        startX={310}
         direction={1}
         playersInfo={playersInfo}
       />
 
       <BenchRow
         players={teamBSubstitutes}
-        startX={1550}
+        startX={1525}
         direction={-1}
         playersInfo={playersInfo}
       />
@@ -339,7 +425,7 @@ function StarterColumn({
   return (
     <>
       {players.map(function (player, index) {
-        const y = 150 + index * 100
+        const y = 160 + index * 250
         const playerInfo = playersInfo[String(player.player_id)]
         const isOwn = Boolean(playerInfo?.isOwn)
         const isSubDisabled = !ventanaSustitucionesAbierta
@@ -358,7 +444,7 @@ function StarterColumn({
               playerInfo={playerInfo}
               x={x}
               y={y}
-              size={90}
+              size={135}
               number={playerNumbers[player.player_id]}
               onSelectStarter={onSelectStarter}
             />
@@ -375,23 +461,23 @@ function StarterColumn({
                 style={{ cursor: isSubDisabled ? "not-allowed" : "pointer" }}
               >
                 <rect
-                  x={player.team === "A" ? x + 95 : x - 115}
-                  y={y + 30}
-                  width={110}
-                  height={34}
-                  rx={5}
-                  fill={isSubDisabled ? "#475569" : "#166534"}
+                  x={x + 5}
+                  y={y + 142}
+                  width={125}
+                  height={40}
+                  rx={6}
+                  fill={isSubDisabled ? "#475569" : "#1e293b"}
                   opacity={isSubDisabled ? 0.6 : 1}
-                  stroke={isSubDisabled ? "#94a3b8" : "white"}
+                  stroke={isSubDisabled ? "#94a3b8" : "#F2F2F2"}
                   strokeWidth="1.5"
                 />
 
                 <text
-                  x={player.team === "A" ? x + 150 : x - 60}
-                  y={y + 52}
+                  x={x + 135 / 2}
+                  y={y + 167}
                   textAnchor="middle"
-                  fill="white"
-                  fontSize="13"
+                  fill="#F2F2F2"
+                  fontSize="18"
                   fontWeight="bold"
                 >
                   {buttonLabel}
@@ -414,9 +500,9 @@ function BenchRow({ players, startX, direction, playersInfo }) {
             key={player.player_id}
             player={player}
             playerInfo={playersInfo[String(player.player_id)]}
-            x={startX + direction * index * 80}
-            y={40}
-            size={70}
+            x={startX + direction * index * 95}
+            y={35}
+            size={85}
           />
         )
       })}
@@ -461,18 +547,18 @@ function PlayerSquare({
         y={y}
         width={size}
         height={size}
-        fill={player.team === "A" ? "blue" : "red"}
-        stroke="white"
+        fill={player.team === "A" ? "#5BB5D9" : "#D98E32"}
+        stroke="#F2F2F2"
         strokeWidth="2"
       />
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 20 : y + 36}
+        y={isClickable ? y + 26 : y + 46}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="white"
-        fontSize={isClickable ? "13" : "14"}
+        fill="#0f172a"
+        fontSize={isClickable ? "24" : "26"}
         fontWeight="bold"
       >
         {playerInfo?.Name || playerInfo?.name}
@@ -480,11 +566,12 @@ function PlayerSquare({
 
       <text
         x={x + size / 2}
-        y={isClickable ? y + 37 : y + 54}
+        y={isClickable ? y + 52 : y + 78}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="white"
-        fontSize={isClickable ? "12" : "13"}
+        fill="#0f172a"
+        fontSize={isClickable ? "22" : "24"}
+        fontWeight="bold"
       >
         Number: {number}
       </text>
@@ -493,27 +580,40 @@ function PlayerSquare({
         <text
           data-testid={`starter-behavior-${player.player_id}`}
           x={x + size / 2}
-          y={y + 54}
+          y={y + 77}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#e2e8f0"
-          fontSize="11"
+          fill="#0f172a"
+          fontSize="20"
+          fontWeight="bold"
         >
           {behaviorName}
         </text>
       )}
 
       {isClickable && (
-        <text
-          x={x + size / 2}
-          y={y + 72}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#bfdbfe"
-          fontSize="10"
-        >
-          Cambiar comp.
-        </text>
+        <g>
+          <rect
+            x={x + 10}
+            y={y + 98}
+            width={size - 20}
+            height={28}
+            rx={5}
+            fill="#0f172a"
+            fillOpacity="0.75"
+          />
+          <text
+            x={x + size / 2}
+            y={y + 112}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={player.team === "A" ? "#F2B035" : "#5BB5D9"}
+            fontSize="19"
+            fontWeight="bold"
+          >
+            Cambiar comp.
+          </text>
+        </g>
       )}
     </g>
   )
@@ -527,9 +627,9 @@ function PlayerSquareOut({ player, playerInfo, x, y, size }) {
         y={y}
         width={size}
         height={size}
-        fill={player.team === "A" ? "blue" : "red"}
-        opacity={0.5}
-        stroke="white"
+        fill={player.team === "A" ? "#5BB5D9" : "#D98E32"}
+        opacity={0.85}
+        stroke="#F2F2F2"
         strokeWidth="2"
       />
 
@@ -538,8 +638,8 @@ function PlayerSquareOut({ player, playerInfo, x, y, size }) {
         y={y + size / 2}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="white"
-        fontSize="13"
+        fill="#0f172a"
+        fontSize={22}
         fontWeight="bold"
       >
         {playerInfo?.Name || playerInfo?.name}

@@ -22,7 +22,7 @@ export function BehaviorDetail() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8 bg-slate-900 rounded-xl border border-slate-700">
-        <span className="text-slate-400 font-mono animate-pulse">Cargando código del comportamiento...</span>
+        <span className="text-slate-400 animate-pulse">Cargando código del comportamiento...</span>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export function BehaviorDetail() {
               Comportamiento: <span className="text-emerald-400">{behavior?.name}</span>
             </h3>
             {isDefault && (
-              <span className="text-xs px-2 py-1 rounded font-mono border bg-slate-700/60 text-slate-300 border-slate-600">
+              <span className="text-xs px-2 py-1 rounded border bg-slate-700/60 text-slate-300 border-slate-600">
                 Por defecto
               </span>
             )}
