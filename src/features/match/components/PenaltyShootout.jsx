@@ -47,6 +47,11 @@ export function PenaltyShootout({
       myClubID === matchInfo?.team_b?.club_id
     )
 
+  const isSaving =
+    phase === "choosing" &&
+    isParticipant &&
+    myClubID !== penalties?.data?.club_id
+
   const currentChoice = choice?.turn === turn ? choice : null
 
   const canChoose =
@@ -103,6 +108,14 @@ export function PenaltyShootout({
       results: [null, null, null],
     },
   ]
+
+  const kickingTeam = teams.find(function (team) {
+    return team.clubId === penalties?.data?.club_id
+  })
+
+  const turnLabel = isParticipant
+    ? (isSaving ? "TE TOCA ATAJAR" : "TE TOCA PATEAR")
+    : `Patea ${kickingTeam?.name ?? ""}`
 
   const penaltyResults = penalties?.results ?? []
 
@@ -339,53 +352,100 @@ export function PenaltyShootout({
           </g>
         </g>
 
-        <foreignObject x={495} y={660} width={100} height={100} className="group">
-          <button
-            type="button"
-            aria-label="Elegir izquierda"
-            disabled={!canChoose}
-            onClick={function () {
-              handleChoose("LEFT")
-            }}
-            className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+        {isParticipant && (
+          <g>
+          <foreignObject
+            x={isSaving ? 470 : 495}
+            y={isSaving ? 270 : 660}
+            width={100}
+            height={100}
+            className="group"
           >
-            <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
-              <use href="#penalty-choice-arrow" />
-            </svg>
-          </button>
-        </foreignObject>
+            <button
+              type="button"
+              aria-label="Elegir izquierda"
+              disabled={!canChoose}
+              onClick={function () {
+                handleChoose("LEFT")
+              }}
+              className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+            >
+              <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
+                <use href="#penalty-choice-arrow" />
+              </svg>
+            </button>
+          </foreignObject>
 
-        <foreignObject x={610} y={575} width={100} height={100} className="group">
-          <button
-            type="button"
-            aria-label="Elegir centro"
-            disabled={!canChoose}
-            onClick={function () {
-              handleChoose("CENTER")
-            }}
-            className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+          <foreignObject
+            x={610}
+            y={isSaving ? 130 : 575}
+            width={100}
+            height={100}
+            className="group"
           >
-            <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
-              <use href="#penalty-choice-arrow" transform="rotate(90 50 50)" />
-            </svg>
-          </button>
-        </foreignObject>
+            <button
+              type="button"
+              aria-label="Elegir centro"
+              disabled={!canChoose}
+              onClick={function () {
+                handleChoose("CENTER")
+              }}
+              className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+            >
+              <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
+                {isSaving ? (
+                  <circle
+                    cx={50}
+                    cy={50}
+                    r={18}
+                    fill="currentColor"
+                  />
+                ) : (
+                  <use
+                    href="#penalty-choice-arrow"
+                    transform="rotate(90 50 50)"
+                  />
+                )}
+              </svg>
+            </button>
+          </foreignObject>
 
-        <foreignObject x={725} y={660} width={100} height={100} className="group">
-          <button
-            type="button"
-            aria-label="Elegir derecha"
-            disabled={!canChoose}
-            onClick={function () {
-              handleChoose("RIGHT")
-            }}
-            className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+          <foreignObject
+            x={isSaving ? 750 : 725}
+            y={isSaving ? 270 : 660}
+            width={100}
+            height={100}
+            className="group"
           >
-            <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
-              <use href="#penalty-choice-arrow" transform="rotate(180 50 50)" />
-            </svg>
-          </button>
-        </foreignObject>
+            <button
+              type="button"
+              aria-label="Elegir derecha"
+              disabled={!canChoose}
+              onClick={function () {
+                handleChoose("RIGHT")
+              }}
+              className="flex h-full w-full scale-85 items-center justify-center rounded-lg border border-white/30 bg-slate-900/40 text-white transition-transform duration-150 ease-out group-hover:scale-100 motion-reduce:transition-none disabled:cursor-default disabled:opacity-70"
+            >
+              <svg viewBox="0 0 100 100" aria-hidden="true" className="h-full w-full">
+                <use href="#penalty-choice-arrow" transform="rotate(180 50 50)" />
+              </svg>
+            </button>
+          </foreignObject>
+          </g>
+        )}
+
+        {phase === "choosing" && (
+          <text
+            x={660}
+            y={480}
+            textAnchor="middle"
+            fill="#F2B035"
+            fontSize={48}
+            fontWeight="bold"
+          >
+            {turnLabel}
+          </text>
+        )}
 
         {phase === "choosing" && currentChoice && (
           <foreignObject x={260} y={515} width={800} height={55}>

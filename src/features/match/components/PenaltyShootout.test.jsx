@@ -380,7 +380,7 @@ describe('PenaltyShootout', () => {
   )
 
   it.each([null, 999])(
-    'bloquea las elecciones cuando el club del usuario es %s',
+    'oculta los controles cuando el club del usuario es %s',
     (clubId) => {
       render(
         <PenaltyShootout
@@ -389,13 +389,17 @@ describe('PenaltyShootout', () => {
         />
       )
 
-      screen.getAllByRole('button').forEach(function (button) {
-        expect(button).toBeDisabled()
-      })
+      expect(screen.getByText('Patea Club A')).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', {
-        name: 'Elegir izquierda',
-      }))
+      expect(
+        screen.queryByText('TE TOCA PATEAR')
+      ).not.toBeInTheDocument()
+
+      expect(
+        screen.queryByText('TE TOCA ATAJAR')
+      ).not.toBeInTheDocument()
+
+      expect(screen.queryAllByRole('button')).toHaveLength(0)
 
       expect(submitPenaltyChoice).not.toHaveBeenCalled()
     }
@@ -778,5 +782,115 @@ describe('PenaltyShootout', () => {
     })
 
     expect(submitPenaltyChoice).not.toHaveBeenCalled()
+  })
+  it.each([
+    [1, 1, 'TE TOCA PATEAR'],
+    [1, 2, 'TE TOCA ATAJAR'],
+    [2, 1, 'TE TOCA ATAJAR'],
+    [2, 2, 'TE TOCA PATEAR'],
+  ])(
+    'muestra el rol del club %i cuando patea el club %i',
+    (clubId, kickingClubId, expectedLabel) => {
+      render(
+        <PenaltyShootout
+          matchInfo={{ ...matchInfo, my_club_id: clubId }}
+          penalties={{
+            ...choosingPenalties,
+            data: {
+              ...choosingPenalties.data,
+              turn: kickingClubId === 1 ? 1 : 2,
+              club_id: kickingClubId,
+              kicker: kickingClubId === 1 ? 1 : 7,
+            },
+          }}
+        />
+      )
+
+      expect(screen.getByText(expectedLabel)).toBeInTheDocument()
+
+      const otherLabel = expectedLabel === 'TE TOCA PATEAR'
+        ? 'TE TOCA ATAJAR'
+        : 'TE TOCA PATEAR'
+
+      expect(screen.queryByText(otherLabel)).not.toBeInTheDocument()
+    }
+  )
+  it('mueve los controles al arquero al atajar y los devuelve a la pelota al patear', () => {
+    const { rerender } = render(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={choosingPenalties}
+      />
+    )
+
+    const initialPositions = screen.getAllByRole('button').map(
+      function (button) {
+        return button.closest('foreignObject').getAttribute('y')
+      }
+    )
+
+    const centerButton = screen.getByRole('button', {
+      name: 'Elegir centro',
+    })
+
+    expect(centerButton.querySelector('use')).toBeInTheDocument()
+    expect(centerButton.querySelector('circle')).not.toBeInTheDocument()
+
+    rerender(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          ...choosingPenalties,
+          data: {
+            ...choosingPenalties.data,
+            turn: 2,
+            club_id: 2,
+            kicker: 7,
+          },
+        }}
+      />
+    )
+
+    screen.getAllByRole('button').forEach(function (button, index) {
+      const currentY = Number(
+        button.closest('foreignObject').getAttribute('y')
+      )
+
+      expect(currentY).toBeLessThan(Number(initialPositions[index]))
+      expect(button).toBeEnabled()
+    })
+
+    const saveCenterButton = screen.getByRole('button', {
+      name: 'Elegir centro',
+    })
+
+    expect(saveCenterButton.querySelector('circle')).toBeInTheDocument()
+    expect(saveCenterButton.querySelector('use')).not.toBeInTheDocument()
+
+    rerender(
+      <PenaltyShootout
+        matchInfo={matchInfo}
+        penalties={{
+          ...choosingPenalties,
+          data: {
+            ...choosingPenalties.data,
+            turn: 3,
+          },
+        }}
+      />
+    )
+
+    screen.getAllByRole('button').forEach(function (button, index) {
+      expect(
+        button.closest('foreignObject')
+      ).toHaveAttribute('y', initialPositions[index])
+    })
+
+    const kickCenterButton = screen.getByRole('button', {
+      name: 'Elegir centro',
+    })
+
+    expect(kickCenterButton.querySelector('use')).toBeInTheDocument()
+    expect(kickCenterButton.querySelector('circle')).not.toBeInTheDocument()
   })
 })
