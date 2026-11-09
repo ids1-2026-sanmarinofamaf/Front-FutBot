@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendNewL, joinLeagueAsPlayer, startLeague, leaveLeagueAsPlayer, getMyLeagueIds } from "./api";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { sendNewL, joinLeagueAsPlayer, startLeague, leaveLeagueAsPlayer, getMyLeagueIds, cancelLeague } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 
@@ -257,5 +257,74 @@ describe("getMyLeagueIds", () => {
     apiClient.mockResolvedValue({ league_ids: [2, 5] });
     await expect(getMyLeagueIds()).resolves.toEqual([2, 5]);
     expect(apiClient).toHaveBeenCalledWith("/leagues/me", { method: "GET" });
+  });
+});
+
+describe("cancelLeague", () => {
+  it("envía DELETE al identificador solicitado sin body y admite respuesta sin contenido", async () => {
+    apiClient.mockResolvedValueOnce(null);
+
+    expect(await cancelLeague(42)).toBeNull();
+    expect(apiClient).toHaveBeenCalledExactlyOnceWith("/leagues/42", { method: "DELETE" });
+  });
+
+  it.each([401, 403, 404, 409, 500])("propaga el error HTTP %s sin modificarlo", async (status) => {
+    const error = Object.assign(new Error("Error del servidor"), { status });
+    apiClient.mockRejectedValueOnce(error);
+
+    await expect(cancelLeague(42)).rejects.toBe(error);
+  });
+
+  it("propaga errores de conexión", async () => {
+    const error = new TypeError("Failed to fetch");
+    apiClient.mockRejectedValueOnce(error);
+
+    await expect(cancelLeague(42)).rejects.toBe(error);
+  });
+});
+
+
+describe("cancelLeague con el cliente autenticado", () => {
+  beforeEach(async () => {
+    const { apiClient: realApiClient } = await vi.importActual("../../shared/api/client");
+    apiClient.mockImplementation(realApiClient);
+    localStorage.clear();
+    localStorage.setItem("token", "token-creador");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it("cancela mediante el cliente real con token y acepta 204 sin intentar leer JSON", async () => {
+    const json = vi.fn();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 204, json });
+
+    expect(await cancelLeague(42)).toBeNull();
+
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`${import.meta.env.VITE_API_URL}/leagues/42`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer token-creador",
+      },
+    });
+    expect(json).not.toHaveBeenCalled();
+  });
+
+  it("usa el mecanismo existente de sesión expirada cuando cancelar devuelve 401", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ detail: "Unauthorized" }),
+    });
+    const dispatch = vi.spyOn(window, "dispatchEvent");
+
+    await expect(cancelLeague(42)).rejects.toMatchObject({ status: 401 });
+
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "auth:expired" }));
   });
 });

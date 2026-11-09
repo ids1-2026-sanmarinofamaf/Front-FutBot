@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LeagueLobby } from "./LeagueRoom";
 
@@ -979,11 +979,35 @@ describe("Confirmación de cancelación", () => {
     setEvents([lobbyState([u(1, { is_creator: true }), u(2), u(3)])]);
   });
 
+  it("ofrece cancelar únicamente al creador de una liga pendiente", async () => {
+    const { rerender } = await renderLobby();
+
+    expect(screen.getByRole("button", { name: "Cancelar liga" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abandonar" })).not.toBeInTheDocument();
+
+    for (const state of ["INICIADA", "FINALIZADA"]) {
+      setEvents([lobbyConCreador(3, state)]);
+      rerender(<LeagueLobby />);
+      expect(screen.queryByRole("button", { name: "Cancelar liga" })).not.toBeInTheDocument();
+    }
+  });
+
+  it("mantiene abandonar y oculta cancelar para participantes", async () => {
+    comoParticipante();
+
+    await renderLobby();
+
+    expect(screen.getByRole("button", { name: "Abandonar" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Cancelar liga" })).not.toBeInTheDocument();
+  });
+
   it("rechaza la confirmación sin llamar a la API", async () => {
     await renderLobby();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Volver" }).find((button) => button.closest(".fixed")).closest('.fixed').querySelector('button'));
+    const confirmation = screen.getByRole("button", { name: "Confirmar cancelación" }).closest(".fixed");
+    expect(mockCancelLeague).not.toHaveBeenCalled();
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Volver" }));
 
     expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
     expect(mockCancelLeague).not.toHaveBeenCalled();
@@ -1003,6 +1027,8 @@ describe("Confirmación de cancelación", () => {
     expect(confirm).toBeDisabled();
     expect(screen.getByText("Cancelando liga...")).toBeInTheDocument();
     expect(mockCancelLeague).toHaveBeenCalledExactlyOnceWith(10);
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
 
     await act(async () => { resolveCancel(); });
 
