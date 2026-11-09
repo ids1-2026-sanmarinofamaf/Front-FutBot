@@ -19,7 +19,7 @@ export function ClubInfoTab({ user, club, onEditName, onEditAvatar, editingDisab
     <>
       <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 text-[#F2F2F2] flex items-start sm:items-center gap-4 sm:gap-6">
         <div className="relative shrink-0 pr-6">
-          <Avatar avatar={club.club_avatar} name={club.club_name} clubId={club.club_id} className="w-20 h-20 sm:w-28 sm:h-28" />
+          <Avatar avatar={club.club_avatar} name={club.club_name} className="w-20 h-20 sm:w-28 sm:h-28" />
           <div className="absolute bottom-0 right-0">
             <EditButton title="Editar avatar" onClick={onEditAvatar} disabled={editingDisabled} />
           </div>

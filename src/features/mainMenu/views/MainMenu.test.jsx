@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MainMenu } from './MainMenu';
@@ -45,23 +45,14 @@ describe('MainMenu UI', () => {
   });
 
   it('muestra el avatar personalizado y consulta nuevamente al volver al menú', async () => {
-    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'YWJj' });
+    getMyClub.mockResolvedValue({ club_avatar: 'YWJj' });
     const { unmount } = render(<MainMenu />);
     await waitFor(() => expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', 'data:image/png;base64,YWJj'));
     unmount();
 
-    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'ZGVm' });
+    getMyClub.mockResolvedValue({ club_avatar: 'ZGVm' });
     render(<MainMenu />);
     await waitFor(() => expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', 'data:image/png;base64,ZGVm'));
-  });
-
-  it('usa el avatar predeterminado del club si la imagen personalizada falla', async () => {
-    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'YWJj' });
-    render(<MainMenu />);
-    const avatar = screen.getByAltText('Avatar del Club');
-    await waitFor(() => expect(avatar).toHaveAttribute('src', 'data:image/png;base64,YWJj'));
-    fireEvent.error(avatar);
-    expect(avatar).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
   });
 
   it('mantiene disponible el menú si falla la consulta del club', async () => {
@@ -69,7 +60,7 @@ describe('MainMenu UI', () => {
     const user = userEvent.setup();
     render(<MainMenu />);
     await user.click(screen.getByRole('button', { name: /Mi Club/i }));
-    expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', '/assets/defaultAvatars/1.png');
+    expect(screen.getByAltText('Avatar del Club')).not.toHaveAttribute('src');
     expect(mockNavigate).toHaveBeenCalledWith('/club');
   });
 

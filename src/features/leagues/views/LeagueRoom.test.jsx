@@ -97,7 +97,7 @@ const mockStandings = [1, 2].map((club_id) => ({
 const u = (club_id, extra = {}) => ({
   club_id,
   user_name: `Club ${club_id}`,
-  avatar: "default",
+  avatar: "YWJj",
   ...extra,
 });
 

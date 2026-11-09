@@ -16,7 +16,7 @@ export function EditClubAvatarModal({ club, onSave, onCancel, saving }) {
     >
       
     {/* Vista previa */}
-    <Avatar avatar={newAvatar || club.club_avatar} name={club.club_name} clubId={club.club_id} className="w-28 h-28" />
+    <Avatar avatar={newAvatar || club.club_avatar} name={club.club_name} className="w-28 h-28" />
 
     <div className="[&_input]:text-[1.75rem] [&_input]:leading-[2.125rem]">
 

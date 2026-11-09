@@ -20,7 +20,7 @@ const realRouter = await vi.importActual('react-router-dom');
 const USER = { user_name: 'Luca', user_email: 'luca@example.com' };
 const CLUB = {
   club_name: 'San Marino',
-  club_avatar: 'default',
+  club_avatar: 'YWJj',
   club_id: 1,
   statistics: {
     total_points: 42,
@@ -303,7 +303,7 @@ describe('MyClub', () => {
       expect(screen.getByLabelText(AVATAR_LABEL)).toHaveValue('');
       expect(screen.getAllByRole('img')).toHaveLength(2);
       for (const image of screen.getAllByRole('img')) {
-        expect(image).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
+        expect(image).toHaveAttribute('src', 'data:image/png;base64,YWJj');
       }
     });
   });
@@ -563,7 +563,7 @@ describe('Navegación de Mi club con el router real', () => {
     vi.resetAllMocks();
     useNavigate.mockImplementation(realRouter.useNavigate);
     getCurrentUser.mockResolvedValue({ user_name: 'Luca', user_email: 'luca@example.com' });
-    getMyClub.mockResolvedValue({ club_name: 'San Marino', club_avatar: 'default', statistics: {} });
+    getMyClub.mockResolvedValue({ club_name: 'San Marino', club_avatar: 'YWJj', statistics: {} });
   });
 
   it('abre /club desde el menú principal', async () => {

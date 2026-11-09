@@ -21,7 +21,7 @@ export function MainMenu() {
     getMyClub().then((data) => {
       if (active) setClub(data);
     }).catch(() => {
-      // El menú sigue disponible con el avatar predeterminado si falla la consulta.
+      // El menú sigue disponible si falla la consulta del avatar.
     });
     return () => { active = false; };
   }, []);
@@ -56,7 +56,6 @@ export function MainMenu() {
           <div className="w-16 h-16 bg-slate-900 rounded-full border border-slate-600 overflow-hidden flex-shrink-0">
             <Avatar
               avatar={club?.club_avatar}
-              clubId={club?.club_id}
               name="Avatar del Club"
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
             />

@@ -101,10 +101,10 @@ describe('EditClubAvatarModal', () => {
     expect(screen.getByText('Guardar')).toBeDisabled();
   });
 
-  it('conserva el avatar predeterminado del club', () => {
-    render(<EditClubAvatarModal club={{ ...CLUB, club_avatar: 'default' }} onSave={vi.fn()} onCancel={vi.fn()} />);
+  it('conserva el avatar recibido del club', () => {
+    render(<EditClubAvatarModal club={{ ...CLUB, club_avatar: 'YWJj' }} onSave={vi.fn()} onCancel={vi.fn()} />);
 
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'data:image/png;base64,YWJj');
   });
 
   it('previsualiza un JPG válido y habilita Guardar', async () => {

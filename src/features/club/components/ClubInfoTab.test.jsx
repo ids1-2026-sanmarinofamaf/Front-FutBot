@@ -6,7 +6,7 @@ import { ClubInfoTab } from './ClubInfoTab';
 const navigate = vi.fn();
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 const userData = { user_name: 'Luca', user_email: 'luca@example.com' };
-const club = { club_name: 'San Marino', club_avatar: 'YWJj', club_id: 1 };
+const club = { club_name: 'San Marino', club_avatar: 'YWJj' };
 
 describe('ClubInfoTab', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -22,9 +22,9 @@ describe('ClubInfoTab', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('mantiene el avatar predeterminado según el id del club', () => {
-    render(<ClubInfoTab user={userData} club={{ ...club, club_avatar: 'default' }} />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
+  it('muestra el avatar recibido sin necesitar un id del club', () => {
+    render(<ClubInfoTab user={userData} club={{ ...club, club_avatar: 'YWJj' }} />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'data:image/png;base64,YWJj');
   });
 
   it('llama al callback correspondiente al editar nombre o avatar', async () => {

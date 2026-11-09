@@ -4,12 +4,11 @@ import { LobbyUsers } from "./LobbyUsers"
 
 // Mock de Avatar para aislar el componente
 vi.mock("../../../shared/components/Avatar", () => ({
-  Avatar: ({ avatar, name, clubId }) => (
+  Avatar: ({ avatar, name }) => (
     <div
       data-testid="avatar"
       data-avatar={avatar}
       data-name={name}
-      data-club-id={clubId}
     />
   ),
 }))
@@ -33,12 +32,11 @@ describe("LobbyUsers", () => {
     })
   })
 
-  it("pasa avatar, name y clubId correctos al Avatar", () => {
+  it("pasa avatar y name correctos al Avatar", () => {
     render(<LobbyUsers users={[users[0]]} />)
     const avatar = screen.getByTestId("avatar")
     expect(avatar).toHaveAttribute("data-avatar", "luca.png")
     expect(avatar).toHaveAttribute("data-name", "Luca")
-    expect(avatar).toHaveAttribute("data-club-id", "1")
   })
 
   it("no renderiza tarjetas si la lista está vacía", () => {
