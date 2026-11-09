@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { RosterBuilder } from './RosterBuilder';
 import * as playerApi from '../../player/api';
 import * as behaviorApi from '../../behaviors/api';
+import * as coachBehaviorApi from '../../coachBehaviors/api';
 
-// Interceptamos la capa de red de ambos módulos
+// Interceptamos la capa de red de los módulos
 vi.mock('../../player/api');
 vi.mock('../../behaviors/api');
+vi.mock('../../coachBehaviors/api');
 
 describe('RosterBuilder', () => {
   const mockSubmit = vi.fn();
@@ -29,11 +31,17 @@ describe('RosterBuilder', () => {
     { behavior_id: 20, name: 'Defensivo' },
   ];
 
+  const mockCoachBehaviors = [
+    { coach_behavior_id: 100, name: 'DT Presión' },
+    { coach_behavior_id: 200, name: 'DT Contragolpe' },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Uso correcto de vi.spyOn para interceptar funciones de módulos
     vi.spyOn(playerApi, 'getPlayers').mockResolvedValue(mockPlayers);
     vi.spyOn(behaviorApi, 'getBehaviors').mockResolvedValue(mockBehaviors);
+    vi.spyOn(coachBehaviorApi, 'getCoachBehaviors').mockResolvedValue(mockCoachBehaviors);
   });
 
   it('muestra el estado de carga y luego renderiza el formulario', async () => {
@@ -123,6 +131,7 @@ describe('RosterBuilder', () => {
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(mockSubmit).toHaveBeenCalledWith({
       formation: 'offensive',
+      coach_behavior_id: null,
       players: [
         { player_id: 1, is_starter: true, slot: 'left', initial_behavior_id: 10 },
         { player_id: 2, is_starter: true, slot: 'center', initial_behavior_id: 20 },
@@ -132,6 +141,42 @@ describe('RosterBuilder', () => {
         { player_id: 6, is_starter: false, slot: null, initial_behavior_id: null },
       ]
     });
+  });
+
+  it('envía coach_behavior_id numérico cuando se selecciona un Director Técnico', async () => {
+    const user = userEvent.setup();
+    render(<RosterBuilder onSubmit={mockSubmit} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Configurar Plantilla')).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole('combobox');
+
+    await user.selectOptions(selects[0], 'defensive');
+    await user.selectOptions(selects[1], '1');
+    await user.selectOptions(selects[2], '10');
+    await user.selectOptions(selects[3], '2');
+    await user.selectOptions(selects[4], '20');
+    await user.selectOptions(selects[5], '3');
+    await user.selectOptions(selects[6], '10');
+    await user.selectOptions(selects[7], '4');
+    await user.selectOptions(selects[8], '5');
+    await user.selectOptions(selects[9], '6');
+
+    await user.selectOptions(
+      screen.getByLabelText(/Director Técnico/i),
+      '100'
+    );
+
+    await user.click(screen.getByRole('button', { name: /Confirmar Plantilla/i }));
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formation: 'defensive',
+        coach_behavior_id: 100,
+      })
+    );
   });
 
   it('ejecuta onCancel al hacer clic en el botón Cancelar', async () => {
