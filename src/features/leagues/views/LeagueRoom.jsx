@@ -8,6 +8,7 @@ import RightDownAlert from "../../auth/components/RightDownAlert";
 import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
 import TablaTab from "../components/TablaTab";
+import ChangeRoster from "../components/ChangeRoster";
 
 /**
  * Integración de componenetes:
@@ -30,6 +31,8 @@ export function LeagueLobby() {
   const navigate = useNavigate();
   // Hook para manejar estado de carga al iniciar
   const [starting, setStarting] = useState(false)
+  // Hook para cambiar alineación
+  const [changeRoster, setChangeRoster] = useState(false)
 
   /** 
    * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinL):
@@ -394,6 +397,21 @@ export function LeagueLobby() {
     lobby.ready ?
       <div className="leading-normal mi-fuente min-h-screen bg-slate-900 p-4 sm:p-8 max-w-8xl mx-auto space-y-6">
 
+        {changeRoster && lobby.state === "INICIADA" && (
+          <ChangeRoster
+            leagueId={numericId}
+            onSaveSuccess={() => {
+              setAlert("Alineación actualizada correctamente.")
+              showToast()
+            }}
+            onClose={() => setChangeRoster(false)}
+            onLoadError={(message) => {
+              setAlert(message)
+              showToast()
+            }}
+          />
+        )}
+
         {showFinished && (
           <div
             role="dialog"
@@ -469,6 +487,27 @@ export function LeagueLobby() {
           <RightDownAlert key={toast.id} toast={toast} errorTitle="No pudiste abandonar la liga" errorDescription={alert} color="red"
           />
         )}
+        
+        {/** Alerta: Error al cargar datos en componente de cambio de alineacion */}
+        {alert === "Error al cargar la alineación y los comportamientos." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="No pudiste cargar la alineación"
+            errorDescription={alert}
+            color="red"
+          />
+        )}
+
+        {alert === "Alineación actualizada correctamente." && toast && (
+          <RightDownAlert
+            key={toast.id}
+            toast={toast}
+            errorTitle="Alineación guardada"
+            errorDescription={alert}
+            color="green"
+          />
+        )}
 
         {/* Componente: info de liga */}
         <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
@@ -531,6 +570,16 @@ export function LeagueLobby() {
             >
               Abandonar
             </button>
+
+            {lobby.state === "INICIADA" && (
+              <button
+                type="button"
+                onClick={() => setChangeRoster(true)}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cambiar alineación
+              </button>
+            )}
 
             {/* Nombre de liga y cantidad de jugadores */}
             <div>
