@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { getBehaviors } from "../../behaviors/api"
 import { getPlayers } from "../../player/api"
+import { getCoachBehaviors } from "../../coachBehaviors/api"
 import { getLeagueRoster, updateLeagueRoster } from "../api"
 import { useToast } from "../../../shared/hooks"
 import RightDownAlert from "../../auth/components/RightDownAlert"
@@ -12,6 +13,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
   const [roster, setRoster] = useState(null)
   const [initialRoster, setInitialRoster] = useState(null)
   const [behaviors, setBehaviors] = useState([])
+  const [coachBehaviors, setCoachBehaviors] = useState([])
   //Hooks para carga y notificaciones
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -29,23 +31,27 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
       setRoster(null)
       setInitialRoster(null)
       setBehaviors([])
+      setCoachBehaviors([])
 
       try {
         // Promise.all permite ejecutar varias operaciones asíncronas en paralelo y esperar a que todas terminen. La alternativa ya usada es secuencial.
-        const [rosterData, behaviorsData, playersData] = await Promise.all([
+        const [rosterData, behaviorsData, playersData, coachBehaviorsData] = await Promise.all([
           getLeagueRoster(leagueId), //Roster
           getBehaviors(), // Todos los comportamientos creados
           getPlayers(), // Todos los jugadores creados
+          getCoachBehaviors(),
         ])
 
         if (!active) return
         setInitialRoster({
           ...rosterData,
+          coach_behavior_id: rosterData.coach_behavior_id ?? null,
           players: rosterData.players.map(player => ({ ...player })),
         })
         // Agrega el nombre y las estadísticas obtenidos de los jugadores del club
         setRoster({
           ...rosterData,
+          coach_behavior_id: rosterData.coach_behavior_id ?? null,
           players: rosterData.players.map(player => {
             const clubPlayer = playersData.find(item => item.id === player.player_id)
             return {
@@ -60,6 +66,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
           }),
         })
         setBehaviors(behaviorsData)
+        setCoachBehaviors(coachBehaviorsData)
       } catch {
         if (active) {
           onLoadError("Error al cargar la alineación y los comportamientos.")
@@ -82,6 +89,11 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
    */
   const handleFormationChange = (event) => {
     setRoster(previous => ({ ...previous, formation: event.target.value }))
+  }
+
+  const handleCoachBehaviorChange = (event) => {
+    const value = event.target.value
+    setRoster(previous => ({ ...previous, coach_behavior_id: value === "" ? null : Number(value) }))
   }
 
   /**
@@ -187,6 +199,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
   // Booleano para indicar si alineacion actual hizo cambios a la original
   const hasChanges = roster !== null && initialRoster !== null && (
     roster.formation !== initialRoster.formation ||
+    (roster.coach_behavior_id ?? null) !== (initialRoster.coach_behavior_id ?? null) ||
     roster.players.length !== initialRoster.players.length ||
     roster.players.some(player => {
       const initialPlayer = initialRoster.players.find(item => item.player_id === player.player_id)
@@ -212,6 +225,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
     // Se envían únicamente los campos esperados por el backend
     const payload = {
       formation: roster.formation,
+      coach_behavior_id: roster.coach_behavior_id ?? null,
       players: roster.players.map(player => ({
         player_id: player.player_id,
         is_starter: player.is_starter,
@@ -293,7 +307,7 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
         {!loading && roster && (
           <fieldset disabled={saving || showDiscardChanges} className="space-y-4 text-slate-300">
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
 
               {/* Formulario de formación */}
               <label className="flex items-center gap-3">
@@ -305,6 +319,25 @@ export default function ChangeRoster({ leagueId, onClose, onLoadError, onSaveSuc
                 >
                   <option value="defensive">defensive</option>
                   <option value="offensive">offensive</option>
+                </select>
+              </label>
+
+              <label className="flex items-center gap-3">
+                Director Técnico (Opcional):
+                <select
+                  value={roster.coach_behavior_id ?? ""}
+                  onChange={handleCoachBehaviorChange}
+                  className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-slate-100"
+                >
+                  <option value="">Sin Director Técnico</option>
+                  {roster.coach_behavior_id != null && !coachBehaviors.some(cb => cb.coach_behavior_id === roster.coach_behavior_id) && (
+                    <option value={roster.coach_behavior_id} disabled>
+                      Director Técnico {roster.coach_behavior_id}
+                    </option>
+                  )}
+                  {coachBehaviors.map(cb => (
+                    <option key={cb.coach_behavior_id} value={cb.coach_behavior_id}>{cb.name}</option>
+                  ))}
                 </select>
               </label>
 

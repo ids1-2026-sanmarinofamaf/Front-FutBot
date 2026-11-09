@@ -18,6 +18,7 @@ vi.mock("../auth/auth", () => ({ getToken: () => "test-token" }))
 
 const payload = {
   formation: "offensive",
+  coach_behavior_id: 10,
   players: Array.from({ length: 6 }, (_, index) => ({
     player_id: index + 1,
     is_starter: index < 3,

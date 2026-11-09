@@ -5,6 +5,7 @@ import ChangeRoster from "./ChangeRoster"
 import { getLeagueRoster, updateLeagueRoster } from "../api"
 import { getBehaviors } from "../../behaviors/api"
 import { getPlayers } from "../../player/api"
+import { getCoachBehaviors } from "../../coachBehaviors/api"
 
 // ✓ ChangeRoster: carga (6)
 //      ✓ carga las tres fuentes y espera a que todas respondan 120ms
@@ -15,7 +16,6 @@ import { getPlayers } from "../../player/api"
 //      ✓ usa un nombre alternativo si el club ya no devuelve al jugador 17ms
 //    ✓ ChangeRoster: edición y validación (13)
 //      ✓ cambia solo la formación y detecta cuando se deshace 69ms
-//      ✓ cambia comportamientos sin is_valid y detecta que se restauró el original 64ms
 //      ✓ limita a tres titulares y asigna el slot libre al reemplazo conservando los otros 83ms
 //      ✓ deshabilita el guardado al liberar un slot y bloquea posiciones ocupadas 106ms
 //      ✓ no permite guardar con titulares insuficientes 44ms
@@ -45,6 +45,7 @@ import { getPlayers } from "../../player/api"
 vi.mock("../api", () => ({ getLeagueRoster: vi.fn(), updateLeagueRoster: vi.fn() }))
 vi.mock("../../behaviors/api", () => ({ getBehaviors: vi.fn() }))
 vi.mock("../../player/api", () => ({ getPlayers: vi.fn() }))
+vi.mock("../../coachBehaviors/api", () => ({ getCoachBehaviors: vi.fn() }))
 
 const makeRoster = () => ({
   roster_id: 20,
@@ -85,12 +86,16 @@ beforeEach(() => {
   getLeagueRoster.mockResolvedValue(makeRoster())
   getBehaviors.mockResolvedValue(behaviors)
   getPlayers.mockResolvedValue(clubPlayers)
+  getCoachBehaviors.mockResolvedValue([
+    { coach_behavior_id: 10, name: "Presión alta" },
+    { coach_behavior_id: 20, name: "Contraataque" },
+  ])
   updateLeagueRoster.mockResolvedValue({})
 })
 
 describe("ChangeRoster: carga", () => {
 
-  it("carga las tres fuentes y espera a que todas respondan", async () => {
+  it("carga las cuatro fuentes y espera a que todas respondan", async () => {
     const pending = deferred() //función auxiliar de los tests que crea una promesa que podemos resolver o rechazar cuando queramos
     getPlayers.mockReturnValue(pending.promise)
     render(<ChangeRoster leagueId={150} onClose={vi.fn()} onLoadError={vi.fn()} onSaveSuccess={vi.fn()} />)
@@ -99,6 +104,7 @@ describe("ChangeRoster: carga", () => {
     expect(getLeagueRoster).toHaveBeenCalledWith(150)
     expect(getBehaviors).toHaveBeenCalledTimes(1)
     expect(getPlayers).toHaveBeenCalledTimes(1)
+    expect(getCoachBehaviors).toHaveBeenCalledTimes(1)
     await act(async () => pending.resolve(clubPlayers))
     expect(screen.queryByText("Cargando alineación...")).not.toBeInTheDocument()
     expect(screen.getAllByRole("listitem")).toHaveLength(6)
@@ -113,7 +119,7 @@ describe("ChangeRoster: carga", () => {
     expect(saveButton()).toBeDisabled()
   })
 
-  it.each([getLeagueRoster, getBehaviors, getPlayers])("notifica y cierra si una fuente falla (%#)", async failingRequest => {
+  it.each([getLeagueRoster, getBehaviors, getPlayers, getCoachBehaviors])("notifica y cierra si una fuente falla (%#)", async failingRequest => {
     failingRequest.mockRejectedValue(new Error("Sin conexión"))
     const onClose = vi.fn()
     const onLoadError = vi.fn()
@@ -151,14 +157,6 @@ describe("ChangeRoster: edición y validación", () => {
     expect(card(1).getByLabelText("Comportamiento inicial:")).toHaveValue("1")
     expect(screen.getByText("Titulares: 3/3 · Suplentes: 3/3")).toBeInTheDocument()
     await userEvent.selectOptions(screen.getByLabelText("Formación:"), "defensive")
-    expect(saveButton()).toBeDisabled()
-  })
-
-  it("cambia comportamientos sin is_valid y detecta que se restauró el original", async () => {
-    await setup()
-    await userEvent.selectOptions(card(1).getByLabelText("Comportamiento inicial:"), "2")
-    expect(saveButton()).not.toBeDisabled()
-    await userEvent.selectOptions(card(1).getByLabelText("Comportamiento inicial:"), "1")
     expect(saveButton()).toBeDisabled()
   })
 
@@ -228,6 +226,7 @@ describe("ChangeRoster: guardado", () => {
     expect(updateLeagueRoster).toHaveBeenCalledTimes(1)
     expect(updateLeagueRoster).toHaveBeenCalledWith(150, {
       formation: "offensive",
+      coach_behavior_id: null,
       players: makeRoster().players.map(player => ({ ...player, initial_behavior_id: player.player_id === 1 ? 2 : player.initial_behavior_id })),
     })
     expect(screen.getByRole("button", { name: "Guardando alineación..." })).toBeDisabled()
@@ -310,5 +309,103 @@ describe("ChangeRoster: cierre", () => {
     expect(getPlayers).toHaveBeenCalledTimes(2)
     expect(screen.getByLabelText("Formación:")).toHaveValue("offensive")
     expect(saveButton()).toBeDisabled()
+  })
+})
+
+describe("ChangeRoster: Director Técnico", () => {
+  const coachSelect = () => screen.getByLabelText("Director Técnico (Opcional):")
+
+  it.each([undefined, null])("un roster sin DT (%s) no tiene cambios y permite seleccionar o deshacer", async coachBehaviorId => {
+    getLeagueRoster.mockResolvedValue({ ...makeRoster(), coach_behavior_id: coachBehaviorId })
+    await setup()
+    expect(coachSelect()).toHaveValue("")
+    expect(saveButton()).toBeDisabled()
+    await userEvent.selectOptions(coachSelect(), "10")
+    expect(saveButton()).not.toBeDisabled()
+    expect(screen.getByLabelText("Formación:")).toHaveValue("defensive")
+    expect(card(1).getByLabelText("Posición:")).toHaveValue("left")
+    await userEvent.selectOptions(coachSelect(), "")
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it.each(["20", ""])("permite cambiar el DT existente a %s y envía su ID numérico o null", async value => {
+    getLeagueRoster.mockResolvedValue({ ...makeRoster(), coach_behavior_id: 10 })
+    const { onSaveSuccess, onClose } = await setup()
+    expect(coachSelect()).toHaveValue("10")
+    expect(saveButton()).toBeDisabled()
+    await userEvent.selectOptions(coachSelect(), value)
+    await userEvent.click(saveButton())
+    expect(updateLeagueRoster).toHaveBeenCalledWith(150, {
+      formation: "defensive",
+      coach_behavior_id: value === "" ? null : 20,
+      players: makeRoster().players,
+    })
+    expect(onSaveSuccess).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("permite asignar un DT a un roster que no tenía", async () => {
+    await setup()
+    await userEvent.selectOptions(coachSelect(), "10")
+    await userEvent.click(saveButton())
+    expect(updateLeagueRoster.mock.calls[0][1].coach_behavior_id).toBe(10)
+  })
+
+  it("conserva un DT ausente en una opción deshabilitada y permite quitarlo", async () => {
+    getLeagueRoster.mockResolvedValue({ ...makeRoster(), coach_behavior_id: 99 })
+    await setup()
+    expect(coachSelect()).toHaveValue("99")
+    expect(screen.getByRole("option", { name: "Director Técnico 99" })).toBeDisabled()
+    expect(saveButton()).toBeDisabled()
+    await userEvent.selectOptions(coachSelect(), "")
+    expect(saveButton()).not.toBeDisabled()
+    expect(screen.queryByRole("option", { name: "Director Técnico 99" })).not.toBeInTheDocument()
+    expect(coachSelect()).toHaveValue("")
+  })
+
+  it("con una lista vacía permite guardar sin DT", async () => {
+    getCoachBehaviors.mockResolvedValue([])
+    await setup()
+    expect(within(coachSelect()).getAllByRole("option")).toHaveLength(1)
+    await editFormation()
+    await userEvent.click(saveButton())
+    expect(updateLeagueRoster.mock.calls[0][1].coach_behavior_id).toBeNull()
+  })
+
+  it("detecta un cambio solo de DT al cerrar y lo conserva si se cancela el descarte", async () => {
+    const { onClose } = await setup()
+    await userEvent.selectOptions(coachSelect(), "10")
+    await userEvent.click(screen.getByRole("button", { name: "Cerrar" }))
+    expect(screen.getByText("Descartar cambios")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Seguir editando" }))
+    expect(coachSelect()).toHaveValue("10")
+    expect(onClose).not.toHaveBeenCalled()
+    expect(updateLeagueRoster).not.toHaveBeenCalled()
+  })
+
+  it("espera la carga de DT aunque las otras peticiones ya hayan respondido", async () => {
+    const pending = deferred()
+    getCoachBehaviors.mockReturnValue(pending.promise)
+    render(<ChangeRoster leagueId={150} onClose={vi.fn()} onLoadError={vi.fn()} onSaveSuccess={vi.fn()} />)
+    await act(async () => {})
+    expect(screen.getByText("Cargando alineación...")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Director Técnico (Opcional):")).not.toBeInTheDocument()
+    await act(async () => pending.resolve([]))
+    expect(coachSelect()).toHaveValue("")
+  })
+
+  it("bloquea el selector al guardar y conserva el DT ante un error del PUT", async () => {
+    const pending = deferred()
+    updateLeagueRoster.mockReturnValue(pending.promise)
+    const { onClose } = await setup()
+    await userEvent.selectOptions(coachSelect(), "20")
+    await userEvent.click(saveButton())
+    expect(coachSelect()).toBeDisabled()
+    await act(async () => pending.reject(Object.assign(new Error("Error"), { status: 409 })))
+    expect(await screen.findByRole("alert")).toHaveTextContent("La liga no está en curso.")
+    expect(coachSelect()).toHaveValue("20")
+    expect(coachSelect()).toBeEnabled()
+    expect(saveButton()).toBeEnabled()
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

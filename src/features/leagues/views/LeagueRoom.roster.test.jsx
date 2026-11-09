@@ -5,6 +5,7 @@ import { LeagueLobby } from "./LeagueRoom"
 import { getLeagueInfo, getLeagueRoster, getUserSessionInfo, updateLeagueRoster } from "../api"
 import { getPlayers } from "../../player/api"
 import { getBehaviors } from "../../behaviors/api"
+import { getCoachBehaviors } from "../../coachBehaviors/api"
 
 vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn(), useParams: () => ({ id: "150", leagueName: "Liga 150" }) }))
 const socket = vi.hoisted(() => ({ messages: {}, joinedLIds: [150], joinL: vi.fn(), leaveL: vi.fn() }))
@@ -13,6 +14,7 @@ vi.mock("../api", () => ({ getLeagueInfo: vi.fn(), getLeagueRoster: vi.fn(), get
 vi.mock("../../friendlyGames/api", () => ({ getCurrentUser: async () => ({ user_name: "Club 1" }) }))
 vi.mock("../../player/api", () => ({ getPlayers: vi.fn() }))
 vi.mock("../../behaviors/api", () => ({ getBehaviors: vi.fn() }))
+vi.mock("../../coachBehaviors/api", () => ({ getCoachBehaviors: vi.fn() }))
 vi.mock("../components/LobbyUsers", () => ({ LobbyUsers: () => <div>Participantes</div> }))
 vi.mock("../components/FixtureTab", () => ({ default: () => <div>Fixture</div> }))
 vi.mock("../components/TablaTab", () => ({ default: () => <div>Tabla</div> }))
@@ -45,6 +47,7 @@ beforeEach(() => {
   getLeagueRoster.mockResolvedValue(roster)
   getUserSessionInfo.mockResolvedValue({ user_id: 1 })
   getBehaviors.mockResolvedValue([{ behavior_id: 1, name: "Defender" }])
+  getCoachBehaviors.mockResolvedValue([])
   getPlayers.mockResolvedValue(roster.players.map(player => ({ id: player.player_id, name: `Jugador ${player.player_id}` })))
   updateLeagueRoster.mockResolvedValue({})
 })
