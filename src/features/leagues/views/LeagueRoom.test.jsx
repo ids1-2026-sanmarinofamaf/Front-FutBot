@@ -165,13 +165,37 @@ describe("LeagueLobby Component", () => {
   });
 
   describe("Control de acceso temprano y conexión", () => {
-    it("redirige de inmediato a /league si el usuario ingresó por URL directa (no está en joinedLIds)", () => {
+    it("redirige de inmediato a /league si el usuario ingresó por URL directa (no está en joinedLIds y no hay mensajes)", () => {
       mockSocketState.joinedLIds = [];
+      mockSocketState.messages = {};
 
       render(<LeagueLobby />);
 
       expect(mockNavigate).toHaveBeenCalledWith("/league", { replace: true });
       expect(mockSocketState.joinL).not.toHaveBeenCalled();
+    });
+
+    it("permite permanecer en el lobby si no está en joinedLIds pero tiene mensajes acumulados en la sesión (ej. al volver del último partido)", () => {
+      mockSocketState.joinedLIds = [];
+      mockSocketState.messages = {
+        10: [
+          {
+            type: "lobby_state",
+            league_id: 10,
+            state: "INICIADA",
+            current_users: 3,
+            users: [{ club_id: 1, user_name: "Club A", is_creator: true }],
+          },
+          {
+            type: "league_finished",
+            league_id: 10,
+          },
+        ],
+      };
+
+      render(<LeagueLobby />);
+
+      expect(mockNavigate).not.toHaveBeenCalledWith("/league", { replace: true });
     });
 
     it("conecta al WebSocket llamando a joinL con el ID numérico si el acceso es válido", async () => {

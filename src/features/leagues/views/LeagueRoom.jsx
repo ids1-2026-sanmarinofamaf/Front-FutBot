@@ -40,7 +40,8 @@ export function LeagueLobby() {
    * - Si no estaba → el usuario escribió la URL directamente → acceso no permitido.
   */
   const wasAlreadyJoined = useRef(
-    joinedLIds.some((i) => Number(i) === numericId)
+    joinedLIds.some((i) => Number(i) === numericId) ||
+    Boolean(messages[numericId]?.length)
   );
 
   // Protección de acceso temprana: antes de conectar el WebSocket,  si el usuario llegó por URL directa (no pasó por la UI) redirigir de inmediato.
