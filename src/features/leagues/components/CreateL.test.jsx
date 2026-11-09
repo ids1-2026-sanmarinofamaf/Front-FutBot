@@ -410,6 +410,7 @@ describe("CreateL", () => {
         duracion_partido: 120,
         max_usuarios: 6,
         es_privada: true,
+        definicion_por_penales: false,
         password: "mypassword",
         roster: ROSTER,
       });
@@ -557,5 +558,48 @@ describe("CreateL", () => {
       expect(navigate).toHaveBeenCalledWith(`/league/lobby/${LEAGUE_ID}/Liga Super Liga`);
     });
   });
-});
 
+    it("envía definicion_por_penales en true al marcar la opción", async () => {
+      const user = setup();
+      await fillValidForm(user);
+
+      const checkbox = screen.getByLabelText("Definición por penales:");
+
+      expect(checkbox).not.toBeChecked();
+
+      await user.click(checkbox);
+
+      expect(checkbox).toBeChecked();
+
+      await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+      expect(sendNewL).toHaveBeenCalledTimes(1);
+      expect(sendNewL).toHaveBeenCalledWith(
+        expect.objectContaining({
+          definicion_por_penales: true,
+        })
+      );
+    });
+
+    it("envía definicion_por_penales en false al desmarcar la opción", async () => {
+      const user = setup();
+      await fillValidForm(user);
+
+      const checkbox = screen.getByLabelText("Definición por penales:");
+
+      await user.click(checkbox);
+      expect(checkbox).toBeChecked();
+
+      await user.click(checkbox);
+      expect(checkbox).not.toBeChecked();
+
+      await user.click(screen.getByRole("button", { name: "CREAR" }));
+
+      expect(sendNewL).toHaveBeenCalledTimes(1);
+      expect(sendNewL).toHaveBeenCalledWith(
+        expect.objectContaining({
+          definicion_por_penales: false,
+        })
+      );
+    });
+});
