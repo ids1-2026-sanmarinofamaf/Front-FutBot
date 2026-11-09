@@ -4,5 +4,22 @@ export function Ball({ ball }) {
     y: 150 + (ball.y / 20) * 800
   }
 
-  return <circle cx={pos.x} cy={pos.y} r={3.3} fill="white" stroke="black" strokeWidth="1" />
+  return (
+    <g>
+      <circle
+        cx={pos.x}
+        cy={pos.y}
+        r={9}
+        fill="white"
+        stroke="#0F172A"
+        strokeWidth={2}
+      />
+
+      <path
+        d="M 0 -6 L 5 -2 L 3 4 H -3 L -5 -2 Z"
+        transform={`translate(${pos.x} ${pos.y})`}
+        fill="#0F172A"
+      />
+    </g>
+  )
 }

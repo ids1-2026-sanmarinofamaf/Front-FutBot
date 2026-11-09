@@ -29,8 +29,8 @@ describe("Ball", () => {
     const circle = container.querySelector("circle");
 
     expect(circle).toHaveAttribute("fill", "white");
-    expect(circle).toHaveAttribute("stroke", "black");
-    expect(circle).toHaveAttribute("r", "3.3");
+    expect(circle).toHaveAttribute("stroke", "#0F172A");
+    expect(circle).toHaveAttribute("r", "9");
   });
 
   it("calcula bien la posición cuando la coordenada es un número entero", () => {

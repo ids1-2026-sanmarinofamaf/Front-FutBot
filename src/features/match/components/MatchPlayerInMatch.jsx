@@ -36,6 +36,11 @@ export function MatchPlayerInMatch({
             : p.team === "A"
               ? "#5BB5D9"
               : "#D98E32"
+          const borderColor = isHighlighted
+            ? "#8A6318"
+            : p.team === "A"
+              ? "#3D91B2"
+              : "#B57226"
           const number = p.shirt_number ?? playerNumbers[p.player_id]
 
           return (
@@ -43,15 +48,17 @@ export function MatchPlayerInMatch({
               <circle
                 cx={pos.x}
                 cy={pos.y}
-                r={8.25}
+                r={20}
                 fill={color}
+                stroke={borderColor}
+                strokeWidth={5}
               />
 
               <text
                 x={pos.x}
                 y={pos.y}
-                fill="black"
-                fontSize={12}
+                fill={borderColor}
+                fontSize={40}
                 fontWeight="bold"
                 textAnchor="middle"
                 dominantBaseline="middle"
