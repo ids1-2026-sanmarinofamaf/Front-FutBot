@@ -360,6 +360,7 @@ export function PenaltyShootout({
             </tbody>
           </table>
         </foreignObject>
+
         {phase === "choosing" && (
           <g
             role="img"
@@ -374,6 +375,41 @@ export function PenaltyShootout({
               fontWeight="bold"
             >
               {String(remainingSeconds).padStart(2, "0")}
+            </text>
+          </g>
+        )}
+
+        {phase === "intro" && (
+          <g
+            role="status"
+            aria-label="Comienza la tanda de penales"
+          >
+            <rect
+              width={1320}
+              height={800}
+              fill="#063343"
+              opacity={0.94}
+            />
+
+            <text
+              x={660}
+              y={380}
+              textAnchor="middle"
+              fill="#F2B035"
+              fontSize={110}
+              fontWeight="bold"
+            >
+              ¡PENALES!
+            </text>
+
+            <text
+              x={660}
+              y={450}
+              textAnchor="middle"
+              fill="#f2f2f2"
+              fontSize={40}
+            >
+              Prepárate para patear o atajar
             </text>
           </g>
         )}
