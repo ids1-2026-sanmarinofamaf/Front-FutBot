@@ -212,6 +212,20 @@ describe("CreateL", () => {
         const shortcutEvent = fireEvent.keyDown(input, { key: "v", ctrlKey: true });
         expect(shortcutEvent).toBe(true);
       });
+
+      it("muestra un mensaje y deshabilita CREAR si la duración es un número impar", async () => {
+        const user = setup();
+        await fillValidForm(user);
+        const input = screen.getByLabelText("Duración de cada partido (segundos):");
+
+        await user.clear(input);
+        await user.type(input, "45");
+
+        expect(
+          screen.getByText("La duración del partido debe ser un número par.")
+        ).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
+      });
     });
 
     describe("cantidad de jugadores", () => {

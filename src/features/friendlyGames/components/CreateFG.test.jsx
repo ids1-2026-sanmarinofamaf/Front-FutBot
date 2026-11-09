@@ -143,6 +143,20 @@ describe("CreateFG", () => {
             expect(input).toBeInvalid();
             expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
         });
+
+        it("muestra un mensaje y deshabilita CREAR si la duración es un número impar", async () => {
+            const user = setup();
+            await loadRoster(user);
+
+            const input = screen.getByLabelText("Duración del partido (segundos):");
+            await user.clear(input);
+            await user.type(input, "45");
+
+            expect(
+                screen.getByText("La duración del partido debe ser un número par.")
+            ).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "CREAR" })).toBeDisabled();
+        });
     });
     
     describe("constructor de plantilla", () => {

@@ -28,8 +28,9 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
 
     // Verificadores
     const rosterLoaded = newL.roster?.players?.length === 6;
+    const isOddDuration = Number.isInteger(newL.duracion_partido) && newL.duracion_partido > 0 && newL.duracion_partido % 2 !== 0;
     const Verification = !Number.isInteger(newL.duracion_partido) ||
-                         newL.duracion_partido < 1 || newL.duracion_partido > 300 || !rosterLoaded ||
+                         newL.duracion_partido < 1 || newL.duracion_partido > 300 || isOddDuration || !rosterLoaded ||
                          newL.nombre == "" || !Number.isInteger(newL.max_usuarios) ||
                          newL.max_usuarios < 3 || newL.max_usuarios > 22 ||
                          (newL.es_privada && newL.password.trim() === "") || newL.nombre.trim() === ""
@@ -170,6 +171,11 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                   }               
                 />
               </div>
+              {isOddDuration && (
+                <p className="text-red-500 font-semibold mb-4">
+                  La duración del partido debe ser un número par.
+                </p>
+              )}
 
               {/* max_usuarios */}
               <div className="flex items-center justify-between gap-3 mb-6">
