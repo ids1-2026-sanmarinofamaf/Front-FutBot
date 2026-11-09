@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PlayOption } from '../components/PlayOption';
-// Se asume la existencia del recurso estático en la capa compartida
-import defaultAvatar from '../../../shared/assets/default-avatar.png';
+import { Avatar } from '../../../shared/components/Avatar';
+import { getMyClub } from '../../club/api';
 import Ranking from '../components/Ranking';
 import { useToast } from '../../../shared/hooks';
 import RightDownAlert from '../../../shared/components/RightDownAlert';
@@ -10,10 +10,21 @@ import RightDownAlert from '../../../shared/components/RightDownAlert';
 export function MainMenu() {
   const [isPlayOptionOpen, setIsPlayOptionOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false)
+  const [club, setClub] = useState(null);
   const navigate = useNavigate();
   const location = useLocation(); // sirve para consultar información de la ruta actual
   const [alert, setAlert] = useState(null);
   const { toast, showToast } = useToast();
+
+  useEffect(() => {
+    let active = true;
+    getMyClub().then((data) => {
+      if (active) setClub(data);
+    }).catch(() => {
+      // El menú sigue disponible con el avatar predeterminado si falla la consulta.
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (location.state?.clubLoadError) {
@@ -40,16 +51,17 @@ export function MainMenu() {
 
         <button 
           onClick={() => navigate('/club')}
-          className="w-full flex items-center gap-4 p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-500 rounded-xl transition-all shadow-md group text-left"
+          className="w-full grid grid-cols-[4rem_1fr_4rem] items-center gap-4 p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-500 rounded-xl transition-all shadow-md group"
         >
-          <div className="w-16 h-16 bg-slate-900 rounded border border-slate-600 overflow-hidden flex-shrink-0">
-            <img 
-              src={defaultAvatar} 
-              alt="Avatar del Club" 
+          <div className="w-16 h-16 bg-slate-900 rounded-full border border-slate-600 overflow-hidden flex-shrink-0">
+            <Avatar
+              avatar={club?.club_avatar}
+              clubId={club?.club_id}
+              name="Avatar del Club"
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
             />
           </div>
-          <span className="text-xl font-bold text-slate-200">
+          <span className="text-xl font-bold text-slate-200 text-center">
             Mi Club
           </span>
         </button>

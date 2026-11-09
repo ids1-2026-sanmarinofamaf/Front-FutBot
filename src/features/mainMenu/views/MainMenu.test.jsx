@@ -1,8 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MainMenu } from './MainMenu';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getMyClub } from '../../club/api';
+
+vi.mock('../../club/api', () => ({ getMyClub: vi.fn() }));
 
 // 1. Interceptamos el enrutador
 vi.mock('react-router-dom', () => ({
@@ -25,6 +28,7 @@ describe('MainMenu UI', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getMyClub.mockReturnValue(new Promise(() => {}));
     useLocation.mockReturnValue({ pathname: '/', state: null });
     useNavigate.mockReturnValue(mockNavigate);
   });
@@ -38,6 +42,35 @@ describe('MainMenu UI', () => {
     
     // El modal de jugar no debe estar visible inicialmente
     expect(screen.queryByTestId('play-option-modal')).not.toBeInTheDocument();
+  });
+
+  it('muestra el avatar personalizado y consulta nuevamente al volver al menú', async () => {
+    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'YWJj' });
+    const { unmount } = render(<MainMenu />);
+    await waitFor(() => expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', 'data:image/png;base64,YWJj'));
+    unmount();
+
+    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'ZGVm' });
+    render(<MainMenu />);
+    await waitFor(() => expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', 'data:image/png;base64,ZGVm'));
+  });
+
+  it('usa el avatar predeterminado del club si la imagen personalizada falla', async () => {
+    getMyClub.mockResolvedValue({ club_id: 1, club_avatar: 'YWJj' });
+    render(<MainMenu />);
+    const avatar = screen.getByAltText('Avatar del Club');
+    await waitFor(() => expect(avatar).toHaveAttribute('src', 'data:image/png;base64,YWJj'));
+    fireEvent.error(avatar);
+    expect(avatar).toHaveAttribute('src', '/assets/defaultAvatars/2.png');
+  });
+
+  it('mantiene disponible el menú si falla la consulta del club', async () => {
+    getMyClub.mockRejectedValue(new TypeError('Failed to fetch'));
+    const user = userEvent.setup();
+    render(<MainMenu />);
+    await user.click(screen.getByRole('button', { name: /Mi Club/i }));
+    expect(screen.getByAltText('Avatar del Club')).toHaveAttribute('src', '/assets/defaultAvatars/1.png');
+    expect(mockNavigate).toHaveBeenCalledWith('/club');
   });
 
   it('navega a "/club" al hacer clic en el botón "Mi Club"', async () => {
