@@ -965,6 +965,7 @@ describe("LeagueLobby Component", () => {
 describe("Confirmación de cancelación", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockToastState = { id: 1 };
     mockParams = { id: "10", leagueName: "Liga Master" };
     mockSocketState = {
       messages: {},
@@ -1006,5 +1007,47 @@ describe("Confirmación de cancelación", () => {
     await act(async () => { resolveCancel(); });
 
     expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
+    expect(mockSocketState.leaveL).toHaveBeenCalledWith(10);
+    expect(mockNavigate).toHaveBeenCalledWith("/league", {
+      replace: true,
+      state: { cancelledLeagueId: 10 },
+    });
+  });
+
+  it.each([
+    [403, "No tenés permisos para cancelar la liga."],
+    [404, "La liga no existe."],
+    [409, "La liga ya comenzó o no puede cancelarse en su estado actual."],
+    [500, "No se pudo cancelar la liga. Intentá nuevamente."],
+  ])("informa el error %s sin salir del lobby y permite reintentar", async (status, message) => {
+    mockCancelLeague.mockRejectedValueOnce(Object.assign(new Error("Error"), { status }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    expect(await screen.findByTestId("alert-error")).toHaveTextContent(message);
+    expect(screen.getByTestId("alert-error")).toHaveTextContent("No pudiste cancelar la liga");
+    expect(mockShowToast).toHaveBeenCalled();
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Confirmar cancelación" })).toBeEnabled();
+
+    mockCancelLeague.mockResolvedValueOnce(null);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    await waitFor(() => expect(mockSocketState.leaveL).toHaveBeenCalledWith(10));
+  });
+
+  it("delega el error 401 al cliente autenticado sin mostrar un error genérico", async () => {
+    mockCancelLeague.mockRejectedValueOnce(Object.assign(new Error("Unauthorized"), { status: 401 }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirmar cancelación" })).toBeEnabled());
+    expect(screen.queryByText("No se pudo cancelar la liga. Intentá nuevamente.")).not.toBeInTheDocument();
+    expect(mockSocketState.leaveL).not.toHaveBeenCalled();
   });
 });

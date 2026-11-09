@@ -348,15 +348,35 @@ export function LeagueLobby() {
     cancelPending.current = true;
     setCancelling(true);
     setCancelError(null);
+    hideToast();
 
     try {
       await cancelLeague(numericId);
       setShowCancelLeague(false);
+      leaveL(numericId);
+      navigate("/league", {
+        replace: true,
+        state: { cancelledLeagueId: numericId },
+      });
 
     } catch (error) {
       if (error.status === 401) return;
 
-      setCancelError("No se pudo cancelar la liga. Intentá nuevamente.");
+      switch (error.status) {
+        case 403:
+          setCancelError("No tenés permisos para cancelar la liga.");
+          break;
+        case 404:
+          setCancelError("La liga no existe.");
+          break;
+        case 409:
+          setCancelError("La liga ya comenzó o no puede cancelarse en su estado actual.");
+          break;
+        default:
+          setCancelError("No se pudo cancelar la liga. Intentá nuevamente.");
+      }
+
+      showToast();
 
     } finally {
       cancelPending.current = false;
@@ -544,7 +564,15 @@ export function LeagueLobby() {
             onCancel={() => setShowCancelLeague(false)}
             onConfirm={handleCancelLeague}
             cancelling={cancelling}
-            error={cancelError}
+          />
+        )}
+
+        {cancelError && toast && (
+          <RightDownAlert
+            key={toast.id}
+            errorTitle="No pudiste cancelar la liga"
+            errorDescription={cancelError}
+            color="red"
           />
         )}
 
@@ -605,6 +633,7 @@ export function LeagueLobby() {
                 type="button"
                 onClick={() => {
                   setCancelError(null);
+                  hideToast();
                   setShowCancelLeague(true);
                 }}
                 className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
