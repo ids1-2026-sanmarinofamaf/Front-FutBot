@@ -5,6 +5,7 @@ import { useContext } from "react";
 import { AuthContext } from "../AuthProvider.jsx";
 
 import { Link } from "react-router-dom";
+import RightDownAlert from '../components/RightDownAlert.jsx';
 
 export default function Login() {
 
@@ -25,7 +26,7 @@ export default function Login() {
 
         try{
             const response = await sendDataToAPI(user); //envia endpoint
-            if (response.status === 400) {
+            if ([400, 401, 422].includes(response.status)) {
                 setError("Email o contraseña incorrectos.");
                 setToast({ id: Date.now() });
                 return;
@@ -42,7 +43,8 @@ export default function Login() {
             } 
 
         } catch (err) {
-            console.log("Error al iniciar sesión:", err);
+            setError("Intentá nuevamente más tarde.");
+            setToast({ id: Date.now() });
         }
     };
 
@@ -57,19 +59,13 @@ export default function Login() {
             FUTBOT
         </h1>
 
-        {error === "Email o contraseña incorrectos." && (
-            <div className="toast-enter fixed bottom-4 right-4 z-50 max-w-sm
-                            bg-orange-100 border-l-4 border-orange-500 text-orange-700 
-                            p-4 rounded shadow-lg
-                            text-3xl" 
-                 role="alert"
-                 key={toast.id}
-            >
-                    <div className='flex-1'>
-                        <p className="font-bold">Revise sus datos nuevamente</p>
-                        <p>{error}</p>
-                    </div>              
-            </div>
+        {error && toast && (
+            <RightDownAlert
+                key={toast.id}
+                errorTitle="No se pudo iniciar sesión"
+                errorDescription={error}
+                color="orange"
+            />
         )}
 
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md ">
