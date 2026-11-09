@@ -38,7 +38,7 @@ export function SoccerField() {
       </defs>
 
       {/* césped, extendido para cubrir también el fondo de ambos arcos */}
-      <rect x={300 - netDepth} y={150} width={1320 + netDepth * 2} height={800} fill="#2e8b3d" />
+      <rect x={300 - netDepth} y={150} width={1320 + netDepth * 2} height={800} fill="#678C5D" />
 
       {/* grilla */}
       {verticalLines}

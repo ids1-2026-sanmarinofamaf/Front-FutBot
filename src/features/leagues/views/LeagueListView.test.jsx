@@ -1,8 +1,19 @@
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import LeagueListView from "./LeagueListView";
 import { useSessionSocket } from "../../auth/SessionSocketProvider";
+
+const { replaceJoinedLIds, getMyLeagueIds } = vi.hoisted(() => ({
+  replaceJoinedLIds: vi.fn(),
+  getMyLeagueIds: vi.fn(),
+}));
+
+
+vi.mock("../LeaguesProvider", () => ({
+  useLeaguesSocket: () => ({ replaceJoinedLIds }),
+}));
+vi.mock("../api", () => ({ getMyLeagueIds }));
 
 const navigate = vi.fn();
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
@@ -42,6 +53,8 @@ vi.mock("../../roster/components/RosterBuilder", () => ({
 
 beforeEach(() => {
   navigate.mockClear();
+  replaceJoinedLIds.mockReset();
+  getMyLeagueIds.mockReset().mockResolvedValue([]);
   useSessionSocket.mockReturnValue({ isConnected: true, messages: { leagues: [] } });
 });
 afterEach(cleanup);
@@ -164,5 +177,98 @@ describe("LeagueListView", () => {
       await user.click(screen.getByRole("button", { name: "CREAR LIGA" }));
       expect(screen.getByTestId("create-roster")).toHaveTextContent("con roster");
     });
+  });
+});
+
+describe("recuperación de participación", () => {
+  it("consulta al entrar, reemplaza los IDs y consulta nuevamente al regresar", async () => {
+    getMyLeagueIds.mockResolvedValue([2, 5]);
+    const view = render(<LeagueListView />);
+    await waitFor(() => expect(replaceJoinedLIds).toHaveBeenCalledWith([2, 5]));
+    view.unmount();
+    render(<LeagueListView />);
+    await waitFor(() => expect(getMyLeagueIds).toHaveBeenCalledTimes(2));
+  });
+
+  it("no reemplaza los IDs si falla la petición", async () => {
+    const error = new Error("Sin conexión");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    getMyLeagueIds.mockRejectedValue(error);
+    render(<LeagueListView />);
+    await waitFor(() => expect(log).toHaveBeenCalled());
+    expect(replaceJoinedLIds).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it.each(["unmount", "auth:logout", "auth:expired"])("ignora respuestas pendientes tras %s", async (event) => {
+    let resolve;
+    getMyLeagueIds.mockReturnValue(new Promise((done) => { resolve = done; }));
+    const view = render(<LeagueListView />);
+    if (event === "unmount") view.unmount();
+    else act(() => window.dispatchEvent(new Event(event)));
+    await act(async () => resolve([2]));
+    expect(replaceJoinedLIds).not.toHaveBeenCalled();
+  });
+});
+
+describe("Buscador de ligas", () => {
+  const entries = [
+    { league_id: 1, name: "Club Norte" },
+    { league_id: 2, name: "Club Sur" }
+  ];
+
+  it("filtra coincidencias parciales sin distinguir mayúsculas y restaura la lista al borrar", async () => {
+    useSessionSocket.mockReturnValue({ messages: { leagues: entries } });
+
+    const user = userEvent.setup();
+    render(<LeagueListView />);
+
+    expect(screen.getByText("2 disponibles")).toBeInTheDocument();
+
+    const input = screen.getByRole("searchbox", { name: "Buscar ligas" });
+
+    await user.type(input, "nOr");
+
+    expect(screen.getByTestId("card-1")).toHaveTextContent("Club Norte");
+    expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+    expect(screen.getByText("1 disponibles")).toBeInTheDocument();
+
+    await user.clear(input);
+
+    expect(screen.getByTestId("card-2")).toBeInTheDocument();
+
+    await user.type(input, "inexistente");
+
+    expect(screen.getByText("No se encontraron resultados.")).toBeInTheDocument();
+  });
+
+  it("mantiene el filtro al recibir actualizaciones del WebSocket", async () => {
+    useSessionSocket.mockReturnValue({ messages: { leagues: entries } });
+
+    const user = userEvent.setup();
+    const { rerender } = render(<LeagueListView />);
+
+    await user.type(
+      screen.getByRole("searchbox", { name: "Buscar ligas" }),
+      "norte"
+    );
+
+    useSessionSocket.mockReturnValue({
+      messages: {
+        leagues: [
+          entries[1],
+          { league_id: 3, name: "Norte Unido" }
+        ]
+      }
+    });
+
+    rerender(<LeagueListView />);
+
+    expect(screen.getByTestId("card-3")).toHaveTextContent("Norte Unido");
+    expect(screen.queryByTestId("card-1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("searchbox", { name: "Buscar ligas" }))
+      .toHaveValue("norte");
   });
 });

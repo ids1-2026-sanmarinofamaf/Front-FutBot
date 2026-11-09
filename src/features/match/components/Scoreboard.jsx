@@ -41,8 +41,19 @@ export function Scoreboard({ estado_partido, matchInfo = null }) {
     )
   }
 
-  function createSquare(x, y, size, color) {
-    return <rect x={x} y={y} width={size} height={size} fill={color} />
+  function createSquare(x, y, size, color, strokeColor = null) {
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={size}
+        height={size}
+        rx={6}
+        fill={color}
+        stroke={strokeColor || "none"}
+        strokeWidth={strokeColor ? "2" : "0"}
+      />
+    )
   }
 
   function createRectangle(x, y, width, height, color) {
@@ -55,30 +66,33 @@ export function Scoreboard({ estado_partido, matchInfo = null }) {
         y={topLeft.y}
         width={bottomRight.x - topLeft.x}
         height={bottomRight.y - topLeft.y}
+        rx={8}
         fill={color}
+        stroke="#475569"
+        strokeWidth="1.5"
       />
     )
   }
 
   return (
     <>
-      {createRectangle(14, -4, 12, 4, "LightBlue")}
+      {createRectangle(14, -4, 12, 4, "#1e293b")}
 
-      {createSquare(toPixels(15, 0).x, toPixels(-1, -1.3).y, 50, "Black")}
-      {createSquare(toPixels(23.5, 0).x, toPixels(-1, -1.3).y, 50, "Black")}
+      {createSquare(toPixels(15, 0).x, toPixels(-1, -1.3).y, 50, "Black", "#5BB5D9")}
+      {createSquare(toPixels(23.5, 0).x, toPixels(-1, -1.3).y, 50, "Black", "#D98E32")}
 
-      {createText(20, -2.5, "Score", "Black", 60)}
+      {createText(20, -2.5, "Score", "#F2F2F2", 60)}
 
-      {current_period ? createText(20, -1.8, `Q${current_period}`, "Black", 22) : null}
+      {current_period ? createText(20, -1.8, `Q${current_period}`, "#F2B035", 22) : null}
 
-      {createText(15.8, -1.5, team1Name, "black", 25)}
-      {createText(24.3, -1.5, team2Name, "black", 25)}
+      {createText(15.8, -1.5, team1Name, "#5BB5D9", 25)}
+      {createText(24.3, -1.5, team2Name, "#D98E32", 25)}
 
-      {createText(15.8, -0.3, user1_goals, "White", 40)}
-      {createText(24.3, -0.3, user2_goals, "White", 40)}
+      {createText(15.8, -0.3, user1_goals, "#F2F2F2", 40)}
+      {createText(24.3, -0.3, user2_goals, "#F2F2F2", 40)}
 
-      {createText(20, -0.3, actual_tic/10 + "/" + total_tic/10 + "sec", "Black", 30)}
-      {createText(20, -1, "Time:", "Black", 30)}
+      {createText(20, -0.3, actual_tic/10 + "/" + total_tic/10 + "sec", "#F2F2F2", 30)}
+      {createText(20, -1, "Time:", "#F2F2F2", 30)}
     </>
   )
 }

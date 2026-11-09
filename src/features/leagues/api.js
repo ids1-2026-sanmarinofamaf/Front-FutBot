@@ -107,3 +107,9 @@ export const getLeagueInfo = async ({league_id}) => {
   }
   return dataREST
 }
+
+/** Recupera los IDs de las ligas del usuario autenticado. */
+export const getMyLeagueIds = async () => {
+  const response = await apiClient("/leagues/me", { method: "GET" });
+  return response?.league_ids;
+};

@@ -1,16 +1,51 @@
 import { useNavigate } from "react-router-dom";
 import { useSessionSocket } from "../../auth/SessionSocketProvider";
 import { LeagueCard } from "../components/LeagueCard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLeaguesSocket } from "../LeaguesProvider";
+import { getMyLeagueIds } from "../api";
 import CreateL from "../components/CreateL";
 import { RosterBuilder } from "../../roster/components/RosterBuilder";
 
 export default function LeagueListView() {
   const navigate = useNavigate();
 
+  // Lógica para consultar ID's al backend al ingresar a vista
+  const { replaceJoinedLIds } = useLeaguesSocket();
+  useEffect(() => {
+    let active = true;
+    const cancel = () => { active = false; };
+
+    //Se escuchan eventos para evitar cargar ID's luego de cierre de sesión
+    window.addEventListener("auth:expired", cancel);
+    window.addEventListener("auth:logout", cancel);
+
+    getMyLeagueIds()
+      .then((ids) => {
+        if (active) replaceJoinedLIds(ids);
+      })
+      .catch((error) => {
+        // Si falla la consulta o su validación, se conserva la participación local.
+        if (active) console.error("Error al recuperar las ligas del usuario:", error);
+      });
+
+    return () => {
+      cancel();
+      window.removeEventListener("auth:expired", cancel);
+      window.removeEventListener("auth:logout", cancel);
+    };
+  }, [replaceJoinedLIds]);
+
   {/* Busca mensajes de ws de sesión y filtra las ligas */}
   const { messages } = useSessionSocket();
   const leagues = messages?.leagues ?? [];
+  // Hook para busqueda y filtrado de lista
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
+  const filteredLeagues = leagues.filter(
+    (league) => (league.name ?? "").toLowerCase().includes(query)
+  );
+
 
   const [createLisOpen, setCreateLisOpen] = useState(false);
 
@@ -88,13 +123,28 @@ export default function LeagueListView() {
               Ligas disponibles
             </h2>
             <span className="text-sm text-slate-400">
-              {leagues.length} disponibles
+              {filteredLeagues.length} disponibles
             </span>
           </div>
 
-          {leagues.length > 0 ? (
+          {/* Buscador de ligas */}
+          <label className="block text-slate-300 mb-2" htmlFor="list-search">
+            Buscar ligas
+          </label>
+          <input
+            id="list-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Nombre de la liga"
+            className="w-full mb-6 rounded-lg border border-slate-600 bg-slate-900 px-4 py-3
+                       text-slate-100 placeholder:text-slate-500 focus:outline-none
+                       focus:ring-2 focus:ring-emerald-500"
+          />
+
+          {filteredLeagues.length > 0 ? (
             <div className="grid grid-cols-1 gap-4">
-              {leagues.map(league => (
+              {filteredLeagues.map(league => (
                 <LeagueCard
                   key={league.league_id}
                   league={league}
@@ -104,7 +154,7 @@ export default function LeagueListView() {
             </div>
           ) : (
             <p className="py-8 text-center text-slate-400">
-              No hay ligas disponibles.
+              {query ? "No se encontraron resultados." : "No hay ligas disponibles."}
             </p>
           )}
         </section>

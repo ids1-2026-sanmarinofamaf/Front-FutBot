@@ -69,22 +69,22 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
     const playerCardRects = Array.from(rects).filter(
-      r => r.getAttribute('width') === '90' || r.getAttribute('width') === '70'
+      r => r.getAttribute('width') === '135' || r.getAttribute('width') === '85'
     )
     expect(playerCardRects).toHaveLength(12)
 
     const starterTeamA = Array.from(rects).filter(
-      r => r.getAttribute('x') === '40'
+      r => r.getAttribute('x') === '30'
     )
     const starterTeamB = Array.from(rects).filter(
-      r => r.getAttribute('x') === '1790'
+      r => r.getAttribute('x') === '1755'
     )
     const benchTeamA = Array.from(rects).filter(
-      r => r.getAttribute('y') === '40' &&
+      r => r.getAttribute('y') === '35' &&
         Number(r.getAttribute('x')) < 1000
     )
     const benchTeamB = Array.from(rects).filter(
-      r => r.getAttribute('y') === '40' &&
+      r => r.getAttribute('y') === '35' &&
         Number(r.getAttribute('x')) >= 1000
     )
 
@@ -107,12 +107,12 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
 
-    expect(findRectAtXY(rects, 40, 150)).toBeTruthy()
-    expect(findRectAtXY(rects, 40, 250)).toBeTruthy()
-    expect(findRectAtXY(rects, 40, 350)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 150)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 250)).toBeTruthy()
-    expect(findRectAtXY(rects, 1790, 350)).toBeTruthy()
+    expect(findRectAtXY(rects, 30, 160)).toBeTruthy()
+    expect(findRectAtXY(rects, 30, 410)).toBeTruthy()
+    expect(findRectAtXY(rects, 30, 660)).toBeTruthy()
+    expect(findRectAtXY(rects, 1755, 160)).toBeTruthy()
+    expect(findRectAtXY(rects, 1755, 410)).toBeTruthy()
+    expect(findRectAtXY(rects, 1755, 660)).toBeTruthy()
   })
 
   it('ubica correctamente a los suplentes de cada equipo', () => {
@@ -128,15 +128,15 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
 
-    expect(findRectAtXY(rects, 320, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 400, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 480, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1550, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1470, 40)).toBeTruthy()
-    expect(findRectAtXY(rects, 1390, 40)).toBeTruthy()
+    expect(findRectAtXY(rects, 310, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 405, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 500, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1525, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1430, 35)).toBeTruthy()
+    expect(findRectAtXY(rects, 1335, 35)).toBeTruthy()
   })
 
-  it('usa azul para el equipo A y rojo para el equipo B', () => {
+  it('usa celeste para el equipo A y ámbar para el equipo B', () => {
     const { container } = render(
       <svg>
         <MatchPlayerOut
@@ -149,10 +149,10 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
     const blueRects = Array.from(rects).filter(
-      r => r.getAttribute('fill') === 'blue'
+      r => r.getAttribute('fill') === '#5BB5D9'
     )
     const redRects = Array.from(rects).filter(
-      r => r.getAttribute('fill') === 'red'
+      r => r.getAttribute('fill') === '#D98E32'
     )
 
     expect(blueRects).toHaveLength(6)
@@ -172,10 +172,10 @@ describe('MatchPlayerOut', () => {
 
     const rects = container.querySelectorAll('rect')
     const starterRects = Array.from(rects).filter(
-      r => r.getAttribute('opacity') === null && r.getAttribute('width') === '90'
+      r => r.getAttribute('opacity') === null && r.getAttribute('width') === '135'
     )
     const benchRects = Array.from(rects).filter(
-      r => r.getAttribute('opacity') === '0.5'
+      r => r.getAttribute('opacity') === '0.85'
     )
 
     expect(starterRects).toHaveLength(6)
@@ -570,5 +570,64 @@ describe('MatchPlayerOut', () => {
 
     expect(screen.queryByTestId('substitute-option-4')).not.toBeInTheDocument()
     expect(screen.queryByTestId('cancel-substitution-A')).not.toBeInTheDocument()
+  })
+
+  it('muestra el cartel de sustitución cuando llega coachSubstitutions del propio club e ignora las del rival', () => {
+    const { rerender } = render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          coachSubstitutions={{
+            event: 'coach_substitutions',
+            changes: [{ club_id: 2, player_out_id: 7, player_in_id: 10 }],
+          }}
+        />
+      </svg>
+    )
+
+    expect(screen.queryByTestId('substitution-message')).not.toBeInTheDocument()
+
+    rerender(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          coachSubstitutions={{
+            event: 'coach_substitutions',
+            changes: [{ club_id: 1, player_out_id: 1, player_in_id: 4 }],
+          }}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('substitution-message')).toHaveTextContent(
+      'Sustitución realizada: Player 1 salió y Player 4 ingresó.'
+    )
+  })
+
+  it('muestra en el botón del titular el nombre del suplente cuando el servidor informa una sustitución pendiente del DT', () => {
+    render(
+      <svg>
+        <MatchPlayerOut
+          players={players}
+          playerNumbers={playerNumbers}
+          matchId="77"
+          matchInfo={defaultMatchInfo}
+          serverPendingSubstitution={{ player_out_id: 2, player_in_id: 5 }}
+        />
+      </svg>
+    )
+
+    expect(screen.getByTestId('substitution-button-2')).toHaveTextContent(
+      'Player 5'
+    )
+    expect(screen.getByTestId('substitution-button-1')).toHaveTextContent(
+      'Cambiar jugador'
+    )
   })
 })

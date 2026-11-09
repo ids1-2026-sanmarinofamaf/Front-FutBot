@@ -7,6 +7,7 @@ import { EditBehavior } from './EditBehavior';
 vi.mock('react-router-dom', () => ({
   useParams: vi.fn(),
   useNavigate: vi.fn(),
+  useLocation: vi.fn(() => ({ pathname: '/club/behaviors/42/edit', state: null })),
 }));
 
 vi.mock('../api', () => ({
