@@ -1051,3 +1051,61 @@ describe("Confirmación de cancelación", () => {
     expect(mockSocketState.leaveL).not.toHaveBeenCalled();
   });
 });
+
+describe("Participantes de una liga cancelada", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockParams = { id: "10", leagueName: "Liga Master" };
+    mockSocketState = { messages: {}, joinL: vi.fn(), leaveL: vi.fn(), joinedLIds: [10] };
+    mockGetCurrentUser.mockResolvedValue({ user_name: "Club 2" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
+    comoParticipante();
+    setEvents([lobbyConCreador(3)]);
+  });
+
+  it("reemplaza el lobby por un modal obligatorio y espera el regreso manual", async () => {
+    const { rerender } = await renderLobby();
+
+    setEvents([lobbyConCreador(3), { type: "league_cancelled" }]);
+    rerender(<LeagueLobby />);
+
+    expect(await screen.findByText(/El creador canceló la liga/)).toBeInTheDocument();
+    expect(screen.queryByTestId("lobby-users")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abandonar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByText(/El creador canceló la liga/).closest(".fixed"));
+
+    expect(screen.getByRole("button", { name: "Volver al listado de ligas" })).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver al listado de ligas" }));
+
+    expect(mockNavigate).toHaveBeenCalledExactlyOnceWith("/league", {
+      replace: true,
+      state: { cancelledLeagueId: 10, cancelledByCreator: true },
+    });
+  });
+
+  it("no muestra al creador el modal de participantes ni duplica la navegación", async () => {
+    comoCreador();
+    const { rerender } = await renderLobby();
+
+    let resolveCancel;
+    mockCancelLeague.mockReturnValue(new Promise((resolve) => { resolveCancel = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+    setEvents([lobbyConCreador(3), { type: "league_cancelled" }]);
+    rerender(<LeagueLobby />);
+
+    expect(screen.queryByText(/El creador canceló la liga/)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await act(async () => { resolveCancel(); });
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+});

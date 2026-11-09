@@ -8,6 +8,7 @@ import RightDownAlert from "../../auth/components/RightDownAlert";
 import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague, cancelLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
 import TablaTab from "../components/TablaTab";
+import LeagueCancelled from "../components/LeagueCancelled";
 import CancelLeague from "../components/CancelLeague";
 import ChangeRoster from "../components/ChangeRoster";
 
@@ -447,6 +448,24 @@ export function LeagueLobby() {
       leaveL(numericId);
     }
   }, [lobby.state, numericId, leaveL]);
+
+  // Reemplazar el lobby impide acceder a sus controles, incluso mediante teclado.
+  if (lobby.cancelled) {
+    return (
+      <div className="min-h-screen mi-fuente bg-slate-900">
+        {session && !isCreator ? (
+          <LeagueCancelled
+            onBack={() => navigate("/league", {
+              replace: true,
+              state: { cancelledLeagueId: numericId, cancelledByCreator: true },
+            })}
+          />
+        ) : (
+          <p className="p-6 text-slate-300">La liga fue cancelada.</p>
+        )}
+      </div>
+    );
+  }
 
   return (
 

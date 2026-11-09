@@ -16,6 +16,7 @@ export default function LeagueListView() {
 
   // Conservar la liga cancelada aunque se limpie el estado de navegación.
   const [cancelledLeagueId] = useState(location.state?.cancelledLeagueId ?? null);
+  const [cancelledByCreator] = useState(location.state?.cancelledByCreator ?? false);
   const { toast, showToast } = useToast();
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function LeagueListView() {
         <RightDownAlert
           key={toast.id}
           errorTitle="Liga cancelada"
-          errorDescription="La liga fue cancelada correctamente."
+          errorDescription={cancelledByCreator ? "El creador canceló la liga." : "La liga fue cancelada correctamente."}
           color="green"
         />
       )}
