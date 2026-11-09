@@ -5,9 +5,10 @@ import { getCurrentUser } from "../../friendlyGames/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LobbyUsers } from "../components/LobbyUsers";
 import RightDownAlert from "../../auth/components/RightDownAlert";
-import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague } from "../api";
+import { getLeagueInfo, getUserSessionInfo, leaveLeagueAsPlayer, startLeague, cancelLeague } from "../api";
 import FixtureTab from "../components/FixtureTab";
 import TablaTab from "../components/TablaTab";
+import CancelLeague from "../components/CancelLeague";
 import ChangeRoster from "../components/ChangeRoster";
 
 /**
@@ -33,6 +34,12 @@ export function LeagueLobby() {
   const [starting, setStarting] = useState(false)
   // Hook para cambiar alineación
   const [changeRoster, setChangeRoster] = useState(false)
+
+  // Estados para confirmar y procesar la cancelación de la liga
+  const [showCancelLeague, setShowCancelLeague] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+  const cancelPending = useRef(false);
 
   /** 
    * Capturamos si el ID ya estaba en joinedFGIds en el primer render (antes del efecto de joinL):
@@ -335,6 +342,28 @@ export function LeagueLobby() {
     }
   }, [lobby.state])
 
+  const handleCancelLeague = async () => {
+    if (!isCreator || lobby.state !== "POR_COMENZAR" || cancelPending.current) return;
+
+    cancelPending.current = true;
+    setCancelling(true);
+    setCancelError(null);
+
+    try {
+      await cancelLeague(numericId);
+      setShowCancelLeague(false);
+
+    } catch (error) {
+      if (error.status === 401) return;
+
+      setCancelError("No se pudo cancelar la liga. Intentá nuevamente.");
+
+    } finally {
+      cancelPending.current = false;
+      setCancelling(false);
+    }
+  };
+
   /**
    * Handle para abandonar una liga pendiente como participante.
    * @precondition league.state === "POR_COMENZAR"
@@ -510,6 +539,15 @@ export function LeagueLobby() {
           />
         )}
 
+        {showCancelLeague && (
+          <CancelLeague
+            onCancel={() => setShowCancelLeague(false)}
+            onConfirm={handleCancelLeague}
+            cancelling={cancelling}
+            error={cancelError}
+          />
+        )}
+
         {/* Componente: info de liga */}
         <div className="mx-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 sm:p-6">
 
@@ -562,15 +600,27 @@ export function LeagueLobby() {
                 )
             )}
 
-            {/* Boton para cancelar liga */}
-            <button
-              type="button"
-              onClick={handleLeave}
-              disabled={lobby.state !== "POR_COMENZAR"}
-              className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
-            >
-              Abandonar
-            </button>
+            {isCreator && lobby.state === "POR_COMENZAR" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelError(null);
+                  setShowCancelLeague(true);
+                }}
+                className="px-10 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+              >
+                Cancelar liga
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLeave}
+                disabled={lobby.state !== "POR_COMENZAR"}
+                className="px-10 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition-colors shadow-md disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed"
+              >
+                Abandonar
+              </button>
+            )}
 
             {lobby.state === "INICIADA" && (
               <button

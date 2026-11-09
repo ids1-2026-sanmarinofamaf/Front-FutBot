@@ -44,9 +44,11 @@ const mockGetUserSessionInfo = vi.fn();
 const mockStartLeague = vi.fn();
 const mockGetLeagueInfo = vi.fn();
 const mockLeaveLeagueAsPlayer = vi.fn();
+const mockCancelLeague = vi.fn();
 
 vi.mock("../api", () => ({
   getUserSessionInfo: () => mockGetUserSessionInfo(),
+  cancelLeague: (...args) => mockCancelLeague(...args),
   startLeague: (...args) => mockStartLeague(...args),
   getLeagueInfo: (...args) => mockGetLeagueInfo(...args),
   leaveLeagueAsPlayer: (...args) => mockLeaveLeagueAsPlayer(...args),
@@ -768,11 +770,8 @@ describe("LeagueLobby Component", () => {
 
       await renderLobby();
 
-      fireEvent.click(screen.getByRole("button", { name: /abandonar/i }));
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalled();
-      });
+      expect(screen.queryByRole("button", { name: /abandonar/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cancelar liga" })).toBeInTheDocument();
 
       expect(mockLeaveLeagueAsPlayer).not.toHaveBeenCalled();
       expect(mockSocketState.leaveL).not.toHaveBeenCalled();
@@ -961,5 +960,51 @@ describe("LeagueLobby Component", () => {
       expect(screen.getByText("qeqe")).toBeInTheDocument();
       expect(screen.getByText("3")).toBeInTheDocument();
     });
+  });
+});
+describe("Confirmación de cancelación", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockParams = { id: "10", leagueName: "Liga Master" };
+    mockSocketState = {
+      messages: {},
+      joinL: vi.fn(),
+      leaveL: vi.fn(),
+      joinedLIds: [10],
+    };
+    mockGetCurrentUser.mockResolvedValue({ user_name: "Club 1" });
+    mockGetLeagueInfo.mockResolvedValue({ fixture: [], standings: [] });
+    comoCreador();
+    setEvents([lobbyState([u(1, { is_creator: true }), u(2), u(3)])]);
+  });
+
+  it("rechaza la confirmación sin llamar a la API", async () => {
+    await renderLobby();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Volver" }).find((button) => button.closest(".fixed")).closest('.fixed').querySelector('button'));
+
+    expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
+    expect(mockCancelLeague).not.toHaveBeenCalled();
+  });
+
+  it("muestra carga y evita duplicados hasta finalizar la petición", async () => {
+    let resolveCancel;
+    mockCancelLeague.mockReturnValue(new Promise((resolve) => { resolveCancel = resolve; }));
+
+    await renderLobby();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar liga" }));
+
+    const confirm = screen.getByRole("button", { name: "Confirmar cancelación" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText("Cancelando liga...")).toBeInTheDocument();
+    expect(mockCancelLeague).toHaveBeenCalledExactlyOnceWith(10);
+
+    await act(async () => { resolveCancel(); });
+
+    expect(screen.queryByRole("button", { name: "Confirmar cancelación" })).not.toBeInTheDocument();
   });
 });

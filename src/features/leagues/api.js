@@ -49,6 +49,12 @@ export const joinLeagueAsPlayer = async (idLiga, { roster, password } = {}) => {
   }
 };
 
+export const cancelLeague = async (leagueId) => {
+  return apiClient(`/leagues/${leagueId}`, {
+    method: "DELETE",
+  });
+};
+
 export const leaveLeagueAsPlayer = async (leagueId) => {
   try {
     return await apiClient(`/leagues/${leagueId}/users/me`, {
