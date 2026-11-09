@@ -19,17 +19,27 @@ describe('ExitMatchButton', () => {
   })
 
   it('muestra el botón para salir del partido', () => {
-    render(<ExitMatchButton />)
+    render(<svg><ExitMatchButton /></svg>)
 
     expect(
       screen.getByRole('button', { name: 'Salir del partido' })
     ).toBeInTheDocument()
   })
 
+  it('se posiciona debajo del último titular sin superponerse con la cancha', () => {
+    const { container } = render(<svg><ExitMatchButton /></svg>)
+    const foreignObject = container.querySelector('foreignObject')
+
+    expect(foreignObject).toHaveAttribute('x', '30')
+    expect(foreignObject).toHaveAttribute('y', '865')
+    expect(foreignObject).toHaveAttribute('width', '220')
+    expect(foreignObject).toHaveAttribute('height', '55')
+  })
+
   it('ejecuta navigate al hacer click en el botón', async () => {
     const user = userEvent.setup()
 
-    render(<ExitMatchButton />)
+    render(<svg><ExitMatchButton /></svg>)
 
     await user.click(
       screen.getByRole('button', { name: 'Salir del partido' })
@@ -41,7 +51,7 @@ describe('ExitMatchButton', () => {
   it('vuelve a la página anterior al hacer click cuando no viene como espectador', async () => {
     const user = userEvent.setup()
 
-    render(<ExitMatchButton />)
+    render(<svg><ExitMatchButton /></svg>)
 
     await user.click(
       screen.getByRole('button', { name: 'Salir del partido' })
@@ -54,7 +64,7 @@ describe('ExitMatchButton', () => {
     useLocation.mockReturnValue({ state: { from: '/friendly' } })
     const user = userEvent.setup()
 
-    render(<ExitMatchButton />)
+    render(<svg><ExitMatchButton /></svg>)
 
     await user.click(
       screen.getByRole('button', { name: 'Salir del partido' })
@@ -64,7 +74,7 @@ describe('ExitMatchButton', () => {
   })
 
   it('es un botón de tipo button', () => {
-    render(<ExitMatchButton />)
+    render(<svg><ExitMatchButton /></svg>)
 
     expect(
       screen.getByRole('button', { name: 'Salir del partido' })
