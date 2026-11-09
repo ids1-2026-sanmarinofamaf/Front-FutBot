@@ -43,6 +43,7 @@ function getPlayerNumbers(matchInfo) {
  * @param {Object} props.matchInfo - Metadatos iniciales del partido (clubes, dorsales, DT).
  * @param {Object|null} [props.pausa] - Datos de pausa activa si el partido está pausado.
  * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana para realizar sustituciones está abierta.
+ * @param {Object|null} [props.penalties=null] - Shootout phase, event data and result history.
  * @returns {JSX.Element}
  */
 export function Match({
@@ -250,6 +251,7 @@ export function Match({
             backgroundColor: "#063343"
           }}
         >
+          {/* Replace only the pitch; the scoreboard, side panels and exit remain visible. */}
           {penalties ? (
             <foreignObject
               x={300}
@@ -340,6 +342,7 @@ export function Match({
             </text>
           </g>
 
+          {/* Keep the player cards visible while locking manual changes during the shootout. */}
           <MatchPlayerOut
             players={estado_partido.players.map(function (player) {
               const assignedName = assignedBehaviorNames[player.player_id]
@@ -390,6 +393,7 @@ export function Match({
         </svg>
       </div>
 
+      {/* Hide a behavior menu that was already open when the shootout began. */}
       <ChangeBehaviorMenu
         player={penalties ? null : selectedStarter}
         behaviors={behaviors || []}

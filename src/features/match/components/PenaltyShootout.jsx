@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react"
 import { submitPenaltyChoice } from "../api.js"
 
+/**
+ * Displays shootout metadata, history and the current phase supplied by MatchPage.
+ * Phases: intro, waiting (restored history), choosing, result and finished.
+ * The server controls progression, results and the winner; this component
+ * manages input feedback, the displayed countdown and visual animations.
+ *
+ * @param {Object} props
+ * @param {Object|null} props.matchInfo Club/player metadata and the viewer's club ID.
+ * @param {Object|null} props.penalties Current phase, event data and resolved penalties.
+ */
 export function PenaltyShootout({
   matchInfo = null,
   penalties = null,
@@ -9,15 +19,19 @@ export function PenaltyShootout({
   const turn = penalties?.data?.turn
   const initialRemainingSeconds =
     penalties?.data?.remaining_seconds ?? 0
+  // Local UI state: submitted choice, displayed time and coin animation completion.
   const [choice, setChoice] = useState(null)
 
   const [remainingSeconds, setRemainingSeconds] = useState(0)
 
   const [coinFinished, setCoinFinished] = useState(false)
 
+  // Restart for each choosing turn; cleanup stops the interval on phase changes or unmount.
   useEffect(function () {
     if (phase !== "choosing") return
 
+    // Use elapsed time instead of counting interval callbacks to avoid timer drift.
+    // This countdown is visual; the server enforces the actual submission deadline.
     const deadline =
       performance.now() + initialRemainingSeconds * 1000
 
@@ -38,6 +52,7 @@ export function PenaltyShootout({
     }
   }, [phase, turn, initialRemainingSeconds])
 
+  // Identify participants and their current role; other viewers remain spectators.
   const myClubID = matchInfo?.my_club_id ?? null
 
   const isParticipant =
@@ -52,14 +67,17 @@ export function PenaltyShootout({
     isParticipant &&
     myClubID !== penalties?.data?.club_id
 
+  // Feedback belongs to its original turn and must not lock choices in later turns.
   const currentChoice = choice?.turn === turn ? choice : null
 
+  // Allow input while time remains; only a recoverable request error allows a retry.
   const canChoose =
     phase === "choosing" &&
     isParticipant &&
     remainingSeconds > 0 &&
     (!currentChoice || currentChoice.status === "error")
 
+  // Both roles submit the same direction; the server determines who kicks and who saves.
   async function handleChoose(side) {
     if (!canChoose) return
 
@@ -74,6 +92,7 @@ export function PenaltyShootout({
       await submitPenaltyChoice(matchInfo.match_id, turn, side)
 
       setChoice(function (previous) {
+        // A late response must not overwrite a choice made in a newer turn.
         if (previous?.turn !== turn) return previous
 
         return {
@@ -87,6 +106,7 @@ export function PenaltyShootout({
 
         return {
           ...previous,
+          // HTTP 409 closes this choice locally; other errors let the user retry.
           status: error.status === 409 ? "closed" : "error",
           error: error.status === 409
             ? "Este turno ya no admite elecciones."
@@ -96,6 +116,8 @@ export function PenaltyShootout({
     }
   }
 
+  // Rebuild the scoreboard from history on every render, including after reconnection.
+  // Each club has three cells: null = pending, true = goal, false = saved.
   const teams = [
     {
       clubId: matchInfo?.team_a?.club_id ?? null,
@@ -126,6 +148,7 @@ export function PenaltyShootout({
 
     if (!team) return
 
+    // Global turns 1/2 map to cell 0, turns 3/4 to cell 1, and turns 5/6 to cell 2.
     const kickIndex = Math.floor((result.turn - 1) / 2)
 
     team.results[kickIndex] = result.is_goal
@@ -135,6 +158,7 @@ export function PenaltyShootout({
     return player.player_id === penalties?.data?.kicker
   })
 
+  // The winner always comes from the server, including when tied scores require a toss.
   const winner = teams.find(function (team) {
     return team.clubId === penalties?.data?.winner_club_id
   })
@@ -146,9 +170,11 @@ export function PenaltyShootout({
 
   const isCoinSpinning = isCoinToss && !coinFinished
 
+  // Three full turns show club A; three and a half show club B on the opposite face.
   const coinFinalAngle =
     winner?.clubId === teams[0].clubId ? "1080deg" : "1260deg"
 
+  // Map server directions to SVG animation targets; only a live result animates the scene.
   const isResult = phase === "result"
 
   const sideOffsets = {
@@ -171,12 +197,14 @@ export function PenaltyShootout({
 
   return (
     <div className="w-full h-full overflow-hidden bg-sm-green text-white">
+      {/* All positions use the 1320 x 800 viewBox; SVG scales the scene to its container. */}
       <svg
         viewBox="0 0 1320 800"
         role="group"
         aria-label="Definición por penales: arco y controles para elegir la dirección"
         className="block w-full h-full"
       >
+        {/* Reusable definitions, referenced by the goal net and direction buttons. */}
         <defs>
           <pattern id="penalty-goal-net" width={28} height={28} patternUnits="userSpaceOnUse">
             <path
@@ -193,9 +221,11 @@ export function PenaltyShootout({
           />
         </defs>
 
+        {/* Pitch and stadium background. Later SVG elements are painted over earlier ones. */}
         <rect width={1320} height={800} fill="#678C5D" />
         <rect width={1320} height={335} fill="#063343" />
 
+        {/* Advertising boards behind the goal. */}
         <g textAnchor="middle" fontSize={66} fontWeight="bold" letterSpacing={3}>
           <rect x={0} y={225} width={440} height={110} fill="#0F172A" />
           <text x={220} y={300} fill="#F2B035">FUTBOT</text>
@@ -205,6 +235,7 @@ export function PenaltyShootout({
           <text x={1100} y={300} fill="#F2B035">FAMAF</text>
         </g>
 
+        {/* Goal line and penalty area drawn in perspective. */}
         <path
           d="M 0 390 H 1320
              M 160 390 L 20 640 H 1300 L 1160 390"
@@ -216,8 +247,10 @@ export function PenaltyShootout({
           opacity={0.8}
         />
 
+        {/* Goal structure: ground shadow, rear net, depth panels and front posts. */}
         <g>
           <path d="M 310 390 L 350 350 H 970 L 1010 390 Z" fill="black" opacity={0.1} />
+          {/* Rear net: the repeating diamond pattern remains translucent. */}
           <rect
             x={350}
             y={90}
@@ -229,6 +262,7 @@ export function PenaltyShootout({
             strokeOpacity={0.55}
             strokeWidth={4}
           />
+          {/* Top and side panels connect the rear net to the front of the goal. */}
           <path
             d="M 310 120 L 350 90 H 970 L 1010 120 Z
                M 310 120 L 350 90 V 350 L 310 390 Z
@@ -239,6 +273,7 @@ export function PenaltyShootout({
             strokeOpacity={0.5}
             strokeWidth={3}
           />
+          {/* Thick front posts and crossbar. */}
           <path
             d="M 310 390 V 120 H 1010 V 390"
             fill="none"
@@ -248,7 +283,8 @@ export function PenaltyShootout({
           />
         </g>
 
-        {/* Goalkeeper */}
+        {/* Goalkeeper: translate the local center x=500 to the goal center x=660. */}
+        {/* The ground shadow stays fixed and is hidden during the dive. */}
         <g transform="translate(160 0)">
           <ellipse
             cx={500}
@@ -259,6 +295,7 @@ export function PenaltyShootout({
             opacity={isResult ? 0 : 0.2}
           />
 
+          {/* Animate the whole body together toward the server's save direction. */}
           <g
             className={
               isResult
@@ -272,6 +309,7 @@ export function PenaltyShootout({
                 : "translate(0px, 0px) rotate(0deg)",
             }}
           >
+            {/* Legs. */}
             <path
               d="M 480 338 L 465 383 M 520 338 L 535 383"
               stroke="#0F172A"
@@ -279,6 +317,7 @@ export function PenaltyShootout({
               strokeLinecap="round"
             />
 
+            {/* Arms and gloves. */}
             <path
               d="M 480 293 L 440 318 M 520 293 L 560 318"
               stroke="#D98E32"
@@ -289,6 +328,7 @@ export function PenaltyShootout({
             <circle cx={435} cy={321} r={12} fill="white" />
             <circle cx={565} cy={321} r={12} fill="white" />
 
+            {/* Shirt and number. */}
             <rect
               x={475}
               y={283}
@@ -309,10 +349,12 @@ export function PenaltyShootout({
               1
             </text>
 
+            {/* Head. */}
             <circle cx={500} cy={260} r={23} fill="#E8BE95" />
           </g>
         </g>
 
+        {/* Ball and its ground shadow. */}
         <g>
           <ellipse
             cx={660}
@@ -323,6 +365,7 @@ export function PenaltyShootout({
             opacity={isResult ? 0 : 0.2}
           />
 
+          {/* Move toward the kick direction and shrink the ball to suggest distance. */}
           <g
             className={
               isResult
@@ -345,6 +388,7 @@ export function PenaltyShootout({
               strokeWidth={2}
             />
 
+            {/* Dark panel over the white ball. */}
             <path
               d="M 660 694 L 674 704 L 669 720 H 651 L 646 704 Z"
               fill="#0F172A"
@@ -352,8 +396,10 @@ export function PenaltyShootout({
           </g>
         </g>
 
+        {/* Participants only: controls surround the ball when kicking and the keeper when saving. */}
         {isParticipant && (
           <g>
+          {/* Left direction. foreignObject embeds an HTML button inside the SVG scene. */}
           <foreignObject
             x={isSaving ? 470 : 495}
             y={isSaving ? 270 : 660}
@@ -376,6 +422,7 @@ export function PenaltyShootout({
             </button>
           </foreignObject>
 
+          {/* Center direction: an arrow for kicking, a circle for staying in place when saving. */}
           <foreignObject
             x={610}
             y={isSaving ? 130 : 575}
@@ -410,6 +457,7 @@ export function PenaltyShootout({
             </button>
           </foreignObject>
 
+          {/* Right direction. */}
           <foreignObject
             x={isSaving ? 750 : 725}
             y={isSaving ? 270 : 660}
@@ -434,6 +482,7 @@ export function PenaltyShootout({
           </g>
         )}
 
+        {/* Role prompt for participants, or the kicking club's name for spectators. */}
         {phase === "choosing" && (
           <text
             x={660}
@@ -447,6 +496,7 @@ export function PenaltyShootout({
           </text>
         )}
 
+        {/* Submission feedback is separate from the penalty outcome received over WebSocket. */}
         {phase === "choosing" && currentChoice && (
           <foreignObject x={260} y={515} width={800} height={55}>
             <p
@@ -462,10 +512,12 @@ export function PenaltyShootout({
           </foreignObject>
         )}
 
+        {/* Name of the current kicker supplied by the match metadata. */}
         <text x={660} y={785} textAnchor="middle" fill="white" fontSize={36}>
           {kicker?.name ?? ""}
         </text>
 
+        {/* Scoreboard: three results per club, with a highlight on the current kick. */}
         <foreignObject x={24} y={16} width={470} height={135}>
           <table className="w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1 text-sm">
             <caption className="sr-only">Marcador de la tanda de penales</caption>
@@ -532,6 +584,7 @@ export function PenaltyShootout({
           </table>
         </foreignObject>
 
+        {/* Display seconds with two digits; the final two seconds and zero use red. */}
         {phase === "choosing" && (
           <g
             role="img"
@@ -550,6 +603,7 @@ export function PenaltyShootout({
           </g>
         )}
 
+        {/* Intro overlay; the next server event determines when the choosing phase begins. */}
         {phase === "intro" && (
           <g
             role="status"
@@ -585,6 +639,7 @@ export function PenaltyShootout({
           </g>
         )}
 
+        {/* Final overlay; a tied shootout reveals its server-selected winner after the coin flip. */}
         {phase === "finished" && (
           <g role="status" aria-label="Resultado de la tanda de penales">
             <rect
@@ -602,6 +657,7 @@ export function PenaltyShootout({
                     : "¡PARTIDO FINALIZADO!"}
                 </p>
 
+                {/* CSS flips between club names; animation completion reveals the winner. */}
                 {isCoinToss && (
                   <div className="penalty-coin-scene">
                     <div

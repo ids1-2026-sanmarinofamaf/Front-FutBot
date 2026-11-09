@@ -49,6 +49,7 @@ function getPlayersInfo(matchInfo) {
  * @param {string|number} [props.matchId] - ID del partido.
  * @param {Object} props.matchInfo - Información estática recibida por WebSocket.
  * @param {Function} [props.onSelectStarter] - Callback al hacer click en un titular propio.
+ * @param {boolean} [props.behaviorChangesDisabled=false] - Lock behavior controls without hiding them.
  * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana de sustituciones está abierta.
  * @returns {JSX.Element}
  */
@@ -396,6 +397,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
       />
 
+      {/* Closing the substitution window also hides any list that was already open. */}
       {selectedStarter && ventanaSustitucionesAbierta && (
         <SubstituteList
           substitutes={selectedSubstitutesList}
@@ -525,6 +527,7 @@ function PlayerSquare({
   onSelectStarter,
   behaviorChangesDisabled = false,
 }) {
+  // Ownership controls visibility; the separate enabled flag locks interaction during penalties.
   const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
   const canChangeBehavior = isClickable && !behaviorChangesDisabled
   const isOwn = Boolean(playerInfo?.isOwn)
@@ -603,6 +606,7 @@ function PlayerSquare({
         </text>
       )}
 
+      {/* Keep the behavior control in place and dim it when interaction is disabled. */}
       {isClickable && (
         <g opacity={behaviorChangesDisabled ? 0.45 : 1}>
           <rect

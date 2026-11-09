@@ -213,7 +213,7 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                 />
               </div>
 
-              {/* definicion_por_penales */}
+              {/* Optional shootouts for tied matches; this flag is sent in the league creation body. */}
               <div className="flex items-center justify-between gap-3 mb-6">
                 <label
                   htmlFor="definicion_por_penales"
