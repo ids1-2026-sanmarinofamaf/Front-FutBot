@@ -21,7 +21,8 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
       nombre: "", 
       duracion_partido: 100, 
       max_usuarios: 3, 
-      es_privada: false, 
+      es_privada: false,
+      definicion_por_penales: false,
       password: "", 
       roster: initialRoster ?? {}
     })
@@ -209,6 +210,31 @@ export default function CreateL({ onClose, roster: initialRoster = {} }) {
                       hideToast();
                     }
                   } 
+                />
+              </div>
+
+              {/* Optional shootouts for tied matches; this flag is sent in the league creation body. */}
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <label
+                  htmlFor="definicion_por_penales"
+                  className="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
+                >
+                  Definición por penales:
+                </label>
+
+                <input
+                  id="definicion_por_penales"
+                  type="checkbox"
+                  className="ml-auto h-6 w-6 shrink-0 accent-emerald-500"
+                  checked={newL.definicion_por_penales}
+                  onChange={(event) => {
+                    setNewL({
+                      ...newL,
+                      definicion_por_penales: event.target.checked,
+                    });
+                    setAlert("");
+                    hideToast();
+                  }}
                 />
               </div>
 

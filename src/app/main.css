@@ -71,3 +71,66 @@
 .toast-enter {
   animation: slide-in-right 0.3s ease-out;
 }
+
+
+/* Perspective gives the two coin faces depth while they rotate. */
+.penalty-coin-scene {
+  width: 200px;
+  height: 200px;
+  perspective: 800px;
+}
+
+/* Keep the faces in 3D and retain the final angle supplied by PenaltyShootout. */
+.penalty-coin {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(var(--coin-final-angle));
+  animation: penalty-coin-flip 3s ease-out forwards;
+}
+
+/* Overlapping circular faces; hide their backs so club names never appear mirrored. */
+.penalty-coin-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 8px solid var(--color-sm-gold);
+  border-radius: 50%;
+  backface-visibility: hidden;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.penalty-coin-front {
+  background: var(--color-sm-celeste);
+}
+
+/* Start the second club on the opposite side of the coin. */
+.penalty-coin-back {
+  background: var(--color-sm-amber);
+  transform: rotateY(180deg);
+}
+
+/* Animate toward the winning face already selected from the backend result. */
+@keyframes penalty-coin-flip {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(var(--coin-final-angle));
+  }
+}
+
+/* Keep animationend firing so the winner is revealed even with reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .penalty-coin {
+    animation-duration: 0.01ms;
+  }
+}

@@ -13,6 +13,7 @@ const WS_BASE_URL = import.meta.env.VITE_WS_SESSION_URL;
  * Gestiona la conexión WebSocket con el servidor enviando el token de autenticación (si existe),
  * almacena la información estática del encuentro (`match_info`), el estado en tiempo real (`estado_partido`),
  * los eventos de pausa y delega el renderizado en la vista `Match`.
+ * Penalty events also update a separate view model consumed by PenaltyShootout.
  *
  * @returns {JSX.Element}
  */
@@ -27,7 +28,10 @@ export function MatchPage() {
   const [coachChanges, setCoachChanges] = useState(null);
   const [coachSubstitutions, setCoachSubstitutions] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  // Shootout view model: phase, current event data and all resolved penalties.
+  const [penalties, setPenalties] = useState(null);
 
+  // Functional updates below read the latest history without capturing it in this memoized callback.
   const handleMessage = useCallback(function (data) {
     switch (data.event) {
       case "match_info":
@@ -84,6 +88,67 @@ export function MatchPage() {
         }
         break;
 
+      // Start the introduction with an empty history for this shootout.
+      case "penalty_shootout_started":
+        setPenalties(
+          {
+            phase: "intro",
+            data,
+            results: [],
+          }
+        );
+        break;
+
+      // Restore completed kicks on connection; waiting displays them without replaying animations.
+      // A following turn or finish event supplies the current phase when applicable.
+      case "penalty_history":
+        setPenalties({
+          phase: "waiting",
+          data: null,
+          results: data.results,
+        });
+        break;
+
+      // Open the next turn while retaining history and the server's remaining choice time.
+      case "penalty_turn_started":
+        setPenalties(function (previous) {
+          return {
+            phase: "choosing",
+            data,
+            results: previous?.results ?? [],
+          };
+        });
+        break;
+
+      // Replace an existing result for the same turn before appending the live event.
+      // History snapshots and live delivery can contain the same completed kick.
+      case "penalty_result":
+        setPenalties(function (previous) {
+          const results = previous?.results ?? [];
+
+          const otherResults = results.filter(function (result) {
+            return result.turn !== data.turn;
+          });
+
+          return {
+            phase: "result",
+            data,
+            results: [... otherResults, data],
+          };
+        });
+        break;
+
+      // Preserve the scoreboard and expose the server-selected winner to the final view.
+      case "penalty_shootout_finished":
+        setPenalties(function (previous) {
+          return {
+            phase: "finished",
+            data,
+            results: previous?.results ?? [],
+          };
+        });
+        break;
+
       default:
         // Compatibilidad con estados que llegan sin campo event.
         if (data.actual_tic !== undefined) {
@@ -94,6 +159,7 @@ export function MatchPage() {
     }
   }, []);
 
+  // A normal socket close leaves the final state visible, including any ongoing coin animation.
   const handleClose = useCallback(function (event) {
     if (event.code === 4404) {
       setErrorMessage("El partido no existe");
@@ -143,6 +209,7 @@ export function MatchPage() {
       matchInfo={matchInfo}
       pausa={pausa}
       ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
+      penalties={penalties}
       coachChanges={coachChanges}
       coachSubstitutions={coachSubstitutions}
     />

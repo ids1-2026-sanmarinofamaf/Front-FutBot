@@ -39,3 +39,27 @@ export const makeSubstitution = async (matchId, playerId, newPlayerId) => {
     }
   );
 };
+
+
+/**
+ * Sends a direction for the authenticated club; the server determines its kick/save role.
+ * The turn identifies which pending penalty the choice belongs to.
+ * Outcomes arrive over WebSocket; this HTTP request only submits the choice.
+ *
+ * @param {string|number} matchId Active match identifier.
+ * @param {number} turn Global shootout turn, from 1 to 6.
+ * @param {"LEFT"|"CENTER"|"RIGHT"} side Chosen kick or save direction.
+ */
+export const submitPenaltyChoice = async (
+  matchId,
+  turn,
+  side,
+) => {
+  return await apiClient(
+    `/live_match/${encodeURIComponent(matchId)}/penalties/choices`,
+    {
+      method: "POST",
+      body: JSON.stringify({turn, side}),
+    }
+  );
+};

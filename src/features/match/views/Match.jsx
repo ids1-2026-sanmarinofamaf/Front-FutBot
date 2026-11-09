@@ -11,6 +11,7 @@ import { ChangeBehaviorMenu } from "../components/ChangeBehaviorMenu"
 import { MatchPause } from "../components/MatchPause"
 import { getBehaviors } from "../../behaviors/api.js"
 import { changeBehavior } from "../api.js"
+import { PenaltyShootout } from "../components/PenaltyShootout.jsx"
 
 const COACH_MESSAGE_DURATION = 4000
 
@@ -42,6 +43,7 @@ function getPlayerNumbers(matchInfo) {
  * @param {Object} props.matchInfo - Metadatos iniciales del partido (clubes, dorsales, DT).
  * @param {Object|null} [props.pausa] - Datos de pausa activa si el partido está pausado.
  * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana para realizar sustituciones está abierta.
+ * @param {Object|null} [props.penalties=null] - Shootout phase, event data and result history.
  * @returns {JSX.Element}
  */
 export function Match({
@@ -50,6 +52,7 @@ export function Match({
   matchInfo,
   pausa,
   ventanaSustitucionesAbierta = true,
+  penalties = null,
   coachChanges = null,
   coachSubstitutions = null,
 }) {
@@ -248,12 +251,41 @@ export function Match({
             backgroundColor: "#063343"
           }}
         >
-          <SoccerField />
+          {/* Replace only the pitch; the scoreboard, side panels and exit remain visible. */}
+          {penalties ? (
+            <foreignObject
+              x={300}
+              y={150}
+              width={1320}
+              height={800}
+            >
+              <PenaltyShootout
+                matchInfo={matchInfo}
+                penalties={penalties}
+              />
+            </foreignObject>
+          ) : (
+            <>
+              <SoccerField />
 
-          <MatchPlayerInMatch
-            players={estado_partido.players}
-            playerNumbers={playerNumbers}
-          />
+              <MatchPlayerInMatch
+                players={estado_partido.players}
+                playerNumbers={playerNumbers}
+              />
+
+              <Ball ball={estado_partido.ball} />
+
+              <foreignObject
+                x={300}
+                y={150}
+                width={1320}
+                height={800}
+                className="pointer-events-none"
+              >
+                <MatchPause pausa={pausa} />
+              </foreignObject>
+            </>
+          )}
 
           <Scoreboard
             estado_partido={estado_partido}
@@ -310,19 +342,7 @@ export function Match({
             </text>
           </g>
 
-          <Ball ball={estado_partido.ball} />
-
-          {/* La pausa cubre únicamente el rectángulo de juego y queda por debajo de los modales de sustitución */}
-          <foreignObject
-            x={300}
-            y={150}
-            width={1320}
-            height={800}
-            className="pointer-events-none"
-          >
-            <MatchPause pausa={pausa} />
-          </foreignObject>
-
+          {/* Keep the player cards visible while locking manual changes during the shootout. */}
           <MatchPlayerOut
             players={estado_partido.players.map(function (player) {
               const assignedName = assignedBehaviorNames[player.player_id]
@@ -334,7 +354,10 @@ export function Match({
             matchId={effectiveMatchId}
             matchInfo={matchInfo}
             onSelectStarter={handleSelectStarter}
-            ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
+            behaviorChangesDisabled={Boolean(penalties)}
+            ventanaSustitucionesAbierta={
+              ventanaSustitucionesAbierta && !penalties
+            }
             coachSubstitutions={coachSubstitutions}
             serverPendingSubstitution={estado_partido.pending_substitution}
           />
@@ -370,8 +393,9 @@ export function Match({
         </svg>
       </div>
 
+      {/* Hide a behavior menu that was already open when the shootout began. */}
       <ChangeBehaviorMenu
-        player={selectedStarter}
+        player={penalties ? null : selectedStarter}
         behaviors={behaviors || []}
         isLoading={isLoadingBehaviors}
         isSubmitting={isSubmittingBehavior}

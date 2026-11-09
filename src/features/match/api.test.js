@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { changeBehavior, makeSubstitution } from "./api";
+import { changeBehavior, makeSubstitution, submitPenaltyChoice, } from "./api";
 import { apiClient } from "../../shared/api/client";
 
 vi.mock("../../shared/api/client", () => ({
@@ -94,4 +94,51 @@ describe("Match API - makeSubstitution", () => {
       "Substitution limit reached"
     );
   });
+});
+
+
+describe("Match API - submitPenaltyChoice", () => {
+  beforeEach(() => {
+    apiClient.mockReset();
+  });
+
+  it.each(["LEFT", "CENTER", "RIGHT"])(
+    "envía la elección %s mediante POST",
+    async (side) => {
+      apiClient.mockResolvedValueOnce(null);
+
+      const result = await submitPenaltyChoice(10, 1, side);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+
+      expect(apiClient).toHaveBeenCalledWith(
+        "/live_match/10/penalties/choices",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            turn: 1,
+            side,
+          }),
+        },
+      );
+
+      expect(result).toBeNull();
+    },
+  );
+
+  it.each([403, 404, 409])(
+    "propaga el error HTTP %s sin reemplazarlo",
+    async (status) => {
+      const error = new Error(`Error HTTP ${status}`);
+      error.status = status;
+
+      apiClient.mockRejectedValueOnce(error);
+
+      await expect(
+        submitPenaltyChoice(10, 1, "LEFT"),
+      ).rejects.toBe(error);
+
+      expect(apiClient).toHaveBeenCalledTimes(1);
+    },
+  );
 });

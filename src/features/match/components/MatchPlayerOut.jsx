@@ -49,6 +49,7 @@ function getPlayersInfo(matchInfo) {
  * @param {string|number} [props.matchId] - ID del partido.
  * @param {Object} props.matchInfo - Información estática recibida por WebSocket.
  * @param {Function} [props.onSelectStarter] - Callback al hacer click en un titular propio.
+ * @param {boolean} [props.behaviorChangesDisabled=false] - Lock behavior controls without hiding them.
  * @param {boolean} [props.ventanaSustitucionesAbierta=true] - Si la ventana de sustituciones está abierta.
  * @returns {JSX.Element}
  */
@@ -58,6 +59,7 @@ export function MatchPlayerOut({
   matchId,
   matchInfo,
   onSelectStarter,
+  behaviorChangesDisabled = false,
   ventanaSustitucionesAbierta = true,
   coachSubstitutions = null,
   serverPendingSubstitution = null,
@@ -364,6 +366,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
+        behaviorChangesDisabled={behaviorChangesDisabled}
         onToggleSubstitutes={handleToggleSubstitutes}
         ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
@@ -375,6 +378,7 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
         pendingSubstitution={pendingSubstitution}
         onSelectStarter={onSelectStarter}
+        behaviorChangesDisabled={behaviorChangesDisabled}
         onToggleSubstitutes={handleToggleSubstitutes}
         ventanaSustitucionesAbierta={ventanaSustitucionesAbierta}
       />
@@ -393,7 +397,8 @@ export function MatchPlayerOut({
         playersInfo={playersInfo}
       />
 
-      {selectedStarter && (
+      {/* Closing the substitution window also hides any list that was already open. */}
+      {selectedStarter && ventanaSustitucionesAbierta && (
         <SubstituteList
           substitutes={selectedSubstitutesList}
           playersInfo={playersInfo}
@@ -419,6 +424,7 @@ function StarterColumn({
   playersInfo,
   pendingSubstitution,
   onSelectStarter,
+  behaviorChangesDisabled = false,
   onToggleSubstitutes,
   ventanaSustitucionesAbierta = true,
 }) {
@@ -447,6 +453,7 @@ function StarterColumn({
               size={135}
               number={playerNumbers[player.player_id]}
               onSelectStarter={onSelectStarter}
+              behaviorChangesDisabled={behaviorChangesDisabled}
             />
 
             {isOwn && (
@@ -518,15 +525,18 @@ function PlayerSquare({
   size,
   number,
   onSelectStarter,
+  behaviorChangesDisabled = false,
 }) {
+  // Ownership controls visibility; the separate enabled flag locks interaction during penalties.
   const isClickable = Boolean(playerInfo?.isOwn && onSelectStarter)
+  const canChangeBehavior = isClickable && !behaviorChangesDisabled
   const isOwn = Boolean(playerInfo?.isOwn)
   const behaviorName = isOwn
     ? (player.current_behavior_name || "Default")
     : null
 
   function handleClick() {
-    if (!isClickable) return
+    if (!canChangeBehavior) return
 
     onSelectStarter({
       player_id: player.player_id,
@@ -539,8 +549,13 @@ function PlayerSquare({
   return (
     <g
       data-testid={`starter-card-${player.player_id}`}
-      onClick={isClickable ? handleClick : undefined}
-      style={isClickable ? { cursor: "pointer" } : undefined}
+      onClick={canChangeBehavior ? handleClick : undefined}
+      aria-disabled={isClickable ? behaviorChangesDisabled: undefined}
+      style={isClickable
+        ? { cursor: canChangeBehavior
+            ? "pointer" : "not-allowed"
+          } : undefined
+      }
     >
       <rect
         x={x}
@@ -591,8 +606,9 @@ function PlayerSquare({
         </text>
       )}
 
+      {/* Keep the behavior control in place and dim it when interaction is disabled. */}
       {isClickable && (
-        <g>
+        <g opacity={behaviorChangesDisabled ? 0.45 : 1}>
           <rect
             x={x + 10}
             y={y + 98}
