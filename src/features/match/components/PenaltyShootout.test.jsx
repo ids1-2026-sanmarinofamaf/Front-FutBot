@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, act } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { PenaltyShootout } from './PenaltyShootout'
 
 describe('PenaltyShootout', () => {
@@ -118,5 +118,199 @@ describe('PenaltyShootout', () => {
     expect(
       container.querySelectorAll('[aria-current="step"]')
     ).toHaveLength(0)
+  })
+
+  it('descuenta el tiempo y muestra rojo en 02, 01 y 00', () => {
+    vi.useFakeTimers()
+
+    try {
+      const { unmount } = render(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'choosing',
+            data: {
+              turn: 1,
+              club_id: 1,
+              kicker: 1,
+              remaining_seconds: 5,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      const clock = screen.getByRole('img', {
+        name: /^Tiempo para elegir:/,
+      })
+
+      expect(clock).toHaveTextContent('05')
+      expect(clock).toHaveAttribute('fill', '#F2F2F2')
+
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+
+      expect(clock).toHaveTextContent('03')
+      expect(clock).toHaveAttribute('fill', '#F2F2F2')
+
+      for (const expected of ['02', '01', '00']) {
+        act(() => {
+          vi.advanceTimersByTime(1000)
+        })
+
+        expect(clock).toHaveTextContent(expected)
+        expect(clock).toHaveAttribute('fill', '#F87171')
+      }
+
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+
+      expect(clock).toHaveTextContent('00')
+
+      unmount()
+
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('respeta el tiempo restante recibido y no reinicia el reloj al renderizar el mismo turno', () => {
+    vi.useFakeTimers()
+
+    try {
+      const { rerender, unmount } = render(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'choosing',
+            data: {
+              turn: 1,
+              club_id: 1,
+              kicker: 1,
+              remaining_seconds: 1.5,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      const clock = screen.getByRole('img', {
+        name: /^Tiempo para elegir:/,
+      })
+
+      expect(clock).toHaveTextContent('02')
+
+      act(() => {
+        vi.advanceTimersByTime(500)
+      })
+
+      expect(clock).toHaveTextContent('01')
+
+      rerender(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'choosing',
+            data: {
+              turn: 1,
+              club_id: 1,
+              kicker: 1,
+              remaining_seconds: 1.5,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      expect(clock).toHaveTextContent('01')
+
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(clock).toHaveTextContent('00')
+
+      unmount()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reinicia el reloj para un nuevo turno y elimina el intervalo al finalizar', () => {
+    vi.useFakeTimers()
+
+    try {
+      const { rerender } = render(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'choosing',
+            data: {
+              turn: 1,
+              club_id: 1,
+              kicker: 1,
+              remaining_seconds: 5,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      const clock = screen.getByRole('img', {
+        name: /^Tiempo para elegir:/,
+      })
+
+      act(() => {
+        vi.advanceTimersByTime(3000)
+      })
+
+      expect(clock).toHaveTextContent('02')
+
+      rerender(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'choosing',
+            data: {
+              turn: 2,
+              club_id: 2,
+              kicker: 7,
+              remaining_seconds: 5,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      expect(clock).toHaveTextContent('05')
+      expect(clock).toHaveAttribute('fill', '#F2F2F2')
+      expect(vi.getTimerCount()).toBe(1)
+
+      rerender(
+        <PenaltyShootout
+          matchInfo={matchInfo}
+          penalties={{
+            phase: 'finished',
+            data: {
+              winner_club_id: 2,
+              score_club_a: 1,
+              score_club_b: 2,
+            },
+            results: [],
+          }}
+        />
+      )
+
+      expect(
+        screen.queryByRole('img', { name: /^Tiempo para elegir:/ })
+      ).not.toBeInTheDocument()
+
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

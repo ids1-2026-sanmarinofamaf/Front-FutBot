@@ -1,7 +1,39 @@
+import { useEffect, useState } from "react"
+
 export function PenaltyShootout({
   matchInfo = null,
   penalties = null,
 }) {
+  const phase = penalties?.phase
+  const turn = penalties?.data?.turn
+  const initialRemainingSeconds =
+    penalties?.data?.remaining_seconds ?? 0
+
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
+
+  useEffect(function () {
+    if (phase !== "choosing") return
+
+    const deadline =
+      performance.now() + initialRemainingSeconds * 1000
+
+    function updateCountdown() {
+      const seconds = Math.ceil(
+        (deadline - performance.now()) / 1000
+      )
+
+      setRemainingSeconds(Math.max(0, seconds))
+    }
+
+    updateCountdown()
+
+    const interval = setInterval(updateCountdown, 100)
+
+    return function () {
+      clearInterval(interval)
+    }
+  }, [phase, turn, initialRemainingSeconds])
+
   const teams = [
     {
       clubId: matchInfo?.team_a?.club_id ?? null,
@@ -249,10 +281,23 @@ export function PenaltyShootout({
             </tbody>
           </table>
         </foreignObject>
-
-        <g role="img" aria-label="Tiempo para elegir: 5 segundos" textAnchor="middle" fill="#F2F2F2">
-          <text x={1170} y={135} fontSize={140} fontWeight="bold">05</text>
-        </g>
+        {phase === "choosing" && (
+          <g
+            role="img"
+            aria-label={`Tiempo para elegir: ${remainingSeconds} segundos`}
+            textAnchor="middle"
+            fill={remainingSeconds <= 2 ? "#F87171" : "#F2F2F2"}
+          >
+            <text
+              x={1170}
+              y={135}
+              fontSize={140}
+              fontWeight="bold"
+            >
+              {String(remainingSeconds).padStart(2, "0")}
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   )
