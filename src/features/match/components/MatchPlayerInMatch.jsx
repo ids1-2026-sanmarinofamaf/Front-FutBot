@@ -45,6 +45,16 @@ export function MatchPlayerInMatch({
 
           return (
             <g key={p.player_id}>
+              {/* Ground shadow adds visual depth without shifting the player. */}
+              <ellipse
+                cx={pos.x}
+                cy={pos.y + 7}
+                rx={22}
+                ry={19}
+                fill="#0F172A"
+                opacity={0.22}
+              />
+
               <circle
                 cx={pos.x}
                 cy={pos.y}
@@ -52,6 +62,17 @@ export function MatchPlayerInMatch({
                 fill={color}
                 stroke={borderColor}
                 strokeWidth={5}
+              />
+
+              {/* Subtle upper highlight suggests a raised surface. */}
+              <path
+                d="M -12 -11 A 16 16 0 0 1 12 -11"
+                transform={`translate(${pos.x} ${pos.y})`}
+                fill="none"
+                stroke="white"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                opacity={0.35}
               />
 
               <text

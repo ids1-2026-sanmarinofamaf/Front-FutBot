@@ -28,7 +28,7 @@ describe("Ball", () => {
 
     const circle = container.querySelector("circle");
 
-    expect(circle).toHaveAttribute("fill", "white");
+    expect(circle).toHaveAttribute("fill", "#E6ECEF");
     expect(circle).toHaveAttribute("stroke", "#0F172A");
     expect(circle).toHaveAttribute("r", "9");
   });
